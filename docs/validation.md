@@ -26,6 +26,8 @@ The native credential probe in the implementation workspace failed with `securit
 
 ## Remaining live checks
 
+Unchecked items below remain unverified. Closing the tracking issue or publishing v0.1.0 does not count as passing these checks.
+
 - [ ] Validate global/per-printer alert preferences, snooze/resume, restart persistence, and expiry on H2D/X2D. v0.0.9 has synthetic/store/demo coverage; live interruption behavior remains unconfirmed.
 
 - [ ] Compare installed OTA firmware and reported update status against the printer/Bambu app on H2D and X2D; record versions. The v0.0.6 firmware parser and read-only query have synthetic/broker/demo coverage, not confirmed live firmware results.

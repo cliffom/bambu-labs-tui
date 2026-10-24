@@ -17,9 +17,9 @@ These milestones define intended scope and release criteria, not delivery dates.
 
 ### Next — Reliability
 
-Complete [live hardware and restart validation (#6)](https://github.com/cliffom/bambu-tui/issues/6). Verify login persistence, H2D/X2D telemetry and filament paths, reported pause/recovery/completion, network reconnection, saved decisions, and action-needed modals during normal printer use. Record models, firmware, host environment, and actual results in the validation documentation. Fix findings and add sanitized regressions where useful.
+The [validation record](docs/validation.md) retains the unperformed live checks; [#6](https://github.com/cliffom/bambu-tui/issues/6) records their original scope. Verify login persistence, H2D/X2D telemetry and filament paths, reported pause/recovery/completion, network reconnection, saved decisions, and action-needed modals during normal printer use. Record models, firmware, host environment, and actual results in the validation documentation. Fix findings and add sanitized regressions where useful.
 
-The release gate is documented evidence for the supported setup. Leave unperformed checks and unsupported combinations explicit.
+Record evidence for the supported setup as checks are performed. Leave unperformed checks and unsupported combinations explicit.
 
 ### v0.1.0 — Daily farm usability
 
@@ -44,7 +44,7 @@ LAN delivery depends on hardware-backed feasibility. If a required combination i
 
 ## Recommended implementation order
 
-1. Complete live validation and fix findings: [#6](https://github.com/cliffom/bambu-tui/issues/6).
+1. Record remaining live validation and fix findings (original scope: [#6](https://github.com/cliffom/bambu-tui/issues/6)).
 2. Make persisted notice decisions inspectable and reversible: [#7](https://github.com/cliffom/bambu-tui/issues/7).
 3. Improve attention-focused farm navigation: [#8](https://github.com/cliffom/bambu-tui/issues/8).
 4. Add per-printer interruption preferences and snoozing: [#9](https://github.com/cliffom/bambu-tui/issues/9).

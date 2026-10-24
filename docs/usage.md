@@ -94,7 +94,7 @@ Press `n` from any dashboard panel to open **Notice decisions**. It includes dis
 - `u` explicitly marks an acknowledged notice unreviewed. This leaves its visibility or dismissal unchanged. To make a dismissed, acknowledged notice both visible and unreviewed, use both actions.
 - `R` opens a confirmation to reset all acknowledgements and dismissals for the **current account and region**, including decisions awaiting telemetry. Press `y` to reset or `n` / `Esc` to cancel. Reset preserves printer telemetry and session event history. Demo mode changes only demo decisions.
 
-Saved decisions awaiting startup reports are labelled **Awaiting telemetry**; their descriptions may be unavailable until the printer reports. Editing them does not create active notices. When telemetry confirms resolution, the saved decision disappears; a later recurrence is a new, unreviewed occurrence.
+Saved decisions awaiting startup reports are labelled **Awaiting telemetry**; saved low-filament decisions show their AMS unit and slot, while other descriptions may be unavailable until the printer reports. Unsupported notice types retain their saved identity. Editing them does not create active notices. When telemetry confirms resolution, the saved decision disappears; a later recurrence is a new, unreviewed occurrence.
 
 An individual restore or mark-unreviewed action clears session-only prompt suppression for that occurrence. A restored notice that remains acknowledged does not prompt. A visible, unreviewed actionable notice can prompt after you close this view and the normal batching delay passes. Reset clears session suppression for all occurrences. Alerts continue to queue while this view or its reset confirmation is open.
 

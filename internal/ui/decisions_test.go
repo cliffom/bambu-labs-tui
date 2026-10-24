@@ -321,3 +321,60 @@ func TestDecisionScrollingAndSmallConfirmation(t *testing.T) {
 		t.Fatal("cancel lost the description's scroll position")
 	}
 }
+
+// TestPendingFilamentDecisionsRemainDistinct checks saved slot identity before reports arrive.
+func TestPendingFilamentDecisionsRemainDistinct(t *testing.T) {
+	store := noticestore.Store{Path: filepath.Join(t.TempDir(), "notices.json")}
+	m := demoModel()
+	r := farm.Review{Dismissed: true, Level: "warning", Since: m.now}
+	if err := store.Save(map[string]farm.Review{"H/low/0/0": r, "H/low/1/3": r, "H/low/128/0": r}); err != nil {
+		t.Fatal(err)
+	}
+	saved, err := store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Farm.RestoreReviews(saved)
+	m = m.WithNoticePersistence(store.Save, nil)
+	m = key(m, "n")
+	for _, want := range []struct{ key, description string }{
+		{"H/low/0/0", "AMS 1 slot 1"},
+		{"H/low/1/3", "AMS 2 slot 4"},
+		{"H/low/128/0", "AMS HT 1 slot 1"},
+	} {
+		if m.decisions.key != want.key {
+			t.Fatalf("navigation selected %q, want %q", m.decisions.key, want.key)
+		}
+		text := decisionText(m)
+		if !strings.Contains(text, want.description) || !strings.Contains(text, "saved low-filament decision") || !strings.Contains(text, "Awaiting telemetry") || len(m.Farm.Active) != 0 {
+			t.Fatalf("saved decision lacks distinct identity or claims live status: %s", text)
+		}
+		m = key(m, "j")
+	}
+	m = key(m, "k") // Select AMS 2 slot 4 rather than the neighboring AMS HT decision.
+	m = key(m, "r")
+	saved, err = store.Load()
+	if err != nil || len(saved) != 2 || !saved["H/low/0/0"].Dismissed || !saved["H/low/128/0"].Dismissed {
+		t.Fatalf("restoration changed neighboring decisions: %v, %v", saved, err)
+	}
+	if _, exists := saved["H/low/1/3"]; exists || len(m.Farm.Active) != 0 {
+		t.Fatal("selected pending dismissal was retained or created an active fault")
+	}
+}
+
+// TestPendingDecisionFallbackRetainsIdentity distinguishes unsupported or malformed saved keys.
+func TestPendingDecisionFallbackRetainsIdentity(t *testing.T) {
+	m := demoModel()
+	m.Farm.RestoreReviews(map[string]farm.Review{
+		"H/low/bad/0": {Dismissed: true, Since: m.now},
+		"H/low/0/-1":  {Dismissed: true, Since: m.now},
+		"H/unknown/1": {Dismissed: true, Since: m.now},
+	})
+	m = key(m, "n")
+	for _, family := range []string{"low/0/-1", "low/bad/0", "unknown/1"} {
+		if text := decisionText(m); !strings.Contains(text, family) || !strings.Contains(text, "Awaiting telemetry") {
+			t.Fatalf("fallback dropped saved identity %q: %s", family, text)
+		}
+		m = key(m, "j")
+	}
+}

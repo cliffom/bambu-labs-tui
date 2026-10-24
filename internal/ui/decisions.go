@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -36,7 +37,7 @@ func (m Model) decisionItems() []decisionItem {
 		}
 		text := r.Text
 		if text == "" {
-			text = "Saved notice; description awaits printer telemetry"
+			text = pendingDecisionDescription(key)
 		}
 		items[key] = decisionItem{key: key, printer: printer, text: text, code: r.Code, level: r.Level, review: r}
 	}
@@ -52,6 +53,23 @@ func (m Model) decisionItems() []decisionItem {
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].key < result[j].key })
 	return result
+}
+
+// pendingDecisionDescription identifies saved decisions without claiming a live condition.
+func pendingDecisionDescription(key string) string {
+	_, family, found := strings.Cut(key, "/")
+	if !found {
+		family = key
+	}
+	parts := strings.Split(family, "/")
+	if len(parts) == 3 && parts[0] == "low" {
+		unit, unitErr := strconv.ParseUint(parts[1], 10, 8)
+		slot, slotErr := strconv.ParseUint(parts[2], 10, 8)
+		if unitErr == nil && slotErr == nil && slot < 4 {
+			return fmt.Sprintf("%s slot %d: saved low-filament decision (awaiting telemetry)", farm.AMSLabel(int(unit)), slot+1)
+		}
+	}
+	return fmt.Sprintf("Saved notice (%s); description awaits printer telemetry", family)
 }
 
 // selectItem preserves identity through incoming reports, falling back after removal.

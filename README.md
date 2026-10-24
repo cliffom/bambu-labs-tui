@@ -8,14 +8,14 @@
 
 A terminal dashboard for a Bambu Lab print farm. Built for monitoring an **H2D and X2D through Bambu Cloud**, with a simulated farm you can try immediately. Source: [cliffom/bambu-labs-tui](https://github.com/cliffom/bambu-labs-tui).
 
-## Install v0.0.3
+## Install v0.0.4
 
 Download the archive for your OS and CPU from [Releases](https://github.com/cliffom/bambu-labs-tui/releases), along with its checksums file. Verify the archive before extracting it:
 
 ```sh
 # macOS example; use the matching Linux archive on Linux.
-shasum -a 256 -c bambu-tui_v0.0.3_checksums.txt --ignore-missing
-tar -xzf bambu-tui_v0.0.3_darwin_arm64.tar.gz
+shasum -a 256 -c bambu-tui_v0.0.4_checksums.txt --ignore-missing
+tar -xzf bambu-tui_v0.0.4_darwin_arm64.tar.gz
 ./bambu-tui --version
 ./bambu-tui --demo
 ```
@@ -113,7 +113,7 @@ For historical events, `c` deletes the selected event; `C` clears all recent eve
 
 ### Action-needed alerts
 
-Source builds after v0.0.3 automatically open an **Action needed** modal for verified runout, feed/retract failures, clogs, and other supported intervention-required faults, or a failed print. Unknown faults accompanying a stopped printer get a generic review prompt. An ambiguous pause is reviewed once both HMS and print-error snapshots have arrived; its cause is not guessed. Maintenance, low estimates, explicit user pauses, and reported automatic recovery do not independently interrupt you.
+Starting with v0.0.4, an **Action needed** modal automatically opens for verified runout, feed/retract failures, clogs, and other supported intervention-required faults, or a failed print. Unknown faults accompanying a stopped printer get a generic review prompt. An ambiguous pause is reviewed once both HMS and print-error snapshots have arrived; its cause is not guessed. Maintenance, low estimates, explicit user pauses, and reported automatic recovery do not independently interrupt you.
 
 Reports are collected for two seconds and grouped by printer. `Tab` / `Shift+Tab` switches printers; arrows or page keys scroll. `Enter` opens a notice, `p` selects printer details, and `o` opens a displayed HMS troubleshooting link. `a` acknowledges only that printer's displayed notices; `c` dismisses them locally. `Esc` closes the entire queued prompt without acknowledging anything, restoring your previous dashboard focus. Those occurrences do not automatically prompt again during this session; `!` reopens eligible unreviewed alerts.
 

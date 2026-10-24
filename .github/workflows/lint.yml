@@ -28,3 +28,7 @@ jobs:
         run: GOBIN="$PWD/bin/tools" go install "github.com/rhysd/actionlint/cmd/actionlint@$(cat .actionlint-version)"
       - name: Validate GitHub Actions workflows
         run: make lint-actions ACTIONLINT=./bin/tools/actionlint
+      - name: Install Makefile linter
+        run: GOBIN="$PWD/bin/tools" go install "github.com/checkmake/checkmake/cmd/checkmake@$(cat .checkmake-version)"
+      - name: Lint Makefile
+        run: make lint-make CHECKMAKE=./bin/tools/checkmake

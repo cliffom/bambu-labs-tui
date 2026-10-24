@@ -1,4 +1,4 @@
-.PHONY: build auth run test check fmt fmt-check lint lint-actions lint-make cross release
+.PHONY: build auth run test check fmt fmt-check lint lint-actions lint-make audit-faults cross release
 
 GOLANGCI_LINT ?= golangci-lint
 ACTIONLINT ?= actionlint
@@ -46,6 +46,9 @@ lint-actions:
 
 lint-make:
 	$(CHECKMAKE) --config checkmake.ini Makefile
+
+audit-faults:
+	BAMBU_AUDIT_UPSTREAM=1 go test ./internal/farm -run '^TestUpstreamFaultCatalogue$$' -count=1 -v
 
 cross:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-darwin-arm64 ./cmd/bambu-tui

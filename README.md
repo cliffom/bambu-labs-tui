@@ -136,6 +136,7 @@ make fmt-check # check formatting without changing files
 make lint    # golangci-lint
 make lint-actions # actionlint for GitHub Actions workflows
 make lint-make # checkmake for the Makefile
+make audit-faults # verify fault codes against pinned upstream catalogues (network required)
 make build   # bin/bambu-tui
 make auth    # build and log in using an email code
 make run     # build and open the dashboard

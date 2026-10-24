@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `make audit-faults` and a CI check to verify all bundled fault codes and generated HMS slot labels against pinned upstream catalogues.
 - Expand verified filament fault descriptions for standard AMS, AMS HT, and external spools: distinguish runout, empty slots, recovery, feed/retract failures, possible tangles, and nozzle clogs.
 - Preserve printer-provided messages, wire severity, troubleshooting codes, unknown-code fallbacks, and independent review lifetimes for paused state and individual faults.
 - Add synthetic H2D/X2D fault fixtures and regression coverage for runout persistence, new fault identities, observed recurrence, and automatic recovery stages. Document pinned upstream sources and remaining catalogue gaps.

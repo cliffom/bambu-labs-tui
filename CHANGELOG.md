@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Show an action-needed modal for verified intervention-required faults, failed prints, and reported pauses whose reason remains unknown after fault snapshots arrive.
+- Group related notices by printer, collect incremental reports, defer alerts during other dialogs, and retain independent notice identities and saved reviews. Closing a prompt leaves notices unreviewed and suppresses repeat prompts for those occurrences during the session; `!` reopens eligible alerts.
+- Add explicit local acknowledge/dismiss actions, notice/printer navigation, troubleshooting links, live resolution updates, and a simulated runout scenario in demo mode. Maintenance, low estimates, explicit user pauses, and automatic recovery messages do not independently trigger alerts.
+
 ## 0.0.3 — Expanded filament fault descriptions
 
 - Add `make audit-faults` and a CI check to verify all bundled fault codes and generated HMS slot labels against pinned upstream catalogues.

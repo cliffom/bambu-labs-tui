@@ -89,6 +89,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `g` / `G` | Select the first/last printer or notice |
 | `Enter` | View the selected notice; `Esc` or `Enter` returns |
 | `f` | Open the selected printer's first active fault |
+| `!` | Reopen unreviewed action-needed alerts |
 | `a` | Toggle local acknowledgement of the selected active notice |
 | `c` | Dismiss an active notice from the TUI, or delete a historical event |
 | `C` | Clear recent event history after confirmation |
@@ -109,6 +110,16 @@ Starting with v0.0.2, acknowledgements and dismissals are saved immediately and 
 Saved decisions survive discovery and partial startup telemetry until the relevant status arrives. Confirmed resolution removes the saved decision. If a condition resolves and recurs entirely while the TUI is closed, the app cannot identify that as a new occurrence without a printer-provided identifier; the matching decision is retained until resolution is observed. Recent event history remains session-only, and `--demo` neither reads nor writes saved notice decisions. If storage fails, a persistent warning reports that decisions may apply only to the current session; an unreadable or unsupported file is preserved without overwriting it.
 
 For historical events, `c` deletes the selected event; `C` clears all recent events after confirmation. Clearing history leaves active conditions intact. Local dismissal preserves printer telemetry and does not send printer-side fault-clear commands; resolve or dismiss those through the printer or Bambu's own applications.
+
+### Action-needed alerts
+
+Source builds after v0.0.3 automatically open an **Action needed** modal for verified runout, feed/retract failures, clogs, and other supported intervention-required faults, or a failed print. Unknown faults accompanying a stopped printer get a generic review prompt. An ambiguous pause is reviewed once both HMS and print-error snapshots have arrived; its cause is not guessed. Maintenance, low estimates, explicit user pauses, and reported automatic recovery do not independently interrupt you.
+
+Reports are collected for two seconds and grouped by printer. `Tab` / `Shift+Tab` switches printers; arrows or page keys scroll. `Enter` opens a notice, `p` selects printer details, and `o` opens a displayed HMS troubleshooting link. `a` acknowledges only that printer's displayed notices; `c` dismisses them locally. `Esc` closes the entire queued prompt without acknowledging anything, restoring your previous dashboard focus. Those occurrences do not automatically prompt again during this session; `!` reopens eligible unreviewed alerts.
+
+Existing inspectors, confirmations, and help finish before an alert opens. Telemetry continues, and a resolved condition is marked in the open modal. Saved acknowledgements/dismissals suppress corresponding startup alerts. A different fault or an observed resolved-and-recurring occurrence remains eligible. Distinct codes arriving after a dialog was closed can prompt again because telemetry does not always identify which reports belong to one incident. Underlying notices remain independent. See [alert behavior](docs/action-needed.md) for details.
+
+To preview the modal without a printer, run `make run RUN_ARGS='--demo'`: the X2D simulates runout about 15 seconds after launch and recovers about nine seconds later. Demo decisions are never persisted.
 
 ## Interpreting the data
 

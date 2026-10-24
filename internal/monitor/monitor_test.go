@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"sync"
@@ -12,6 +13,26 @@ import (
 	"github.com/cliffom/bambu-labs-tui/internal/cloud"
 	"github.com/cliffom/bambu-labs-tui/internal/farm"
 )
+
+// TestDemoRunoutScenario verifies the demo's modal incident without a timed wait.
+func TestDemoRunoutScenario(t *testing.T) {
+	print := map[string]any{"gcode_state": "PAUSE"}
+	addDemoRunout(print)
+	payload, err := json.Marshal(map[string]any{"print": print})
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	s := farm.New(10)
+	s.Cloud(true, "", now)
+	s.Discover([]farm.Device{{ID: "demo", Online: true}}, now)
+	if err := s.Report("demo", payload, now); err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Attention()) != 3 || s.Printers["demo"].Stage != "Filament runout" {
+		t.Fatal("demo did not produce related runout/state notices")
+	}
+}
 
 type fakeAPI struct{ err error }
 

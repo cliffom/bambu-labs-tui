@@ -180,7 +180,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.toastAt = m.now
 		default:
-			if m.focus == 0 {
+			switch m.focus {
+			case 0:
 				old := m.selection
 				switch v.String() {
 				case "up", "k":
@@ -195,9 +196,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if old != m.selection {
 					m.details.GotoTop()
 				}
-			} else if m.focus == 1 {
+			case 1:
 				m.details, cmd = m.details.Update(msg)
-			} else {
+			default:
 				switch key {
 				case "up", "k":
 					m.moveNotice(-1, false)
@@ -527,9 +528,10 @@ func (m Model) detailText(w int) string {
 		lines = append(lines, "", warning.Render("PRINTER NOTICES / FAULTS"))
 		for _, f := range visibleFaults {
 			style := muted
-			if f.Level == "error" {
+			switch f.Level {
+			case "error":
 				style = danger
-			} else if f.Level == "warning" {
+			case "warning":
 				style = warning
 			}
 			lines = append(lines, style.Render(safe(f.Text)), muted.Render(safe(f.Code)))

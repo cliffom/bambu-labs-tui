@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	ErrAuth        = errors.New("Bambu session expired or rejected; run bambu-tui login")
-	ErrBlocked     = errors.New("Bambu Cloud rejected the request; try again later or import an existing token with bambu-tui login --token")
-	ErrRateLimited = errors.New("Bambu Cloud rate limit reached; retry later")
+	ErrAuth        = errors.New("account session expired or rejected; run bambu-tui login")
+	ErrBlocked     = errors.New("request rejected by Bambu Cloud; try again later or import an existing token with bambu-tui login --token")
+	ErrRateLimited = errors.New("rate limited by Bambu Cloud; retry later")
 )
 
 type Client struct {
@@ -83,7 +83,7 @@ func (c *Client) request(ctx context.Context, method, url, token string, body an
 		}
 		return nil, nil, errors.New("cannot reach Bambu Cloud")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024+1))
 	if err != nil || len(data) > 2*1024*1024 {
 		return nil, resp, errors.New("invalid account response")
@@ -97,7 +97,7 @@ func (c *Client) request(ctx context.Context, method, url, token string, body an
 		return nil, resp, ErrRateLimited
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, resp, fmt.Errorf("Bambu Cloud request failed (HTTP %d)", resp.StatusCode)
+		return nil, resp, fmt.Errorf("cloud request failed (HTTP %d)", resp.StatusCode)
 	}
 	// Never expose a response body: it may contain account secrets.
 	return data, resp, nil
@@ -113,10 +113,10 @@ func decode(data []byte, dest any) error {
 	}
 	_ = json.Unmarshal(data, &status)
 	if len(status.Code) > 0 && string(status.Code) != "null" && string(status.Code) != "0" && string(status.Code) != `"0"` {
-		return errors.New("Bambu Cloud rejected the request or verification code")
+		return errors.New("cloud request or verification code rejected")
 	}
 	if len(status.Error) > 0 && string(status.Error) != "null" && string(status.Error) != `""` {
-		return errors.New("Bambu Cloud returned an account error")
+		return errors.New("cloud account error returned")
 	}
 	return nil
 }
@@ -164,7 +164,7 @@ func (c *Client) TwoFactor(ctx context.Context, key, code string) (string, error
 		}
 	}
 	if csrf == "" {
-		return "", errors.New("Bambu did not provide a sign-in cookie; try token import")
+		return "", errors.New("no sign-in cookie provided by Bambu; try token import")
 	}
 	data, resp, err := c.request(ctx, "POST", c.SiteURL+"/api/sign-in/tfa", "", map[string]string{"tfaKey": key, "tfaCode": code}, http.Header{"X-Bbl-Csrf-Token": {csrf}})
 	if err != nil {

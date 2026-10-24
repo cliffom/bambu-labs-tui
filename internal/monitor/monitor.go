@@ -104,7 +104,7 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 	}
 }
 func (r *Runner) watch(ctx context.Context, conn Transport, devices []farm.Device, out chan<- Event, refresh <-chan struct{}) error {
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
 	known := map[string]bool{}

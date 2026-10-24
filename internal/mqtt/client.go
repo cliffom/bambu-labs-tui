@@ -35,12 +35,12 @@ func Dial(ctx context.Context, address, username, password string) (*Client, err
 	defer stop()
 	id := make([]byte, 8)
 	if _, err := rand.Read(id); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, err
 	}
 	c, err := handshake(conn, "bambu-tui-"+hex.EncodeToString(id), username, password)
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, err
 	}
 	return c, nil
@@ -53,7 +53,7 @@ func handshake(conn net.Conn, id, user, password string) (*Client, error) {
 	}
 	c := &Client{conn: conn}
 	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
-	defer conn.SetDeadline(time.Time{})
+	defer func() { _ = conn.SetDeadline(time.Time{}) }()
 	body := append(field("MQTT"), 4, 0xc2, 0, 60)
 	body = append(body, field(id)...)
 	body = append(body, field(user)...)
@@ -82,7 +82,9 @@ func validSerial(id string) bool {
 		return false
 	}
 	for _, r := range id {
-		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' || r == '-') {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '_', r == '-':
+		default:
 			return false
 		}
 	}

@@ -1,4 +1,6 @@
-.PHONY: build test check cross release
+.PHONY: build test check fmt fmt-check lint lint-actions cross release
+GOLANGCI_LINT ?= golangci-lint
+ACTIONLINT ?= actionlint
 VERSION ?= $(shell cat VERSION)
 COMMIT ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -10,6 +12,18 @@ test:
 	go test -race ./...
 check:
 	go vet ./...
+fmt:
+	gofmt -w cmd internal
+fmt-check:
+	@set -e; files="$$(gofmt -l cmd internal)"; \
+	if [ -n "$$files" ]; then \
+		printf 'Go files need formatting:\n%s\nRun make fmt to fix them.\n' "$$files"; \
+		exit 1; \
+	fi
+lint:
+	$(GOLANGCI_LINT) run
+lint-actions:
+	$(ACTIONLINT)
 cross:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-darwin-arm64 ./cmd/bambu-tui
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-darwin-amd64 ./cmd/bambu-tui

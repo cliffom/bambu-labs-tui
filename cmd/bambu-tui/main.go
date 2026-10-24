@@ -46,7 +46,7 @@ func run(args []string) error {
 	sessionOnly := flags.Bool("session", false, "login for this session and open the dashboard without saving")
 	version := flags.Bool("version", false, "show version")
 	flags.Usage = func() {
-		fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor] [options]\n\nExamples:\n  bambu-tui --demo\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor] [options]\n\nExamples:\n  bambu-tui --demo\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {

@@ -118,12 +118,20 @@ Requires Go 1.26 or newer. Bubble Tea v1, Bubbles, and Lip Gloss are pinned in `
 ```sh
 make test    # tests with the race detector
 make check   # go vet
+make fmt     # format Go source
+make fmt-check # check formatting without changing files
+make lint    # golangci-lint
+make lint-actions # actionlint for GitHub Actions workflows
 make build   # bin/bambu-tui
 make cross   # macOS/Linux, arm64/amd64 binaries in dist/
 make release # versioned archives, SHA-256 checksums, and dependency licenses
 ```
 
-`VERSION` is the release version. Make injects version, commit, and UTC build date into `--version`; a source build without Git metadata reports `unknown` for its commit. CI runs race tests, vet, and formatting checks on Linux/macOS, checks native credential persistence on macOS, and packages release candidates on Linux. A pushed version tag creates a **draft** release for review; it does not publish automatically.
+`VERSION` is the release version. Make injects version, commit, and UTC build date into `--version`; a source build without Git metadata reports `unknown` for its commit. CI runs race tests and vet on Linux/macOS, checks native credential persistence on macOS, and packages release candidates on Linux. A pushed version tag creates a **draft** release for review; it does not publish automatically.
+
+The separate **Formatting and lint** workflow checks Go formatting, error handling, vet diagnostics, ineffective assignments, static analysis, unused code, and GitHub Actions syntax on pull requests and pushes to `main`. It reports formatting problems without rewriting source. Run `make fmt` locally to fix formatting.
+
+Install the versions in `.golangci-lint-version` and `.actionlint-version` to reproduce the lint checks locally. Get golangci-lint from its [official releases](https://github.com/golangci/golangci-lint/releases), and install actionlint with `go install "github.com/rhysd/actionlint/cmd/actionlint@$(cat .actionlint-version)"`. `make lint` and `make lint-actions` use tools on `PATH`; override `GOLANGCI_LINT` or `ACTIONLINT` when installed elsewhere. Workflow lint also uses ShellCheck when it is available.
 
 Packages separate cloud authentication/discovery, the MQTT transport, the monitor worker, normalized farm state, credential storage, configuration, and the terminal UI. The UI reducer alone mutates farm state. Transports communicate through messages and stop on context cancellation.
 

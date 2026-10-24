@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.5 — Clearer printer details
+
+- Label printer details explicitly and align values, including status, connection, stage, finish time, temperatures, filament summaries, and faults. Wrap long values beneath the value column.
+- Update repository links, badges, Go module/imports, and packaging references for the rename to `cliffom/bambu-tui`.
+- Correct the logo shadow's lower-right pixel stepping in layered sources, icon exports, and the README hero.
+- Add the linked project roadmap. Live hardware/restart validation remains open under the v0.0.6 reliability target.
+
 ## 0.0.4 — Action-needed alerts
 
 - Require closing modal dialogs before quitting the TUI; `q` and `Ctrl+C` apply only from the dashboard.

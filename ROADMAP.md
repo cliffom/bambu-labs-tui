@@ -2,7 +2,7 @@
 
 Bambu TUI aims to be a dependable, read-only monitor for a Bambu Lab print farm. Prioritize trustworthy state, useful alerts, and quick navigation before adding more integrations.
 
-The released foundation through v0.0.4 includes cloud monitoring, readable fault descriptions, persisted notice decisions, action-needed modals, and a simulated farm. The next release should validate that foundation on real hardware. Automated tests and the terminal demo do not replace the remaining [hardware checks](docs/validation.md).
+The released foundation through v0.0.5 includes cloud monitoring, readable fault descriptions, persisted notice decisions, action-needed modals, labelled printer details, and a simulated farm. The next reliability release should validate that foundation on real hardware. Automated tests and the terminal demo do not replace the remaining [hardware checks](docs/validation.md). The reliability target moved to v0.0.6 when v0.0.5 shipped the detail-panel improvements; the hardware checks remain open.
 
 These milestones define intended scope and release criteria, not delivery dates. Linked issues track implementation details and acceptance criteria; adjust the roadmap as hardware results and user feedback establish priorities.
 
@@ -10,12 +10,12 @@ These milestones define intended scope and release criteria, not delivery dates.
 
 | Milestone | Focus | Release criteria |
 | --- | --- | --- |
-| **v0.0.5 — Reliability** | Real-printer validation and fixes | Documented H2D/X2D smoke tests pass for the supported setup; reconnects and restarts preserve correct state and notice behavior. |
+| **v0.0.6 — Reliability** | Real-printer validation and fixes | Documented H2D/X2D smoke tests pass for the supported setup; reconnects and restarts preserve correct state and notice behavior. |
 | **v0.1.0 — Daily farm usability** | Find troubled printers and manage alerts in the TUI | Operators can quickly locate printers needing attention, inspect and reverse saved notice decisions, and configure interruptions without editing internal state files. |
 | **v0.2.0 — Alerts outside the terminal** | Optional desktop, completion, and sound notifications | Notifications are opt-in, configurable, deduplicated, and consistent with saved reviews and snoozing; process-lifecycle behavior is explicit. |
 | **v0.3.0 — LAN monitoring** | Investigate and validate a read-only local transport | Only documented, hardware-tested model/firmware combinations ship, with secure credential storage and consistent cloud/LAN monitoring state. |
 
-### v0.0.5 — Reliability
+### v0.0.6 — Reliability
 
 Complete [live hardware and restart validation (#6)](https://github.com/cliffom/bambu-tui/issues/6). Verify login persistence, H2D/X2D telemetry and filament paths, reported pause/recovery/completion, network reconnection, saved decisions, and action-needed modals during normal printer use. Record models, firmware, host environment, and actual results in the validation documentation. Fix findings and add sanitized regressions where useful.
 

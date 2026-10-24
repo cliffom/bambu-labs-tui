@@ -10,14 +10,14 @@ A terminal dashboard for a Bambu Lab print farm. Built for monitoring an **H2D a
 
 See the [roadmap](ROADMAP.md) for planned milestones, release criteria, and tracked issues.
 
-## Install v0.0.4
+## Install v0.0.5
 
 Download the archive for your OS and CPU from [Releases](https://github.com/cliffom/bambu-tui/releases), along with its checksums file. Verify the archive before extracting it:
 
 ```sh
 # macOS example; use the matching Linux archive on Linux.
-shasum -a 256 -c bambu-tui_v0.0.4_checksums.txt --ignore-missing
-tar -xzf bambu-tui_v0.0.4_darwin_arm64.tar.gz
+shasum -a 256 -c bambu-tui_v0.0.5_checksums.txt --ignore-missing
+tar -xzf bambu-tui_v0.0.5_darwin_arm64.tar.gz
 ./bambu-tui --version
 ./bambu-tui --demo
 ```

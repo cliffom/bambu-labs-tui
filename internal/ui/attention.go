@@ -55,7 +55,7 @@ func (m *Model) syncAttention(force bool) {
 	if m.attentionPending.IsZero() {
 		m.attentionPending = m.now
 	}
-	if m.inspected != nil || m.filament != nil || m.confirmClear || m.help || m.width < 60 || m.height < 18 {
+	if m.inspected != nil || m.filament != nil || m.decisions != nil || m.confirmClear || m.help || m.width < 60 || m.height < 18 {
 		return
 	}
 	if !force && m.now.Sub(m.attentionPending) < 2*time.Second {

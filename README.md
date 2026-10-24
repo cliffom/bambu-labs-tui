@@ -69,6 +69,7 @@ Use a terminal of at least **60 columns × 18 rows**; a wider window shows print
 | `Enter` | Inspect a selected notice |
 | `f` | Inspect the selected printer's first active fault |
 | `a` / `c` | Acknowledge / dismiss a notice locally |
+| `n` | Manage local notice decisions: restore, mark unreviewed, or reset |
 | `!` | Reopen unreviewed action-needed alerts |
 | `r` | Refresh printer status and firmware information |
 | `Esc` | Close a dialog |
@@ -76,7 +77,7 @@ Use a terminal of at least **60 columns × 18 rows**; a wider window shows print
 
 In the **AMS/filament browser**, use `Tab` or left/right to switch units and up/down to select a slot. Each material has a color chip; selected-slot details show its color, remaining estimate, and nozzle assignment. Press `m` or `Esc` to return to the dashboard.
 
-**Action-needed alerts** open for supported faults requiring intervention, failed prints, and some stopped-printer conditions. Acknowledging or dismissing a notice affects only the TUI; it does not clear the printer's fault or resume a print. These decisions survive restarts. Recent event history lasts only for the current session.
+**Action-needed alerts** open for supported faults requiring intervention, failed prints, and some stopped-printer conditions. Acknowledging or dismissing a notice affects only the TUI; it does not clear the printer's fault or resume a print. These decisions survive restarts. Press `n` to inspect and reverse them, or reset all decisions for the current account and region after confirmation. Recent event history lasts only for the current session.
 
 Filament quantities are printer estimates; **Unknown**, **Empty**, and **0%** mean different things. External spool quantities are unavailable. Firmware status reflects the printer's reported assessment and may be unknown or out of date. The [user guide](docs/usage.md) explains these fields, all keyboard controls, and notice behavior.
 

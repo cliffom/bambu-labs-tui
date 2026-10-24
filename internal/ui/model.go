@@ -50,6 +50,7 @@ type Model struct {
 	attentionSeen                   map[attentionOccurrence]bool
 	attentionPending                time.Time
 	filament                        *filamentDialog
+	decisions                       *decisionsDialog
 }
 
 // WithNoticePersistence enables immediate saves from the UI reducer. A failed
@@ -85,6 +86,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
 	result := next.(Model)
 	result.syncFilament()
+	result.syncDecisions()
 	result.syncAttention(false)
 	if result.saveReviews != nil && result.savedReviewRevision != result.Farm.ReviewRevision() {
 		result.savedReviewRevision = result.Farm.ReviewRevision()
@@ -151,6 +153,11 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.syncPanels()
 			return m, cmd
 		}
+		if m.decisions != nil {
+			cmd = m.decisionsKey(key, msg)
+			m.syncPanels()
+			return m, cmd
+		}
 		if m.filament != nil {
 			cmd = m.filamentKey(key, msg)
 			m.syncPanels()
@@ -196,6 +203,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focusFault()
 		case "m":
 			m.openFilament()
+		case "n":
+			m.openDecisions()
 		case "enter":
 			if m.focus == 2 {
 				m.openNotice()
@@ -360,13 +369,16 @@ func (m *Model) syncPanels() {
 
 func (m Model) View() string {
 	if m.width < 60 || m.height < 18 {
-		if m.attention != nil || m.filament != nil || m.inspected != nil || m.confirmClear || m.help {
+		if m.attention != nil || m.filament != nil || m.decisions != nil || m.inspected != nil || m.confirmClear || m.help {
 			return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
 		}
 		return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
 	}
 	if m.attention != nil {
 		return m.attentionView()
+	}
+	if m.decisions != nil {
+		return m.decisionsView()
 	}
 	if m.filament != nil {
 		return m.filamentView()
@@ -421,12 +433,12 @@ func (m Model) View() string {
 	} else {
 		lines = append(lines, m.section("02  PRINTER DETAILS", m.focus == 1, left), m.details.View(), m.section("03  NOTICES", m.focus == 2, right), m.notices.View())
 	}
-	foot := muted.Render("j/k select  tab panel  m filament  r refresh  ? help  q quit")
+	foot := muted.Render("j/k select  tab panel  m filament  n decisions  ? help  q quit")
 	if m.focus == 1 {
-		foot = muted.Render("↑/↓ scroll  m filament  f faults  tab panel  q quit")
+		foot = muted.Render("↑/↓ scroll  m filament  n decisions  tab panel  q quit")
 	}
 	if m.focus == 2 {
-		foot = muted.Render("j/k select  enter view  a ack  c clear  C history  tab panel")
+		foot = muted.Render("j/k select  enter view  a ack  c clear  n decisions  tab")
 	}
 	if m.toast != "" {
 		foot = warning.Render(safe(m.toast))
@@ -435,7 +447,7 @@ func (m Model) View() string {
 		foot = warning.Render(m.noticeStorageError)
 	}
 	if m.help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
+		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")

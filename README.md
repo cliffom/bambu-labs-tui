@@ -1,5 +1,7 @@
 # Bambu TUI
 
+![Bambu TUI — your print farm, one terminal. Pixel-art terminal with a bamboo shoot; printer status, filament, and notices.](assets/branding/hero.png)
+
 [![CI](https://github.com/cliffom/bambu-labs-tui/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cliffom/bambu-labs-tui/actions/workflows/ci.yml)
 [![Formatting and lint](https://github.com/cliffom/bambu-labs-tui/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/cliffom/bambu-labs-tui/actions/workflows/lint.yml)
 [![Latest release](https://img.shields.io/github/v/release/cliffom/bambu-labs-tui)](https://github.com/cliffom/bambu-labs-tui/releases/latest)

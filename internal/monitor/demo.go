@@ -35,6 +35,9 @@ func Demo(ctx context.Context, out chan<- Event, refresh <-chan struct{}) {
 			}
 			trays := []any{map[string]any{"id": "0", "state": 3, "tray_type": "PLA", "tray_color": "B7E4C7FF", "remain": 68}, map[string]any{"id": "1", "state": 3, "tray_type": "PETG", "tray_color": "EF8354FF", "remain": 8}, map[string]any{"id": "2", "state": 3, "tray_type": "PLA-CF", "tray_color": "353B48FF", "remain": -1}, map[string]any{"id": "3", "state": 0}}
 			payload := map[string]any{"print": map[string]any{"command": "push_status", "task_id": "demo", "gcode_state": state, "subtask_name": []string{"Gridfinity baseplate · plate 2", "Enclosure brackets · PETG"}[i], "mc_percent": progress, "mc_remaining_time": remaining, "layer_num": progress * 3, "total_layer_num": 300, "stg_cur": 0, "print_error": 0, "hms": []any{}, "device": map[string]any{"bed": map[string]any{"info": map[string]any{"temp": 60<<16 | 60}}, "ctc": map[string]any{"info": map[string]any{"temp": 35}}, "extruder": map[string]any{"state": 2, "info": []any{map[string]any{"id": 0, "temp": 220<<16 | 219, "snow": 0}, map[string]any{"id": 1, "temp": 180<<16 | 179, "snow": 1}}}}, "ams": map[string]any{"ams": []any{map[string]any{"id": "0", "temp": "28.4", "humidity_raw": "22", "tray": trays}}}, "vir_slot": []any{map[string]any{"id": "254", "tray_type": "TPU", "tray_color": "8899AAFF", "remain": 0}}}}
+			if state == "PAUSE" {
+				addDemoRunout(payload["print"].(map[string]any))
+			}
 			b, _ := json.Marshal(payload)
 			if !emit(ctx, out, Event{Kind: "report", ID: d.ID, Payload: b}) {
 				return
@@ -48,4 +51,11 @@ func Demo(ctx context.Context, out chan<- Event, refresh <-chan struct{}) {
 		case <-refresh:
 		}
 	}
+}
+
+// addDemoRunout supplies a verified runout incident for the action-needed demo.
+func addDemoRunout(report map[string]any) {
+	report["stg_cur"] = 6
+	report["print_error"] = 0x07008011
+	report["hms"] = []any{map[string]any{"attr": 0x07002100, "code": 0x00020001}}
 }

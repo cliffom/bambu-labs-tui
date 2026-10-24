@@ -1,4 +1,4 @@
-.PHONY: build auth run test check fmt fmt-check lint lint-actions lint-make audit-faults cross release
+.PHONY: build auth run demo test check fmt fmt-check lint lint-actions lint-make audit-faults cross release
 
 GOLANGCI_LINT ?= golangci-lint
 ACTIONLINT ?= actionlint
@@ -21,6 +21,9 @@ auth: build
 
 run: build
 	./bin/bambu-tui $(RUN_ARGS)
+
+demo: build
+	./bin/bambu-tui --demo
 
 test:
 	go test -race ./...

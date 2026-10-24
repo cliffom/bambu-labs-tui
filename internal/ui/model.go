@@ -46,6 +46,9 @@ type Model struct {
 	saveReviews                     func(map[string]farm.Review) error
 	savedReviewRevision             uint64
 	noticeStorageError              string
+	attention                       *attentionDialog
+	attentionSeen                   map[attentionOccurrence]bool
+	attentionPending                time.Time
 }
 
 // WithNoticePersistence enables immediate saves from the UI reducer. A failed
@@ -80,6 +83,7 @@ func (m Model) Init() tea.Cmd { return tea.Batch(m.wait(), tick()) }
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
 	result := next.(Model)
+	result.syncAttention(false)
 	if result.saveReviews != nil && result.savedReviewRevision != result.Farm.ReviewRevision() {
 		result.savedReviewRevision = result.Farm.ReviewRevision()
 		if err := result.saveReviews(result.Farm.Reviews()); err != nil {
@@ -140,8 +144,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = m.wait()
 	case tea.KeyMsg:
 		key := v.String()
-		if key == "q" || key == "ctrl+c" {
-			return m, tea.Quit
+		if m.attention != nil {
+			cmd = m.attentionKey(key, msg)
+			m.syncPanels()
+			return m, cmd
 		}
 		if m.confirmClear {
 			switch key {
@@ -169,6 +175,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "?":
 			m.help = !m.help
+		case "!":
+			m.attentionSeen = nil
+			m.syncAttention(true)
 		case "esc":
 			m.help = false
 			m.focus = 0
@@ -342,7 +351,13 @@ func (m *Model) syncPanels() {
 
 func (m Model) View() string {
 	if m.width < 60 || m.height < 18 {
+		if m.attention != nil || m.inspected != nil || m.confirmClear || m.help {
+			return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
+		}
 		return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
+	}
+	if m.attention != nil {
+		return m.attentionView()
 	}
 	if m.confirmClear {
 		return m.clearHistoryView()
@@ -408,7 +423,7 @@ func (m Model) View() string {
 		foot = warning.Render(m.noticeStorageError)
 	}
 	if m.help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "f              View selected printer's first active fault", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
+		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "f              View selected printer's first active fault", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")

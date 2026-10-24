@@ -621,7 +621,7 @@ func (p *Printer) normalize() {
 		if a == nil || c == nil {
 			continue
 		}
-		code := fmt.Sprintf("%04X_%04X_%04X_%04X", *a>>16, *a&65535, *c>>16, *c&65535)
+		code := hmsCode(uint32(*a), uint32(*c))
 		text := str(m["message"])
 		if text == "" {
 			var known bool
@@ -662,8 +662,6 @@ func decodeSlot(m map[string]any) Slot {
 	}
 	return s
 }
-
-var printErrors = map[string]string{"07008006": "Unable to feed filament into the extruder", "03008013": "Print paused by user"}
 
 func stage(n int) string {
 	stages := map[int]string{0: "Printing", 1: "Bed leveling", 2: "Preheating bed", 4: "Changing filament", 5: "Paused by G-code", 6: "Filament runout", 7: "Heating nozzle", 8: "Calibrating extrusion", 9: "Scanning bed", 10: "Inspecting first layer", 13: "Homing", 14: "Cleaning nozzle", 16: "Paused by user", 22: "Unloading filament", 24: "Loading filament", 29: "Cooling chamber", 35: "Nozzle clog", 49: "Heating chamber", 255: "Idle"}

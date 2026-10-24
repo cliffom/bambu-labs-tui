@@ -23,7 +23,7 @@ make audit-faults
 make test check release
 ```
 
-The lint commands require the pinned tools documented in the README. The catalogue audit requires network access; ordinary tests remain offline. Review the hardware-validation limitations in [validation.md](validation.md) and any feature-specific validation notes.
+The lint commands require the pinned tools documented in the [development guide](development.md). The catalogue audit requires network access; ordinary tests remain offline. Review the hardware-validation limitations in [validation.md](validation.md) and any feature-specific validation notes.
 
 Commit and push the release preparation to `main`. After CI passes, create and push an annotated tag matching `VERSION`:
 

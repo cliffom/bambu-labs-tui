@@ -151,7 +151,7 @@ func TestDecisionResolutionAndPendingStatus(t *testing.T) {
 	}
 }
 
-// TestDecisionResetAndRestart verifies immediate account-isolated persistence and confirmation.
+// TestDecisionResetAndRestart verifies asynchronous account-isolated persistence and confirmation.
 func TestDecisionResetAndRestart(t *testing.T) {
 	store := noticestore.Store{Path: filepath.Join(t.TempDir(), "account-a.json")}
 	other := noticestore.Store{Path: filepath.Join(t.TempDir(), "account-b.json")}
@@ -159,8 +159,8 @@ func TestDecisionResetAndRestart(t *testing.T) {
 	m.Demo = false
 	m = m.WithNoticePersistence(store.Save, nil)
 	item, _ := m.selectedNotice()
-	m = key(m, "a")
-	m = key(m, "c")
+	m = persistenceKey(m, "a")
+	m = persistenceKey(m, "c")
 	saved, err := store.Load()
 	if err != nil {
 		t.Fatal(err)
@@ -171,14 +171,14 @@ func TestDecisionResetAndRestart(t *testing.T) {
 	state := farm.New(10)
 	state.RestoreReviews(saved)
 	next := New(state, nil, nil, false).WithNoticePersistence(store.Save, nil)
-	next = key(next, "n")
+	next = persistenceKey(next, "n")
 	if len(next.decisionItems()) != 1 || !strings.Contains(decisionText(next), "Awaiting telemetry") {
 		t.Fatal("restart did not expose pending saved decisions")
 	}
-	next = key(next, "r")
+	next = persistenceKey(next, "r")
 	saved, err = store.Load()
 	if err != nil || saved[item.ActiveKey].Dismissed || !saved[item.ActiveKey].Acknowledged {
-		t.Fatal("individual restoration was not saved immediately")
+		t.Fatal("individual restoration was not saved after command completion")
 	}
 	// A second restart applies the edited flags to actual matching telemetry.
 	replayedState := farm.New(10)
@@ -199,13 +199,13 @@ func TestDecisionResetAndRestart(t *testing.T) {
 	if c := replayed.Farm.Active[item.ActiveKey]; c.Dismissed || !c.Acknowledged {
 		t.Fatal("restored visibility/acknowledgement did not survive telemetry after restart")
 	}
-	next = key(next, "R")
-	next = key(next, "n")
+	next = persistenceKey(next, "R")
+	next = persistenceKey(next, "n")
 	if next.decisions == nil || next.decisions.confirmReset || len(next.Farm.Reviews()) != 1 {
 		t.Fatal("cancel changed decisions or left the manager")
 	}
-	next = key(next, "R")
-	next = key(next, "y")
+	next = persistenceKey(next, "R")
+	next = persistenceKey(next, "y")
 	saved, err = store.Load()
 	if err != nil || len(saved) != 0 || len(next.Farm.Active) != 0 {
 		t.Fatal("reset failed to persist empty decisions without creating telemetry")
@@ -227,18 +227,19 @@ func TestDecisionErrorsAndTerminalSizes(t *testing.T) {
 	item, _ := m.selectedNotice()
 	m.Farm.Acknowledge(item.ActiveKey, true)
 	m.Farm.Dismiss(item.ActiveKey)
+	m.Demo = false
 	m = m.WithNoticePersistence(func(map[string]farm.Review) error { return errors.New("disk full") }, nil)
-	m = key(m, "n")
+	m = persistenceKey(m, "n")
 	m.decisions.key = item.ActiveKey
-	m = key(m, "r")
+	m = persistenceKey(m, "r")
 	if !strings.Contains(ansi.Strip(m.View()), "Could not save notices") {
 		t.Fatal("restoration save failure was hidden")
 	}
-	m = key(m, "R")
+	m = persistenceKey(m, "R")
 	if !strings.Contains(ansi.Strip(m.View()), "Could not save notices") {
 		t.Fatal("reset confirmation hid storage failure")
 	}
-	m = key(m, "y")
+	m = persistenceKey(m, "y")
 	if !strings.Contains(ansi.Strip(m.View()), "Could not save notices") {
 		t.Fatal("reset save failure was hidden")
 	}
@@ -260,11 +261,13 @@ func TestDecisionErrorsAndTerminalSizes(t *testing.T) {
 	}
 	// A load failure continues to protect the unreadable file from all writes.
 	writes := 0
-	m = noticeModel(t).WithNoticePersistence(func(map[string]farm.Review) error { writes++; return nil }, errors.New("unreadable file"))
+	m = noticeModel(t)
+	m.Demo = false
+	m = m.WithNoticePersistence(func(map[string]farm.Review) error { writes++; return nil }, errors.New("unreadable file"))
 	m.Farm.Dismiss(item.ActiveKey)
-	m = key(m, "n")
-	m = key(m, "R")
-	m = key(m, "y")
+	m = persistenceKey(m, "n")
+	m = persistenceKey(m, "R")
+	m = persistenceKey(m, "y")
 	if writes != 0 || !strings.Contains(ansi.Strip(m.View()), "Saved notices unavailable") {
 		t.Fatal("reset overwrote unreadable saved decisions")
 	}
@@ -335,8 +338,9 @@ func TestPendingFilamentDecisionsRemainDistinct(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.Farm.RestoreReviews(saved)
+	m.Demo = false
 	m = m.WithNoticePersistence(store.Save, nil)
-	m = key(m, "n")
+	m = persistenceKey(m, "n")
 	for _, want := range []struct{ key, description string }{
 		{"H/low/0/0", "AMS 1 slot 1"},
 		{"H/low/1/3", "AMS 2 slot 4"},
@@ -349,10 +353,10 @@ func TestPendingFilamentDecisionsRemainDistinct(t *testing.T) {
 		if !strings.Contains(text, want.description) || !strings.Contains(text, "saved low-filament decision") || !strings.Contains(text, "Awaiting telemetry") || len(m.Farm.Active) != 0 {
 			t.Fatalf("saved decision lacks distinct identity or claims live status: %s", text)
 		}
-		m = key(m, "j")
+		m = persistenceKey(m, "j")
 	}
-	m = key(m, "k") // Select AMS 2 slot 4 rather than the neighboring AMS HT decision.
-	m = key(m, "r")
+	m = persistenceKey(m, "k") // Select AMS 2 slot 4 rather than the neighboring AMS HT decision.
+	m = persistenceKey(m, "r")
 	saved, err = store.Load()
 	if err != nil || len(saved) != 2 || !saved["H/low/0/0"].Dismissed || !saved["H/low/128/0"].Dismissed {
 		t.Fatalf("restoration changed neighboring decisions: %v, %v", saved, err)

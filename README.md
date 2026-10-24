@@ -59,7 +59,7 @@ All printers on the account appear automatically. If you use Bambu's China regio
 
 ## Using the dashboard
 
-Use a terminal of at least **60 columns × 18 rows**; a wider window shows printer details and notices side by side. Press `?` for help.
+The running version appears in the dashboard and dialog headings. Use a terminal of at least **60 columns × 18 rows**; a wider window shows printer details and notices side by side. Press `?` for help.
 
 | Key | Action |
 | --- | --- |

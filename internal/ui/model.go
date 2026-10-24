@@ -421,9 +421,9 @@ func (m *Model) syncPanels() {
 func (m Model) View() string {
 	if !m.terminalFits() {
 		if m.hasOpenDialog() {
-			return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
+			return fit(versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
 		}
-		return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
+		return fit(versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
 	}
 	if m.exportDialog != nil {
 		return m.exportView()
@@ -446,20 +446,7 @@ func (m Model) View() string {
 	if m.inspected != nil {
 		return m.inspectorView()
 	}
-	mode := "CLOUD"
-	if m.Demo {
-		mode = "DEMO"
-	}
-	conn := warning.Render("CONNECTING")
-	if m.Farm.Connected {
-		conn = accent.Render("CONNECTED")
-	}
-	if m.ended && !m.Demo {
-		conn = danger.Render("SIGN-IN REQUIRED")
-	}
-	header := accent.Bold(true).Render("BAMBU") + muted.Render(" / FARM") + "  " + muted.Render(mode) + "  " + conn
-	clock := m.now.Local().Format("Mon 02 Jan · 15:04:05")
-	header += strings.Repeat(" ", max(1, m.width-ansi.StringWidth(header)-ansi.StringWidth(clock))) + muted.Render(clock)
+	header := m.dashboardHeader()
 	lines := []string{header}
 	lines = append(lines, m.overviewLines()...)
 	lines = append(lines, "", m.section("01  PRINTERS", m.focus == 0, m.width), muted.Render(m.printerListStatus()), m.tableHeader())

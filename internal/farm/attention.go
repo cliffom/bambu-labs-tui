@@ -1,6 +1,7 @@
 package farm
 
 import (
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,6 +13,8 @@ import (
 type Attention struct {
 	Key, PrinterID, Printer, Text, Code, Guidance string
 	Since                                         time.Time
+	// Categories includes contributing fault categories for a related pause-state notice.
+	Categories []string
 }
 
 type faultAction struct {
@@ -32,35 +35,41 @@ func (s *State) Attention() []Attention {
 	var items []Attention
 	for id, p := range s.Printers {
 		stopped := p.State == "PAUSE" || p.State == "FAILED"
-		intervention, recovering, userPause := false, false, false
-		faultItems := 0
-		add := func(key, guidance string) {
+		context := printerAttention{}
+		add := func(key, guidance string, categories ...string) bool {
 			c, ok := s.Active[key]
 			if !ok || c.Acknowledged || c.Dismissed {
-				return
+				return false
 			}
-			items = append(items, Attention{Key: key, PrinterID: id, Printer: p.Name, Text: c.Text, Code: c.Code, Guidance: guidance, Since: c.Since})
-			faultItems++
+			items = append(items, Attention{Key: key, PrinterID: id, Printer: p.Name, Text: c.Text, Code: c.Code, Guidance: guidance, Since: c.Since, Categories: categories})
+			return true
 		}
 		for _, f := range p.Faults {
 			action := classifyFaultAction(f)
-			recovering = recovering || action.recovering
-			userPause = userPause || action.userPause
+			context.recovering = context.recovering || action.recovering
+			context.userPause = context.userPause || action.userPause
 			guidance := action.guidance
 			if !action.known && stopped && f.Level != "info" {
 				guidance = reviewPrinter // Preserve an unknown fault without guessing its cause.
 			}
 			if guidance != "" {
-				intervention = true
-				add(id+"/fault/"+f.Code, guidance)
+				context.intervention = true
+				category := faultAlertCategory(guidance)
+				if add(id+"/fault/"+f.Code, guidance, category) && !slices.Contains(context.categories, category) {
+					context.categories = append(context.categories, category)
+				}
 			}
 		}
 		// A reviewed fault must not re-prompt solely because its paused state was
 		// reported separately. A new failure remains independently actionable.
-		_, hmsReported := p.Raw["hms"]
-		_, printErrorReported := p.Raw["print_error"]
-		if p.State == "FAILED" || (p.State == "PAUSE" && (faultItems > 0 || (hmsReported && printErrorReported && !intervention && !recovering && !userPause))) {
-			add(id+"/state", reviewPrinter)
+		if p.State == "FAILED" || context.pauseNeedsReview(p) {
+			categories := context.categories
+			if p.State == "FAILED" {
+				categories = []string{"failed_prints"}
+			} else if len(categories) == 0 {
+				categories = []string{"unknown_pauses"}
+			}
+			add(id+"/state", reviewPrinter, categories...)
 		}
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].Key < items[j].Key })
@@ -132,4 +141,38 @@ func classifyFaultAction(f Fault) faultAction {
 	default:
 		return faultAction{known: true} // Maintenance and other catalogue entries need no automatic modal.
 	}
+}
+
+// faultAlertCategory derives categories from verified action metadata, never printer text.
+func faultAlertCategory(guidance string) string {
+	switch guidance {
+	case replaceFilament, checkFilamentPath:
+		return "filament"
+	case checkExtrusion:
+		return "extrusion"
+	default:
+		return "printer_faults"
+	}
+}
+
+// printerAttention collects verified reasons that affect a separate pause-state alert.
+type printerAttention struct {
+	intervention, recovering, userPause bool
+	categories                          []string
+}
+
+// pauseNeedsReview waits for complete snapshots and excludes explained pauses.
+func (a printerAttention) pauseNeedsReview(p *Printer) bool {
+	if p.State != "PAUSE" {
+		return false
+	}
+	if len(a.categories) > 0 {
+		return true
+	}
+	if a.intervention || a.recovering || a.userPause {
+		return false
+	}
+	_, hmsReported := p.Raw["hms"]
+	_, printErrorReported := p.Raw["print_error"]
+	return hmsReported && printErrorReported
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.9 — Alert preferences and snoozing
+
+- Add validated global alert defaults and independent per-printer overrides for automatic modals, filament, extrusion, printer faults, failed prints, and unknown pauses. Preserve existing defaults and verified recovery/intervention classification.
+- Add printer alert controls (`s`) with 15-minute, 1-hour, and 4-hour snoozes plus early resume. Persist deadlines per account/region, re-arm eligible alerts on expiry, and keep underlying notices, saved reviews, and other printers' queued alerts intact.
+- Show effective policy and stable printer IDs; allow explicit `!` inspection while muted/snoozed. Keep demo snoozes in memory and defer sound delivery/preferences to #11.
+
 ## 0.0.8 — Manage notice decisions
 
 - Add a notice decisions view (`n`) for inspecting dismissed and acknowledged notices, restoring individual dismissals, explicitly marking notices unreviewed, and resetting decisions for the current account and region with confirmation.

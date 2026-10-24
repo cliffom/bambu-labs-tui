@@ -25,6 +25,7 @@ type attentionDialog struct {
 	groups []attentionGroup
 	index  int
 	view   viewport.Model
+	manual bool
 }
 
 // syncAttention batches new reports without replacing a dialog being read.
@@ -37,9 +38,10 @@ func (m *Model) syncAttention(force bool) {
 			delete(m.attentionSeen, occurrence)
 		}
 	}
+	manual := force || (m.attention != nil && m.attention.manual)
 	var pending []farm.Attention
 	for _, item := range m.Farm.Attention() {
-		if !m.attentionSeen[attentionOccurrence{item.Key, item.Since}] {
+		if !m.attentionSeen[attentionOccurrence{item.Key, item.Since}] && (manual || m.automaticAlertAllowed(item)) {
 			pending = append(pending, item)
 		}
 	}
@@ -61,7 +63,7 @@ func (m *Model) syncAttention(force bool) {
 	if !force && m.now.Sub(m.attentionPending) < 2*time.Second {
 		return
 	}
-	m.attention = &attentionDialog{view: viewport.New(1, 1)}
+	m.attention = &attentionDialog{view: viewport.New(1, 1), manual: force}
 	m.attention.add(pending)
 	m.attentionPending = time.Time{}
 	m.syncAttentionView()
@@ -119,6 +121,8 @@ func (m *Model) attentionKey(key string, msg tea.Msg) tea.Cmd {
 	switch key {
 	case "esc":
 		m.closeAttention()
+	case "s":
+		m.openAlerts(group.id)
 	case "tab", "shift+tab":
 		delta := 1
 		if key == "shift+tab" {
@@ -182,7 +186,7 @@ func (m *Model) syncAttentionView() {
 	group := d.groups[d.index]
 	lines := []string{accent.Bold(true).Render(safe(group.name))}
 	if p := m.Farm.Printers[group.id]; p != nil {
-		lines = append(lines, "Reported state: "+safe(stateLabel(p.State))+" · "+safe(p.Connection(m.now, m.Farm.Connected)))
+		lines = append(lines, "Reported state: "+safe(stateLabel(p.State))+" · "+safe(p.Connection(m.now, m.Farm.Connected)), "Alerts: "+m.alertStatus(p.ID))
 	}
 	relevant := map[attentionOccurrence]bool{}
 	for _, item := range m.Farm.Attention() {
@@ -218,9 +222,9 @@ func (m *Model) syncAttentionView() {
 // attentionView renders a centered keyboard-driven attention modal.
 func (m Model) attentionView() string {
 	d := m.attention
-	lines := []string{danger.Bold(true).Render("ACTION NEEDED"), muted.Render(fmt.Sprintf("Printer %d / %d · Tab switches printer · ↑/↓ scroll", d.index+1, len(d.groups))), "", d.view.View(), "", "Enter notice · p printer · a ack · c hide · o help", "Esc close"}
-	if m.noticeStorageError != "" {
-		lines[len(lines)-1] = m.noticeStorageError
+	lines := []string{danger.Bold(true).Render("ACTION NEEDED"), muted.Render(fmt.Sprintf("Printer %d / %d · Tab switches printer · ↑/↓ scroll", d.index+1, len(d.groups))), "", d.view.View(), "", "Enter notice · p printer · a ack · c hide · s snooze", "Esc close"}
+	if message := m.storageWarning(); message != "" {
+		lines[len(lines)-1] = message
 	}
 	box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#F4BA72")).Padding(0, 1).Width(max(1, m.width-4)).Render(strings.Join(lines, "\n"))
 	return fit(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box), m.width, m.height)

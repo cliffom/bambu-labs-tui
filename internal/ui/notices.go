@@ -305,8 +305,8 @@ func (m Model) inspectorView() string {
 	return m.fullView(lines, footer)
 }
 func (m Model) fullView(lines []string, footer string) string {
-	if m.noticeStorageError != "" {
-		footer = m.noticeStorageError
+	if message := m.storageWarning(); message != "" {
+		footer = message
 	}
 	rows := strings.Split(strings.Join(lines, "\n"), "\n")
 	if len(rows) > max(0, m.height-1) {

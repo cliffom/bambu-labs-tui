@@ -43,6 +43,7 @@ type AMS struct {
 type Fault struct{ Code, Text, Level string }
 type Printer struct {
 	Device
+	Firmware                                Firmware
 	Raw                                     map[string]any
 	LastReport                              time.Time
 	RemainingReported                       time.Time
@@ -141,6 +142,7 @@ func (s *State) Report(id string, payload []byte, now time.Time) error {
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		return fmt.Errorf("invalid status JSON")
 	}
+	p.versionReport(object(envelope["info"]), now)
 	delta, ok := envelope["print"].(map[string]any)
 	if !ok {
 		return nil
@@ -164,6 +166,7 @@ func (s *State) Report(id string, payload []byte, now time.Time) error {
 		p.RemainingReported = now
 	}
 	merge(p.Raw, delta)
+	p.firmwareReport(delta, now)
 	p.LastReport, p.Online = now, true
 	p.normalize()
 	if previous != p.State && previous != "UNKNOWN" {

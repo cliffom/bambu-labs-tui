@@ -47,6 +47,15 @@ func TestBrokerMonitoringExchange(t *testing.T) {
 			finished <- errors.New("invalid monitoring request")
 			return
 		}
+		kind, body, err = readPacket(broker)
+		if err != nil {
+			finished <- err
+			return
+		}
+		if kind != 0x30 || !bytes.Equal(body, append(field("device/TEST/request"), []byte(`{"info":{"sequence_id":"0","command":"get_version"}}`)...)) {
+			finished <- errors.New("invalid read-only firmware query")
+			return
+		}
 		if _, err = broker.Write(append([]byte{0x90, 3}, append(packetID, 0)...)); err != nil {
 			finished <- err
 			return

@@ -110,12 +110,18 @@ func (c *Client) Subscribe(ids []string) error {
 	}
 	return c.writeLocked(0x82, body)
 }
+
+// Refresh sends only fixed status-snapshot and firmware-version queries.
 func (c *Client) Refresh(ids []string) error {
 	for _, id := range ids {
 		if !validSerial(id) {
 			return errors.New("invalid printer identity")
 		}
 		body := append(field("device/"+id+"/request"), []byte(`{"pushing":{"sequence_id":"0","command":"pushall"}}`)...)
+		if err := c.write(0x30, body); err != nil {
+			return err
+		}
+		body = append(field("device/"+id+"/request"), []byte(`{"info":{"sequence_id":"0","command":"get_version"}}`)...)
 		if err := c.write(0x30, body); err != nil {
 			return err
 		}

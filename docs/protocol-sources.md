@@ -11,6 +11,14 @@ This application implements a community-documented cloud monitoring protocol. It
 
 Unknown messages are not guessed, and no telemetry fault-clear operation is implemented. Descriptions can differ across printer models and firmware; use the displayed code to check Bambu's troubleshooting information.
 
+## Firmware reporting
+
+Installed printer firmware comes from the `ota` module's `sw_ver` in an `info.get_version` reply, as documented in [OpenBambuAPI](https://github.com/Doridian/OpenBambuAPI/blob/main/mqtt.md#infoget_version). The MQTT refresh sends this fixed read-only query alongside the status snapshot request. Controller and AMS module versions are not substituted for the printer OTA version, and info-only replies do not refresh print-status timestamps or conceal stale telemetry.
+
+Update assessment follows the `Upgrade` and `Info` parsing documented in the [Home Assistant Bambu integration](https://github.com/greghesp/ha-bambulab/blob/main/custom_components/bambu_lab/pybambu/models.py): `print.upgrade_state.new_version_state` reports `1` for available upgrades and `2` for no upgrades; targets can be in an `ota` entry of `new_ver_list` (`cur_ver`/`new_ver`) or the older `ota_new_version_number` field. An upgrade flag can concern an attached component. Without a printer OTA target, an available-upgrade flag does not establish a printer update. Explicit OTA current-version metadata can supply the installed version when a version reply is unavailable.
+
+The TUI displays the printer's reported assessment, not a global latest-version lookup. Missing/unrecognized metadata and in-progress upgrade states remain unknown; an installed-version change invalidates the old assessment. Explicit no-upgrade metadata, or a reported OTA target matching the installed version, can establish reported current status. Partial reports retain known fields without refreshing assessment age merely because unrelated telemetry arrived. Assessments older than two minutes, old installed-version reports, or unavailable/stale connections are qualified as last-known. `r` requests fresh metadata. Firmware installation and upgrade-control operations are not implemented. Demo firmware values are synthetic.
+
 ## Filament fault catalogue expansion
 
 Run `make audit-faults` to reproduce the upstream verification. This explicit network check fetches the seven English catalogues at the pinned commit below, checks every bundled HMS and print-error code for exact membership, and verifies generated HMS slot labels against upstream slot numbers. It fails on missing codes, slot mismatches, or fetch/decode errors. The **Formatting and lint** workflow runs the audit on pull requests and pushes to `main`. Ordinary `make test` runs offline and skips this network audit. The audit checks code membership and slot addressing; description meanings still require review against the source text.

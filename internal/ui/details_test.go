@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
 // TestDetailFieldsAlignAndWrap preserves complete values in narrow detail panels.
@@ -42,6 +43,36 @@ func TestDetailFieldsAlignAndWrap(t *testing.T) {
 		if fields < 15 || strings.Join(jobParts, "") != job {
 			t.Fatal("missing labelled fields or truncated wrapped job name")
 		}
+	}
+}
+
+// TestFirmwareFieldsDisplayReportedCurrentUpdateUnknownAndStale states the source of the assessment.
+func TestFirmwareFieldsDisplayReportedCurrentUpdateUnknownAndStale(t *testing.T) {
+	m := demoModel()
+	p := m.current()
+	p.LastReport = m.now
+	available := false
+	p.Firmware = farm.Firmware{Version: "01.00.00.00", UpdateAvailable: &available, VersionReported: m.now, StatusReported: m.now}
+	if text := ansi.Strip(m.detailText(100)); !strings.Contains(text, "Firmware:        01.00.00.00") || !strings.Contains(text, "Current (printer reported)") {
+		t.Fatal("installed firmware or reported assessment missing")
+	}
+	available = true
+	p.Firmware.Available = "01.01.00.00"
+	if !strings.Contains(ansi.Strip(m.detailText(100)), "Update available: 01.01.00.00") {
+		t.Fatal("target version missing")
+	}
+	m.Farm.Connected = false
+	if !strings.HasPrefix(m.firmwareStatus(p), "Last known:") {
+		t.Fatal("disconnected printer displayed an unqualified current assessment")
+	}
+	m.Farm.Connected = true
+	p.Firmware.VersionReported = m.now.Add(-3 * time.Minute)
+	if !strings.HasPrefix(m.firmwareStatus(p), "Last known:") {
+		t.Fatal("old installed-version report concealed by fresh status telemetry")
+	}
+	p.Firmware = farm.Firmware{}
+	if firmwareVersionText(p) != "Unknown" || m.firmwareStatus(p) != "Unknown (not confirmed)" {
+		t.Fatal("missing metadata was treated as current")
 	}
 }
 

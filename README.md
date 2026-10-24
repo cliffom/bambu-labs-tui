@@ -10,14 +10,14 @@ A terminal dashboard for a Bambu Lab print farm. Built for monitoring an **H2D a
 
 See the [roadmap](ROADMAP.md) for planned milestones, release criteria, and tracked issues.
 
-## Install v0.0.5
+## Install v0.0.6
 
 Download the archive for your OS and CPU from [Releases](https://github.com/cliffom/bambu-tui/releases), along with its checksums file. Verify the archive before extracting it:
 
 ```sh
 # macOS example; use the matching Linux archive on Linux.
-shasum -a 256 -c bambu-tui_v0.0.5_checksums.txt --ignore-missing
-tar -xzf bambu-tui_v0.0.5_darwin_arm64.tar.gz
+shasum -a 256 -c bambu-tui_v0.0.6_checksums.txt --ignore-missing
+tar -xzf bambu-tui_v0.0.6_darwin_arm64.tar.gz
 ./bambu-tui --version
 ./bambu-tui --demo
 ```
@@ -32,6 +32,8 @@ make build
 ```
 
 The dashboard shows printer state, progress, remaining print time, estimated finish time, layers, temperatures for both nozzles, AMS slots, filament estimates, and active notices. Recent events stay in memory for the current session.
+
+Starting with v0.0.6, printer details also show the installed printer **Firmware** and **FW Status**. Status is the printer's reported assessment: **Current (printer reported)**, **Update available** with the offered OTA version, or **Unknown (not confirmed)**. Component-only updates do not imply a printer firmware update. Old assessments or disconnected/stale printers show **Last known**; press `r` to request fresh status and firmware metadata. This is not a live comparison against a public release catalogue, and no firmware installation is performed.
 
 ## Connect your printers
 

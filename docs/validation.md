@@ -1,6 +1,12 @@
-# v0.0.1 validation record
+# Validation record
 
-## Observed live
+## v0.0.5 — User-reported live validation
+
+After the v0.0.5 release, the user confirmed that the **displayed telemetry** was validated on both their **H2D** and **X2D**. This extends the earlier H2D screenshot evidence to user-reported telemetry testing on both models.
+
+The user clarified that this validation covered displayed telemetry, rather than login/restart, network reconnection, persisted notice decisions, or action-needed modal behavior. Firmware versions were not provided. Keep those operational checks open, and do not infer a field-by-field comparison against Bambu Studio from this confirmation.
+
+## v0.0.1 — Observed live
 
 From the user's 2026-10-23 screenshot:
 
@@ -20,6 +26,8 @@ The native credential probe in the implementation workspace failed with `securit
 
 ## Remaining live checks
 
+- [ ] Compare installed OTA firmware and reported update status against the printer/Bambu app on H2D and X2D; record versions. The v0.0.6 firmware parser and read-only query have synthetic/broker/demo coverage, not confirmed live firmware results.
+- [x] Validate displayed telemetry on H2D and X2D. User confirmed both models after v0.0.5; operational checks remain separate.
 - [x] Run `./bin/bambu-tui doctor` from a normal terminal. User confirmed save, reload, and deletion succeeded on 2026-10-23.
 - [ ] Run `login --email-code`, confirm the saved-session message, quit, and start `bambu-tui` without logging in again.
 - [ ] Compare H2D and X2D progress, remaining time, temperatures, and active filament paths against Bambu Studio during a real print.

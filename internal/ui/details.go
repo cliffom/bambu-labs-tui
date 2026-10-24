@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -64,6 +65,8 @@ func (m Model) detailText(w int) string {
 	lines := []string{
 		detailField("Printer Name", safe(p.Name), w, accent.Bold(true)),
 		field("Printer Model", model),
+		field("Firmware", firmwareVersionText(p)),
+		field("FW Status", m.firmwareStatus(p)),
 		field("Job Name", job),
 		field("Printer Status", stateLabel(p.State)),
 		field("Connection", p.Connection(m.now, m.Farm.Connected)),
@@ -132,6 +135,30 @@ func (m Model) detailText(w int) string {
 		}
 	}
 	return wrapLines(lines, w)
+}
+
+// firmwareVersionText distinguishes an installed OTA version from missing data.
+func firmwareVersionText(p *farm.Printer) string {
+	if p.Firmware.Version == "" {
+		return "Unknown"
+	}
+	return safe(p.Firmware.Version)
+}
+
+// firmwareStatus describes the printer's assessment rather than a global latest release.
+func (m Model) firmwareStatus(p *farm.Printer) string {
+	f := p.Firmware
+	if f.Version == "" || f.UpdateAvailable == nil {
+		return "Unknown (not confirmed)"
+	}
+	status := "Current (printer reported)"
+	if *f.UpdateAvailable {
+		status = "Update available: " + safe(f.Available)
+	}
+	if !m.Farm.Connected || !p.Online || p.Stale(m.now) || m.now.Sub(f.StatusReported) > 120*time.Second || m.now.Sub(f.VersionReported) > 120*time.Second {
+		status = "Last known: " + status
+	}
+	return status
 }
 
 // slotValue labels filament attributes while preserving empty and unknown states.

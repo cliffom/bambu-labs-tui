@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.0.8 — Manage notice decisions
 
 - Add a notice decisions view (`n`) for inspecting dismissed and acknowledged notices, restoring individual dismissals, explicitly marking notices unreviewed, and resetting decisions for the current account and region with confirmation.
 - Persist reversals immediately, preserve independent acknowledgement/dismissal state, and expose saved startup decisions as awaiting telemetry without creating active faults. Re-arm eligible alerts after the decisions view closes.
+- Identify pending low-filament decisions by AMS unit and slot, including AMS HT, before telemetry arrives.
+- Simplify getting started in the README, move detailed references into user/development guides, and include linked documentation and branding in release archives.
 
 ## 0.0.7 — AMS/filament browser
 

@@ -23,12 +23,12 @@ Download an archive and the checksums file from the [latest release](https://git
 | Linux with x86-64 processor | `linux_amd64.tar.gz` |
 | Linux with ARM64 processor | `linux_arm64.tar.gz` |
 
-For example, on an Apple silicon Mac with v0.0.10 downloaded:
+For example, on an Apple silicon Mac with v0.1.0 downloaded:
 
 ```sh
-shasum -a 256 bambu-tui_v0.0.10_darwin_arm64.tar.gz
-# Compare the output with the matching line in bambu-tui_v0.0.10_checksums.txt.
-tar -xzf bambu-tui_v0.0.10_darwin_arm64.tar.gz
+shasum -a 256 bambu-tui_v0.1.0_darwin_arm64.tar.gz
+# Compare the output with the matching line in bambu-tui_v0.1.0_checksums.txt.
+tar -xzf bambu-tui_v0.1.0_darwin_arm64.tar.gz
 ./bambu-tui --version
 ```
 
@@ -65,7 +65,7 @@ The dashboard header reads `BAMBU TUI vX.Y.Z / CLOUD CONNECTED / FARM`, reflecti
 | --- | --- |
 | `↑` / `↓` or `j` / `k` | Select a printer or notice; scroll details |
 | `Tab` / `Shift+Tab` | Switch panels |
-| `D` | Preview and confirm a local diagnostic export (source builds) |
+| `D` | Preview and confirm a local diagnostic export |
 | `F` / `S` | Cycle printer filters / sorting |
 | `m` | Browse the selected printer's AMS units and filament |
 | `Enter` | Inspect a selected notice |
@@ -88,7 +88,7 @@ Press `s` to snooze a printer for 15 minutes, 1 hour, or 4 hours, or resume aler
 
 Filament quantities are printer estimates; **Unknown**, **Empty**, and **0%** mean different things. External spool quantities are unavailable. Firmware status reflects the printer's reported assessment and may be unknown or out of date. The [user guide](docs/usage.md) explains these fields, all keyboard controls, and notice behavior.
 
-For troubleshooting, source builds also provide a local diagnostic export via `D`. The preview shows what is included and where the file will go; Enter writes it locally. Unknown/private fields and free-form messages are omitted, and nothing is uploaded. See [diagnostic exports](docs/diagnostics.md).
+For troubleshooting, use the local diagnostic export via `D`. The preview shows what is included and where the file will go; Enter writes it locally. Unknown/private fields and free-form messages are omitted, and nothing is uploaded. See [diagnostic exports](docs/diagnostics.md).
 
 ## Configuration
 

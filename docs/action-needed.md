@@ -41,6 +41,8 @@ The modal never sends resume, heat, motion, fault-clear, or other printer-contro
 
 ## Validation
 
+Run `make demo` to build and launch the simulated farm without logging in.
+
 Synthetic H2D/X2D fixtures cover AMS/AMS HT/external runout, feed failures, clogs, and empty slots. Tests also cover unknown stopped-printer faults, failed/ambiguous/explicit user pauses, recovery, wording independence, persisted reviews, incremental reports, multiple printers, dialog deferral, live resolution, recurrence, focus restoration, keyboard navigation, and terminal bounds. The existing demo introduces a runout incident at approximately 15 seconds and clears it at approximately 24 seconds; no live printer is needed and no demo reviews are saved.
 
 Real printer validation is still a hardware smoke check; synthetic and terminal-demo results do not establish live behavior for every model/firmware fault.

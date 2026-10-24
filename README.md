@@ -49,7 +49,7 @@ Login supports password authentication, email verification, and authenticator ch
 
 For accounts normally accessed with Google, use `login --email-code` with the email bound to the Bambu account. This is Bambu email verification; direct Google OAuth is not implemented.
 
-From a source checkout, `make auth` builds the app and starts email-code login; `make run` builds and opens the dashboard. Override login options with `make auth AUTH_ARGS='--token'` (or `AUTH_ARGS=''` for password login). Pass dashboard options with `make run RUN_ARGS='--demo'` or `make run RUN_ARGS='--config /path/to/config.toml'`.
+From a source checkout, `make auth` builds the app and starts email-code login; `make run` builds and opens the dashboard. Use `make demo` to try the simulated farm without login. Override login options with `make auth AUTH_ARGS='--token'` (or `AUTH_ARGS=''` for password login). Pass dashboard options with `make run RUN_ARGS='--config /path/to/config.toml'`.
 
 Account tokens are saved in macOS Keychain or the Linux Secret Service through `secret-tool` (usually provided by `libsecret-tools`). Passwords are never saved. Secret values are passed to credential-store commands through standard input, not command arguments. When the credential store is unavailable, login opens a session-only dashboard. To choose that behavior explicitly:
 
@@ -119,7 +119,7 @@ Reports are collected for two seconds and grouped by printer. `Tab` / `Shift+Tab
 
 Existing inspectors, confirmations, and help finish before an alert opens. Telemetry continues, and a resolved condition is marked in the open modal. Saved acknowledgements/dismissals suppress corresponding startup alerts. A different fault or an observed resolved-and-recurring occurrence remains eligible. Distinct codes arriving after a dialog was closed can prompt again because telemetry does not always identify which reports belong to one incident. Underlying notices remain independent. See [alert behavior](docs/action-needed.md) for details.
 
-To preview the modal without a printer, run `make run RUN_ARGS='--demo'`: the X2D simulates runout about 15 seconds after launch and recovers about nine seconds later. Demo decisions are never persisted.
+To preview the modal without a printer, run `make demo`: the X2D simulates runout about 15 seconds after launch and recovers about nine seconds later. Demo decisions are never persisted.
 
 ## Interpreting the data
 
@@ -151,6 +151,7 @@ make audit-faults # verify fault codes against pinned upstream catalogues (netwo
 make build   # bin/bambu-tui
 make auth    # build and log in using an email code
 make run     # build and open the dashboard
+make demo    # build and open the simulated farm without login
 make cross   # macOS/Linux, arm64/amd64 binaries in dist/
 make release # versioned archives, SHA-256 checksums, and dependency licenses
 ```

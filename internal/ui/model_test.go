@@ -8,8 +8,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-labs-tui/internal/farm"
-	"github.com/cliffom/bambu-labs-tui/internal/monitor"
+	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/monitor"
 )
 
 func demoModel() Model {

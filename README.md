@@ -2,15 +2,15 @@
 
 ![Bambu TUI — your print farm, one terminal. Pixel-art terminal with a bamboo shoot; printer status, filament, and notices.](assets/branding/hero.png)
 
-[![CI](https://github.com/cliffom/bambu-labs-tui/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cliffom/bambu-labs-tui/actions/workflows/ci.yml)
-[![Formatting and lint](https://github.com/cliffom/bambu-labs-tui/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/cliffom/bambu-labs-tui/actions/workflows/lint.yml)
-[![Latest release](https://img.shields.io/github/v/release/cliffom/bambu-labs-tui)](https://github.com/cliffom/bambu-labs-tui/releases/latest)
+[![CI](https://github.com/cliffom/bambu-tui/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cliffom/bambu-tui/actions/workflows/ci.yml)
+[![Formatting and lint](https://github.com/cliffom/bambu-tui/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/cliffom/bambu-tui/actions/workflows/lint.yml)
+[![Latest release](https://img.shields.io/github/v/release/cliffom/bambu-tui)](https://github.com/cliffom/bambu-tui/releases/latest)
 
-A terminal dashboard for a Bambu Lab print farm. Built for monitoring an **H2D and X2D through Bambu Cloud**, with a simulated farm you can try immediately. Source: [cliffom/bambu-labs-tui](https://github.com/cliffom/bambu-labs-tui).
+A terminal dashboard for a Bambu Lab print farm. Built for monitoring an **H2D and X2D through Bambu Cloud**, with a simulated farm you can try immediately. Source: [cliffom/bambu-tui](https://github.com/cliffom/bambu-tui).
 
 ## Install v0.0.4
 
-Download the archive for your OS and CPU from [Releases](https://github.com/cliffom/bambu-labs-tui/releases), along with its checksums file. Verify the archive before extracting it:
+Download the archive for your OS and CPU from [Releases](https://github.com/cliffom/bambu-tui/releases), along with its checksums file. Verify the archive before extracting it:
 
 ```sh
 # macOS example; use the matching Linux archive on Linux.

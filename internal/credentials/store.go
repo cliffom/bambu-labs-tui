@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cliffom/bambu-labs-tui/internal/cloud"
+	"github.com/cliffom/bambu-tui/internal/cloud"
 )
 
 var ErrUnavailable = errors.New("OS credential store unavailable")

@@ -1,4 +1,4 @@
-module github.com/cliffom/bambu-labs-tui
+module github.com/cliffom/bambu-tui
 
 go 1.26.0
 

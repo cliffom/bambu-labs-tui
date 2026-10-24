@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-labs-tui/internal/farm"
-	"github.com/cliffom/bambu-labs-tui/internal/monitor"
-	"github.com/cliffom/bambu-labs-tui/internal/noticestore"
+	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambu-tui/internal/noticestore"
 )
 
 func TestNoticeDecisionsSavedBeforeQuitAndRestored(t *testing.T) {

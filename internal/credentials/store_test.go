@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cliffom/bambu-labs-tui/internal/cloud"
+	"github.com/cliffom/bambu-tui/internal/cloud"
 )
 
 // Simulate native stores at the process boundary: each read is a fresh command,

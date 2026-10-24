@@ -1,29 +1,42 @@
-# Publishing the initial repository
+# Publishing releases
 
-The implementation workspace cannot create its protected `.git` directory. The connected GitHub integration can read `cliffom/bambu-labs-tui` but rejected a write with `403 Resource not accessible by integration`. No remote commit, branch, tag, or release was created.
-
-A self-contained Git bundle is available in `dist/bambu-labs-tui-v0.0.1.bundle`. It contains the reviewed source and validation record on `main`. To import it from a normal terminal, choose a new directory and run:
+The repository is [cliffom/bambu-tui](https://github.com/cliffom/bambu-tui). Clone it with:
 
 ```sh
-git clone /absolute/path/to/bambu-labs-tui-v0.0.1.bundle bambu-labs-tui
-cd bambu-labs-tui
-git remote set-url origin https://github.com/cliffom/bambu-labs-tui.git
-git push -u origin main
+git clone https://github.com/cliffom/bambu-tui.git
+cd bambu-tui
 ```
 
-Use your normal GitHub authentication. If the remote has changed since it was inspected, reconcile that history before pushing; do not force-push over it. The bundle can also be inspected without importing it:
+For an existing checkout, update its remote:
 
 ```sh
-git bundle list-heads /absolute/path/to/bambu-labs-tui-v0.0.1.bundle
-# Run verify inside the imported Git repository:
-git bundle verify /absolute/path/to/bambu-labs-tui-v0.0.1.bundle
+git remote set-url origin https://github.com/cliffom/bambu-tui.git
 ```
 
-After CI passes and the remaining checks in [validation.md](validation.md) are completed, the release can be prepared:
+## Prepare a release
+
+Update `VERSION` and the default version in `internal/buildinfo/buildinfo.go` to a new, unused release version. Update the changelog and README installation examples, then run the appropriate checks:
 
 ```sh
-git tag -a v0.0.1 -m 'Bambu TUI v0.0.1'
-git push origin v0.0.1
+make fmt-check lint lint-actions lint-make
+make audit-faults
+make test check release
 ```
 
-The tag workflow builds archives and checksums and creates a **draft** GitHub release. Review its artifacts and notes before publishing it. Local candidates are stamped with the bundled source commit when packaged. Running Make without Git metadata defaults to an `unknown` commit; rebuilding from the imported repository reads the commit directly from Git.
+The lint commands require the pinned tools documented in the README. The catalogue audit requires network access; ordinary tests remain offline. Review the hardware-validation limitations in [validation.md](validation.md) and any feature-specific validation notes.
+
+Commit and push the release preparation to `main`. After CI passes, create and push an annotated tag matching `VERSION`:
+
+```sh
+release_tag="v$(cat VERSION)"
+git tag -a "$release_tag" -m "Bambu TUI $release_tag"
+git push origin "$release_tag"
+```
+
+The tag workflow verifies the version, runs race tests and vet, builds macOS/Linux archives for arm64/amd64, includes dependency licenses, and creates a **draft** GitHub release with SHA-256 checksums. Build metadata includes the source commit and UTC build date; builds without Git metadata report `unknown` for the commit.
+
+## Verify and publish
+
+Wait for CI, lint, and release packaging to pass. Download the draft assets from [Releases](https://github.com/cliffom/bambu-tui/releases), verify all four archives against the checksum manifest, and check the native binary's `--version` output. Replace the draft's full-changelog notes with focused release notes describing the changes, validation, and limitations.
+
+Publish the verified draft as the latest stable release. The tag workflow does not publish automatically. Existing archived releases retain the source/module identity used when they were built.

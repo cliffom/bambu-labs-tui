@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/cliffom/bambu-labs-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
 type attentionOccurrence struct {

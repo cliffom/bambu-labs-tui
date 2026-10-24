@@ -23,7 +23,7 @@ fi
 # Include notices from dependencies actually linked into the application.
 go list -deps -f '{{with .Module}}{{.Path}} {{.Dir}}{{end}}' ./cmd/bambu-tui | sort -u > "$release_stage/modules.txt"
 while read -r dependency dependency_dir; do
-  [[ -z "$dependency" || "$dependency" == 'github.com/cliffom/bambu-labs-tui' ]] && continue
+  [[ -z "$dependency" || "$dependency" == 'github.com/cliffom/bambu-tui' ]] && continue
   destination="$release_stage/third_party/${dependency//\//_}"
   mkdir -p "$destination"
   shopt -s nullglob

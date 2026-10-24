@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/cliffom/bambu-labs-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
 func Demo(ctx context.Context, out chan<- Event, refresh <-chan struct{}) {

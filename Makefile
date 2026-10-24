@@ -10,7 +10,7 @@ COMMIT ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 ifndef BUILD_DATE
 BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 endif
-MODULE := github.com/cliffom/bambu-labs-tui
+MODULE := github.com/cliffom/bambu-tui
 LDFLAGS := -s -w -X $(MODULE)/internal/buildinfo.Version=$(VERSION) -X $(MODULE)/internal/buildinfo.Commit=$(COMMIT) -X $(MODULE)/internal/buildinfo.Date=$(BUILD_DATE)
 
 build:

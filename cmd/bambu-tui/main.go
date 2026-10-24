@@ -12,14 +12,14 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cliffom/bambu-labs-tui/internal/buildinfo"
-	"github.com/cliffom/bambu-labs-tui/internal/cloud"
-	"github.com/cliffom/bambu-labs-tui/internal/config"
-	"github.com/cliffom/bambu-labs-tui/internal/credentials"
-	"github.com/cliffom/bambu-labs-tui/internal/farm"
-	"github.com/cliffom/bambu-labs-tui/internal/monitor"
-	"github.com/cliffom/bambu-labs-tui/internal/noticestore"
-	"github.com/cliffom/bambu-labs-tui/internal/ui"
+	"github.com/cliffom/bambu-tui/internal/buildinfo"
+	"github.com/cliffom/bambu-tui/internal/cloud"
+	"github.com/cliffom/bambu-tui/internal/config"
+	"github.com/cliffom/bambu-tui/internal/credentials"
+	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambu-tui/internal/noticestore"
+	"github.com/cliffom/bambu-tui/internal/ui"
 )
 
 func main() {

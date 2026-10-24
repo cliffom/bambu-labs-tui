@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-labs-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
 func TestRoundTripAndReplacement(t *testing.T) {

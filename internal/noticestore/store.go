@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cliffom/bambu-labs-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
 type Store struct{ Path string }

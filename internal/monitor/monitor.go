@@ -7,9 +7,9 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/cliffom/bambu-labs-tui/internal/cloud"
-	"github.com/cliffom/bambu-labs-tui/internal/farm"
-	"github.com/cliffom/bambu-labs-tui/internal/mqtt"
+	"github.com/cliffom/bambu-tui/internal/cloud"
+	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/mqtt"
 )
 
 type Event struct {

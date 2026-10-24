@@ -34,7 +34,7 @@ type Model struct {
 	Demo                            bool
 	width, height, selection, focus int
 	now                             time.Time
-	help, ended                     bool
+	ended                           bool
 	toast                           string
 	toastAt                         time.Time
 	details, notices                viewport.Model
@@ -44,7 +44,7 @@ type Model struct {
 	noticeSpans                     [][2]int
 	inspected                       *noticeItem
 	inspection                      viewport.Model
-	confirmClear                    bool
+	dialog                          dialogState
 	saveReviews                     func(map[string]farm.Review) error
 	reviewWrites                    persistence
 	snoozeWrites                    persistence
@@ -107,11 +107,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
 	result := next.(Model)
 	result.pruneSnoozes()
-	result.syncAlertDialog()
-	result.syncExport()
-	result.syncFilament()
-	result.syncDecisions()
-	result.syncAttention(false)
+	result.syncDialogs()
 	cmd = tea.Batch(cmd, result.persist())
 	if result.quitting && !result.persistencePending() {
 		if result.reviewWrites.failed != 0 || result.snoozeWrites.failed != 0 {
@@ -174,75 +170,21 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = m.wait()
 	case tea.KeyMsg:
 		key := v.String()
-		if m.quitting || m.quitProblem {
-			switch key {
-			case "esc":
-				// Cancel shutdown, keeping in-flight saves serialized and tracked.
-				m.quitting, m.quitProblem = false, false
-			case "q", "ctrl+c":
-				if m.quitProblem {
-					return m, tea.Quit
-				}
-			}
-			return m, nil
-		}
-		if m.exportDialog != nil {
-			cmd = m.exportKey(key, msg)
+		if m.hasOpenDialog() {
+			cmd = routeFor(m.dialog.active).key(&m, key, msg)
 			m.syncPanels()
 			return m, cmd
-		}
-		if m.alertDialog != nil {
-			cmd = m.alertKey(key, msg)
-			m.syncPanels()
-			return m, cmd
-		}
-		if m.attention != nil {
-			cmd = m.attentionKey(key, msg)
-			m.syncPanels()
-			return m, cmd
-		}
-		if m.decisions != nil {
-			cmd = m.decisionsKey(key, msg)
-			m.syncPanels()
-			return m, cmd
-		}
-		if m.filament != nil {
-			cmd = m.filamentKey(key, msg)
-			m.syncPanels()
-			return m, cmd
-		}
-		if m.confirmClear {
-			switch key {
-			case "y", "Y":
-				m.Farm.ClearEvents()
-				m.confirmClear = false
-				m.toast = "Session event history cleared; active conditions remain"
-				m.toastAt = m.now
-			case "esc", "n", "N":
-				m.confirmClear = false
-			}
-			m.syncPanels()
-			return m, nil
-		}
-		if m.inspected != nil {
-			cmd = m.inspectorKey(key, msg)
-			m.syncPanels()
-			return m, cmd
-		}
-		if m.help && key != "?" && key != "esc" {
-			return m, nil
 		}
 		switch v.String() {
 		case "q", "ctrl+c":
 			cmd = m.beginShutdown()
 			return m, cmd
 		case "?":
-			m.help = !m.help
+			m.openDialog(dialogHelp)
 		case "!":
 			m.attentionSeen = nil
 			m.syncAttention(true)
 		case "esc":
-			m.help = false
 			m.focus = 0
 		case "tab":
 			m.focus = (m.focus + 1) % 3
@@ -282,7 +224,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "C":
 			if m.focus == 2 && len(m.Farm.Events) > 0 {
-				m.confirmClear = true
+				m.openDialog(dialogClearHistory)
 			}
 		case "r":
 			if m.ended {
@@ -337,12 +279,6 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 func (m Model) current() *farm.Printer {
 	return m.Farm.Printers[m.selectedPrinterID()]
-}
-
-// hasOpenDialog reports whether a dialog currently owns keyboard focus.
-func (m Model) hasOpenDialog() bool {
-	return m.attention != nil || m.filament != nil || m.decisions != nil ||
-		m.inspected != nil || m.confirmClear || m.help || m.alertDialog != nil || m.exportDialog != nil
 }
 
 // terminalFits reports whether the dashboard and dialogs fit at their minimum size.
@@ -438,43 +374,23 @@ func (m *Model) syncPanels() {
 	m.syncNoticeSelection(m.noticeItems())
 	m.notices.SetContent(m.noticeText(right))
 	m.keepNoticeVisible()
-	m.syncInspector()
 }
 
 func (m Model) View() string {
-	if m.quitting {
-		return fit("Saving notice decisions and snoozes before quitting (up to 5 seconds).\nEsc cancels quitting; saves continue in the background.", m.width, m.height)
-	}
-	if m.quitProblem {
-		return fit("Storage failed or did not finish within 5 seconds; changes may be lost.\nPress q / Ctrl+C to exit anyway, or Esc to keep using the app.\n"+m.storageWarning(), m.width, m.height)
-	}
-	if !m.terminalFits() {
+	route := routeFor(m.dialog.active)
+	if !m.terminalFits() && !route.compact {
 		if m.hasOpenDialog() {
 			return fit(versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
 		}
 		return fit(versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
 	}
-	if m.exportDialog != nil {
-		return m.exportView()
+	if m.hasOpenDialog() {
+		return route.view(m)
 	}
-	if m.alertDialog != nil {
-		return m.alertView()
-	}
-	if m.attention != nil {
-		return m.attentionView()
-	}
-	if m.decisions != nil {
-		return m.decisionsView()
-	}
-	if m.filament != nil {
-		return m.filamentView()
-	}
-	if m.confirmClear {
-		return m.clearHistoryView()
-	}
-	if m.inspected != nil {
-		return m.inspectorView()
-	}
+	return m.dashboardView(false)
+}
+
+func (m Model) dashboardView(help bool) string {
 	header := m.dashboardHeader()
 	lines := []string{header}
 	lines = append(lines, m.overviewLines()...)
@@ -513,7 +429,7 @@ func (m Model) View() string {
 	if message := m.storageWarning(); message != "" {
 		foot = warning.Render(message)
 	}
-	if m.help {
+	if help {
 		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")

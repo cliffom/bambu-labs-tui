@@ -93,8 +93,10 @@ func (m *Model) moveNotice(delta int, absolute bool) {
 }
 func (m *Model) openNotice() {
 	if item, ok := m.selectedNotice(); ok {
+		m.openDialog(dialogInspector)
 		m.inspected = &item
 		m.inspection.GotoTop()
+		m.syncInspector()
 	}
 }
 func (m *Model) focusFault() {
@@ -136,7 +138,7 @@ func (m *Model) clearNotice(item noticeItem) {
 		m.Farm.Dismiss(item.ActiveKey)
 		m.toast = "Notice dismissed locally; printer state unchanged"
 		m.toastAt = m.now
-		m.inspected = nil
+		m.dismissDialog(dialogInspector)
 		return
 	}
 	if item.EventID != 0 {
@@ -146,12 +148,12 @@ func (m *Model) clearNotice(item noticeItem) {
 		m.toast = "Condition has resolved"
 	}
 	m.toastAt = m.now
-	m.inspected = nil
+	m.dismissDialog(dialogInspector)
 }
 func (m *Model) inspectorKey(key string, msg tea.Msg) tea.Cmd {
 	switch key {
 	case "esc", "enter":
-		m.inspected = nil
+		m.dismissDialog(dialogInspector)
 	case "a":
 		m.acknowledge(*m.inspected, true)
 	case "c":

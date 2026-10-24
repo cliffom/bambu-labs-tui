@@ -80,6 +80,7 @@ func (m Model) persistencePending() bool {
 // operation can be canceled. Esc cancels the shutdown, not the write. On timeout
 // or error the user must explicitly choose whether to exit with unsaved changes.
 func (m *Model) beginShutdown() tea.Cmd {
+	m.openDialog(dialogShutdown)
 	m.quitting = true
 	m.quitGeneration++
 	generation := m.quitGeneration

@@ -92,6 +92,7 @@ func (d *decisionsDialog) selectItem(items []decisionItem) (decisionItem, bool) 
 
 // openDecisions opens account-scoped local reviews without changing dashboard focus.
 func (m *Model) openDecisions() {
+	m.openDialog(dialogDecisions)
 	m.decisions = &decisionsDialog{view: viewport.New(1, 1)}
 	m.syncDecisions()
 }
@@ -113,7 +114,7 @@ func (m *Model) decisionsKey(key string, msg tea.Msg) tea.Cmd {
 	}
 	switch key {
 	case "esc", "n":
-		m.decisions = nil
+		m.closeDialog()
 		return nil
 	case "q", "ctrl+c":
 		return nil

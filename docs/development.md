@@ -39,3 +39,5 @@ Bambu's cloud protocol is community documented and may change. Implementation re
 - [Home Assistant Bambu integration](https://github.com/greghesp/ha-bambulab/tree/main/custom_components/bambu_lab/pybambu), including dual-nozzle telemetry and login challenge handling
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea/tree/v1.3.10)
 
+
+Dialog focus is owned by `dialogState` in `internal/ui/dialogs.go`. Its route catalog supplies keyboard handling, rendering, synchronization, and payload cleanup for each dialog; open/close transitions use that owner rather than pointer priority. Snooze controls opened from attention explicitly suspend and return to that prompt. Reset confirmation stays inside the decisions dialog, preserving selection and scroll state. Automatic attention waits until the owner releases focus, including during persistence shutdown.

@@ -18,6 +18,7 @@ import (
 	"github.com/cliffom/bambu-labs-tui/internal/credentials"
 	"github.com/cliffom/bambu-labs-tui/internal/farm"
 	"github.com/cliffom/bambu-labs-tui/internal/monitor"
+	"github.com/cliffom/bambu-labs-tui/internal/noticestore"
 	"github.com/cliffom/bambu-labs-tui/internal/ui"
 )
 
@@ -210,7 +211,20 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 			monitor.New(api, session).Run(ctx, events, refresh)
 		}
 	}()
-	model := ui.New(farm.New(cfg.LowFilamentPercent), events, refresh, demo)
+	state := farm.New(cfg.LowFilamentPercent)
+	model := ui.New(state, events, refresh, demo)
+	if !demo {
+		notices, loadErr := noticestore.New(cfg.Region, session.Username)
+		var reviews map[string]farm.Review
+		if loadErr == nil {
+			reviews, loadErr = notices.Load()
+		}
+		state.RestoreReviews(reviews)
+		if loadErr != nil {
+			fmt.Fprintln(os.Stderr, "Notice persistence:", loadErr)
+		}
+		model = model.WithNoticePersistence(notices.Save, loadErr)
+	}
 	_, err := tea.NewProgram(model, tea.WithContext(ctx), tea.WithAltScreen()).Run()
 	cancel()
 	<-done

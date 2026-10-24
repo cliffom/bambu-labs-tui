@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.2 — Persistent notice decisions
+
+- Persist local notice acknowledgements and dismissals across TUI restarts, isolated by Bambu account and region.
+- Save decisions immediately using private files and atomic replacement. Keep restored decisions through discovery and partial telemetry until the relevant condition is reported.
+- Remove saved decisions after confirmed resolution; changed cloud/print-state conditions and observed recurrences require review again. Dismissed faults stay out of startup history and printer details.
+- Keep demo decisions and recent event history in memory. Show a persistent warning when saved decisions cannot be loaded or written, preserving unreadable files.
+- Add the pixel-art logo and README hero, `make auth`/`make run` shortcuts, and checkmake validation locally and in CI.
+
+Resolution and recurrence while the application is closed cannot be distinguished from the same ongoing condition when the printer supplies no occurrence identifier. Such conditions keep their saved decision until resolution is observed.
+
 ## 0.0.1 — Initial release candidate
 
 - Read-only Bambu Cloud monitoring with password, email-code, authenticator, and token-import login.

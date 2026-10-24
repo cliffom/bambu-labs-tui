@@ -1,4 +1,4 @@
-// Package farm owns the normalized, session-only farm state. Only the UI reducer
+// Package farm owns the normalized farm state. Only the UI reducer
 // mutates it; transports deliver immutable reports through messages.
 package farm
 
@@ -69,14 +69,17 @@ type Condition struct {
 	Dismissed            bool
 }
 type State struct {
-	Printers     map[string]*Printer
-	Order        []string
-	Events       []Event
-	Active       map[string]Condition
-	Connected    bool
-	CloudProblem string
-	LowFilament  int
-	nextEventID  uint64
+	Printers                  map[string]*Printer
+	Order                     []string
+	Events                    []Event
+	Active                    map[string]Condition
+	Connected                 bool
+	CloudProblem              string
+	LowFilament               int
+	nextEventID               uint64
+	reviews                   map[string]Review
+	reviewRevision            uint64
+	discovered, cloudObserved bool
 }
 
 func New(threshold int) *State {
@@ -84,6 +87,7 @@ func New(threshold int) *State {
 }
 
 func (s *State) Discover(devices []Device, now time.Time) {
+	s.discovered = true
 	seen := map[string]bool{}
 	for _, d := range devices {
 		if d.ID == "" {
@@ -123,6 +127,7 @@ func (s *State) Discover(devices []Device, now time.Time) {
 }
 
 func (s *State) Cloud(connected bool, problem string, now time.Time) {
+	s.cloudObserved = true
 	s.Connected, s.CloudProblem = connected, problem
 	s.Reconcile(now)
 }
@@ -206,7 +211,7 @@ func (s *State) add(e Event) {
 	}
 }
 
-// Acknowledge marks an ongoing condition as reviewed in this session. It never
+// Acknowledge marks an ongoing condition as reviewed locally. It never
 // edits printer telemetry or sends a printer command. Resolution and recurrence
 // create a new, unacknowledged condition.
 func (s *State) Acknowledge(key string, acknowledged bool) bool {
@@ -216,6 +221,7 @@ func (s *State) Acknowledge(key string, acknowledged bool) bool {
 	}
 	c.Acknowledged = acknowledged
 	s.Active[key] = c
+	s.rememberReview(key, c)
 	return true
 }
 
@@ -228,6 +234,7 @@ func (s *State) Dismiss(key string) bool {
 	}
 	c.Dismissed = true
 	s.Active[key] = c
+	s.rememberReview(key, c)
 	events := s.Events[:0]
 	for _, e := range s.Events {
 		if e.ConditionKey != key || e.At.Before(c.Since) {
@@ -309,6 +316,13 @@ func (s *State) Reconcile(now time.Time) {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
+	// Restored reviews must survive discovery, ticks, and partial reports until
+	// telemetry has actually supplied the relevant condition family.
+	for k := range s.reviews {
+		if _, active := next[k]; !active && s.reviewKnown(k) {
+			s.forgetReview(k)
+		}
+	}
 	for _, k := range keys {
 		c := next[k]
 		old, ongoing := s.Active[k]
@@ -320,7 +334,16 @@ func (s *State) Reconcile(now time.Time) {
 			c.Dismissed = old.Dismissed
 		} else {
 			c.Since = now
-			s.add(Event{At: now, Printer: c.Printer, Level: c.Level, Text: c.Text, Code: c.Code, ConditionKey: k})
+			if review, ok := s.reviews[k]; ok {
+				if review.matches(k, c) {
+					c.Since, c.Acknowledged, c.Dismissed = review.Since, review.Acknowledged, review.Dismissed
+				} else {
+					s.forgetReview(k)
+				}
+			}
+			if !c.Dismissed {
+				s.add(Event{At: now, Printer: c.Printer, Level: c.Level, Text: c.Text, Code: c.Code, ConditionKey: k})
+			}
 		}
 		next[k] = c
 	}

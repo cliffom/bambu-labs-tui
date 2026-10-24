@@ -134,7 +134,7 @@ func (m *Model) acknowledge(item noticeItem, toggle bool) {
 func (m *Model) clearNotice(item noticeItem) {
 	if item.Active {
 		m.Farm.Dismiss(item.ActiveKey)
-		m.toast = "Notice cleared from this session; printer state unchanged"
+		m.toast = "Notice dismissed locally; printer state unchanged"
 		m.toastAt = m.now
 		m.inspected = nil
 		return
@@ -284,7 +284,11 @@ func (m *Model) syncInspector() {
 		lines = append(lines, "", accent.Render("BAMBU TROUBLESHOOTING · o opens in browser"), url)
 	}
 	if item.Active {
-		lines = append(lines, "", "a: toggle acknowledgement · c: dismiss from this TUI", "A dismissed condition stays hidden for this session unless it resolves and recurs.", "Printer-side dismissal is not sent by this monitoring application.")
+		persistence := "Acknowledgements and dismissals are saved across restarts until resolution."
+		if m.Demo || m.saveReviews == nil || m.noticeStorageError != "" {
+			persistence = "Acknowledgements and dismissals apply only to this session."
+		}
+		lines = append(lines, "", "a: toggle acknowledgement · c: dismiss from this TUI", persistence, "Resolved conditions return unreviewed if they recur.", "Printer-side dismissal is not sent by this monitoring application.")
 	} else if item.EventID != 0 {
 		lines = append(lines, "", "c: remove this event from the current session's history")
 	}
@@ -301,6 +305,9 @@ func (m Model) inspectorView() string {
 	return m.fullView(lines, footer)
 }
 func (m Model) fullView(lines []string, footer string) string {
+	if m.noticeStorageError != "" {
+		footer = m.noticeStorageError
+	}
 	rows := strings.Split(strings.Join(lines, "\n"), "\n")
 	if len(rows) > max(0, m.height-1) {
 		rows = rows[:max(0, m.height-1)]

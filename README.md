@@ -8,14 +8,14 @@
 
 A terminal dashboard for a Bambu Lab print farm. Built for monitoring an **H2D and X2D through Bambu Cloud**, with a simulated farm you can try immediately. Source: [cliffom/bambu-labs-tui](https://github.com/cliffom/bambu-labs-tui).
 
-## Install v0.0.1
+## Install v0.0.2
 
 Download the archive for your OS and CPU from [Releases](https://github.com/cliffom/bambu-labs-tui/releases), along with its checksums file. Verify the archive before extracting it:
 
 ```sh
 # macOS example; use the matching Linux archive on Linux.
-shasum -a 256 -c bambu-tui_v0.0.1_checksums.txt --ignore-missing
-tar -xzf bambu-tui_v0.0.1_darwin_arm64.tar.gz
+shasum -a 256 -c bambu-tui_v0.0.2_checksums.txt --ignore-missing
+tar -xzf bambu-tui_v0.0.2_darwin_arm64.tar.gz
 ./bambu-tui --version
 ./bambu-tui --demo
 ```
@@ -102,7 +102,11 @@ Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and
 
 To review notices, press `Tab` until the notices panel is focused, use `j/k` or the arrow keys to select an entry, and press `Enter`. The detail view shows the full message, status, severity, first-seen/event time, and fault code. HMS entries include a Bambu troubleshooting link; `o` opens it in your browser. While viewing a printer, `f` jumps straight to its first active fault.
 
-`a` marks a notice as reviewed with `[ACK]` while keeping it visible. `c` dismisses an active notice from the TUI, removes its matching history entry, and excludes it from notice counts and the printer's fault list. Routine telemetry updates do not bring it back. If the condition resolves and recurs, it appears again; a changed connection problem or print failure also needs review again. Dismissal and acknowledgement last for this session.
+`a` marks a notice as reviewed with `[ACK]` while keeping it visible. `c` dismisses an active notice from the TUI, removes its matching history entry, and excludes it from notice counts and the printer's fault list. Routine telemetry updates do not bring it back. If the condition resolves and recurs, it appears again; a changed connection problem or print failure also needs review again.
+
+Starting with v0.0.2, acknowledgements and dismissals are saved immediately and restored when the TUI reopens. Files are separate for each account and region, under the OS configuration directory's `bambu-tui/notices/` folder (`~/Library/Application Support/bambu-tui/notices/` on macOS; `$XDG_CONFIG_HOME/bambu-tui/notices/` or `~/.config/bambu-tui/notices/` on Linux). They contain local notice decisions and printer identifiers, with private file permissions; account tokens stay in the OS credential store. A custom `--config` path does not change this account-scoped storage location. To reset saved decisions, quit the TUI and remove the matching JSON file (or the notice directory to reset all accounts).
+
+Saved decisions survive discovery and partial startup telemetry until the relevant status arrives. Confirmed resolution removes the saved decision. If a condition resolves and recurs entirely while the TUI is closed, the app cannot identify that as a new occurrence without a printer-provided identifier; the matching decision is retained until resolution is observed. Recent event history remains session-only, and `--demo` neither reads nor writes saved notice decisions. If storage fails, a persistent warning reports that decisions may apply only to the current session; an unreadable or unsupported file is preserved without overwriting it.
 
 For historical events, `c` deletes the selected event; `C` clears all recent events after confirmation. Clearing history leaves active conditions intact. Local dismissal preserves printer telemetry and does not send printer-side fault-clear commands; resolve or dismiss those through the printer or Bambu's own applications.
 

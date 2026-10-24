@@ -43,6 +43,22 @@ type Model struct {
 	inspected                       *noticeItem
 	inspection                      viewport.Model
 	confirmClear                    bool
+	saveReviews                     func(map[string]farm.Review) error
+	savedReviewRevision             uint64
+	noticeStorageError              string
+}
+
+// WithNoticePersistence enables immediate saves from the UI reducer. A failed
+// load disables writes for this session to preserve the original file.
+func (m Model) WithNoticePersistence(save func(map[string]farm.Review) error, loadErr error) Model {
+	m.savedReviewRevision = m.Farm.ReviewRevision()
+	m.saveReviews = nil
+	if loadErr != nil {
+		m.noticeStorageError = "Saved notices unavailable; decisions apply only to this session"
+	} else {
+		m.saveReviews = save
+	}
+	return m
 }
 
 func New(state *farm.State, events <-chan monitor.Event, refresh chan<- struct{}, demo bool) Model {
@@ -62,6 +78,20 @@ func (m Model) wait() tea.Cmd {
 }
 func (m Model) Init() tea.Cmd { return tea.Batch(m.wait(), tick()) }
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	next, cmd := m.update(msg)
+	result := next.(Model)
+	if result.saveReviews != nil && result.savedReviewRevision != result.Farm.ReviewRevision() {
+		result.savedReviewRevision = result.Farm.ReviewRevision()
+		if err := result.saveReviews(result.Farm.Reviews()); err != nil {
+			result.noticeStorageError = "Could not save notices; decisions may be lost on restart"
+		} else {
+			result.noticeStorageError = ""
+		}
+	}
+	return result, cmd
+}
+
+func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch v := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -373,6 +403,9 @@ func (m Model) View() string {
 	}
 	if m.toast != "" {
 		foot = warning.Render(safe(m.toast))
+	}
+	if m.noticeStorageError != "" {
+		foot = warning.Render(m.noticeStorageError)
 	}
 	if m.help {
 		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "f              View selected printer's first active fault", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}

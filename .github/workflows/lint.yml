@@ -20,6 +20,8 @@ jobs:
           cache: true
       - name: Check Go formatting
         run: make fmt-check
+      - name: Audit fault codes against pinned upstream catalogues
+        run: make audit-faults
       - name: Lint Go code
         uses: golangci/golangci-lint-action@v9.3.0
         with:

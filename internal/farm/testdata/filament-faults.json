@@ -1,0 +1,164 @@
+[
+  {
+    "name": "h2d-ams-runout",
+    "model": "H2D",
+    "payload": {
+      "print": {
+        "command": "push_status",
+        "gcode_state": "PAUSE",
+        "hms": [
+          {
+            "attr": 117448704,
+            "code": 131073
+          }
+        ],
+        "print_error": 117473297,
+        "stg_cur": 6,
+        "ams": {
+          "ams": [
+            {
+              "id": "0",
+              "tray": [
+                {
+                  "id": "0",
+                  "state": 3,
+                  "tray_type": "PLA",
+                  "remain": 0
+                },
+                {
+                  "id": "1",
+                  "state": 0
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "hms_text": "AMS 1 slot 1: filament runout",
+    "print_error_text": "AMS 1: filament runout"
+  },
+  {
+    "name": "x2d-ams-ht-runout",
+    "model": "X2D",
+    "payload": {
+      "print": {
+        "command": "push_status",
+        "gcode_state": "PAUSE",
+        "hms": [
+          {
+            "attr": 402792448,
+            "code": 131073
+          }
+        ],
+        "print_error": 402817041,
+        "stg_cur": 6
+      }
+    },
+    "hms_text": "AMS HT 3 slot 1: filament runout",
+    "print_error_text": "AMS HT 3: filament runout"
+  },
+  {
+    "name": "h2d-external-runout",
+    "model": "H2D",
+    "payload": {
+      "print": {
+        "command": "push_status",
+        "gcode_state": "PAUSE",
+        "hms": [
+          {
+            "attr": 134094848,
+            "code": 131073
+          }
+        ],
+        "print_error": 134119441,
+        "stg_cur": 6,
+        "vir_slot": [
+          {
+            "id": 254,
+            "tray_type": "PLA",
+            "remain": 0
+          }
+        ]
+      }
+    },
+    "hms_text": "External spool filament runout",
+    "print_error_text": "External spool filament runout"
+  },
+  {
+    "name": "x2d-ams-ht-feed-failure",
+    "model": "X2D",
+    "payload": {
+      "print": {
+        "command": "push_status",
+        "gcode_state": "PAUSE",
+        "hms": [
+          {
+            "attr": 402747392,
+            "code": 131074
+          }
+        ],
+        "print_error": 402751494
+      }
+    },
+    "hms_text": "AMS HT 2 slot 1: filament cannot reach",
+    "print_error_text": "AMS HT 2: Unable to feed"
+  },
+  {
+    "name": "h2d-nozzle-clog",
+    "model": "H2D",
+    "payload": {
+      "print": {
+        "command": "push_status",
+        "gcode_state": "PAUSE",
+        "hms": [
+          {
+            "attr": 50338304,
+            "code": 131074
+          }
+        ],
+        "print_error": 50348038
+      }
+    },
+    "hms_text": "Nozzle clogged",
+    "print_error_text": "Nozzle clogged"
+  },
+  {
+    "name": "x2d-empty-slot",
+    "model": "X2D",
+    "payload": {
+      "print": {
+        "command": "push_status",
+        "gcode_state": "PAUSE",
+        "hms": [
+          {
+            "attr": 117448960,
+            "code": 131074
+          }
+        ],
+        "print_error": 0,
+        "ams": {
+          "ams": [
+            {
+              "id": "0",
+              "tray": [
+                {
+                  "id": "0",
+                  "state": 3,
+                  "tray_type": "PLA",
+                  "remain": 0
+                },
+                {
+                  "id": "1",
+                  "state": 0
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "hms_text": "AMS 1 slot 2: slot empty",
+    "print_error_text": ""
+  }
+]

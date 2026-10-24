@@ -117,7 +117,8 @@ For historical events, `c` deletes the selected event; `C` clears all recent eve
 - **R / L** beside a filament slot indicates its association with the right/left nozzle. The temperature panel separately marks the active nozzle.
 - **Stale** means no printer status has arrived for more than 120 seconds. Device availability is refreshed every 60 seconds. Cloud disconnection is separate from a printer's reported offline status. `~` beside time estimates marks data that is stale, offline, or disconnected.
 - ETA uses the timestamp of the last remaining-time update. Temperature-only updates do not move ETA. Paused prints have no finish ETA, and elapsed time never implies completion.
-- Known printer errors and maintenance notices have readable descriptions. HMS severity distinguishes errors, warnings, and informational notices. A known empty-message internal code is suppressed; other unmapped HMS notices retain their codes and troubleshooting links. [Protocol sources](docs/protocol-sources.md) document the curated coverage and fallbacks.
+- Known printer errors and maintenance notices have readable descriptions, including verified standard AMS/AMS HT and external-spool runout, empty-slot reports, feed/retract failures, possible tangles, and nozzle clogs. Runout recovery stages remain distinct from faults requiring replacement filament. HMS severity follows the reported code, and printer-supplied messages take precedence. A known empty-message internal code is suppressed; other unmapped HMS notices retain their codes and troubleshooting links. [Protocol sources](docs/protocol-sources.md#filament-fault-catalogue-expansion) document exact coverage and remaining gaps.
+- A paused-state notice remains separate from the fault that may have caused it. HMS and print-error reports also retain their individual codes; acknowledgement or dismissal applies to each notice independently, preserving visibility of distinct faults.
 - Standard AMS and AMS HT units have separate readable labels; internal IDs are preserved for filament-path assignments.
 - Notices disappear when their condition resolves or you dismiss them locally; the event panel retains up to 500 events until you quit.
 
@@ -135,6 +136,7 @@ make fmt-check # check formatting without changing files
 make lint    # golangci-lint
 make lint-actions # actionlint for GitHub Actions workflows
 make lint-make # checkmake for the Makefile
+make audit-faults # verify fault codes against pinned upstream catalogues (network required)
 make build   # bin/bambu-tui
 make auth    # build and log in using an email code
 make run     # build and open the dashboard

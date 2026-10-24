@@ -27,3 +27,6 @@
 .DS_Store
 ._*
 Thumbs.db
+
+# Local diagnostic artifacts copied from the export directory
+bambu-tui-diagnostics-*.json

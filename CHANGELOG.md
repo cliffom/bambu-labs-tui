@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0 — Daily farm usability
+
+- Show `BAMBU TUI vX.Y.Z / CLOUD STATUS / FARM` in the dashboard header and the running version in dialog headings; shorten the clock on compact terminals to preserve version and connection visibility.
+- Add explicit local diagnostic export (`D`, then confirmation) for one aliased printer. Include classified telemetry/types, bounded sanitized partial reports, version/platform/model/firmware metadata, link state, and fault codes; omit unknown fields and private/free-form data. Write private exclusive files without uploading.
+- Add adversarial/fuzz, synthetic-fixture replay, file/error, confirmation, selection, and modal tests. Document export scope and a v0.1.0 readiness assessment: the planned feature scope is complete; unperformed live operational checks remain explicitly unverified in the validation record.
+
 ## 0.0.10 — Farm overview and navigation
 
 - Add whole-farm printing, paused/failed, idle/finished, actionable-attention, and unavailable counts, independent of the visible printer filter.

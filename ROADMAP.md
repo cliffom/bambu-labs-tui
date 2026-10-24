@@ -2,7 +2,7 @@
 
 Bambu TUI aims to be a dependable, read-only monitor for a Bambu Lab print farm. Prioritize trustworthy state, useful alerts, and quick navigation before adding more integrations.
 
-The released foundation through v0.0.6 includes cloud monitoring, readable fault descriptions, persisted notice decisions, action-needed modals, labelled printer details, firmware reporting, and a simulated farm. The user has validated displayed telemetry on H2D and X2D; operational restart/reconnect/notice checks and live firmware reporting remain open in the [validation record](docs/validation.md). The next reliability milestone will receive a release version when its validation criteria are met; incremental feature releases do not imply those checks are complete.
+The released foundation through v0.1.0 includes cloud monitoring, readable fault descriptions, persisted review management, action-needed modals, firmware reporting, an AMS/filament browser, per-printer interruption preferences/snoozes, the farm overview/filter/sort controls, and local allowlisted diagnostic exports. The user has validated displayed telemetry on H2D and X2D; operational restart/reconnect/notice checks remain open in the [validation record](docs/validation.md). See the [v0.1.0 readiness assessment](docs/v0.1.0-readiness.md) for feature coverage and the remaining release evidence.
 
 These milestones define intended scope and release criteria, not delivery dates. Linked issues track implementation details and acceptance criteria; adjust the roadmap as hardware results and user feedback establish priorities.
 
@@ -17,16 +17,16 @@ These milestones define intended scope and release criteria, not delivery dates.
 
 ### Next — Reliability
 
-Complete [live hardware and restart validation (#6)](https://github.com/cliffom/bambu-tui/issues/6). Verify login persistence, H2D/X2D telemetry and filament paths, reported pause/recovery/completion, network reconnection, saved decisions, and action-needed modals during normal printer use. Record models, firmware, host environment, and actual results in the validation documentation. Fix findings and add sanitized regressions where useful.
+The [validation record](docs/validation.md) retains the unperformed live checks; [#6](https://github.com/cliffom/bambu-tui/issues/6) records their original scope. Verify login persistence, H2D/X2D telemetry and filament paths, reported pause/recovery/completion, network reconnection, saved decisions, and action-needed modals during normal printer use. Record models, firmware, host environment, and actual results in the validation documentation. Fix findings and add sanitized regressions where useful.
 
-The release gate is documented evidence for the supported setup. Leave unperformed checks and unsupported combinations explicit.
+Record evidence for the supported setup as checks are performed. Leave unperformed checks and unsupported combinations explicit.
 
 ### v0.1.0 — Daily farm usability
 
-- [View and restore persisted dismissed notices (#7)](https://github.com/cliffom/bambu-tui/issues/7): inspect hidden active conditions, reverse individual decisions, and explicitly reset saved reviews from the TUI.
-- [Attention-focused farm summary, filtering, and sorting (#8)](https://github.com/cliffom/bambu-tui/issues/8): find troubled printers and upcoming completions while keeping selection stable during live updates.
-- [Per-printer alert preferences and snoozing (#9)](https://github.com/cliffom/bambu-tui/issues/9): define global defaults, printer overrides, and temporary suppression distinct from acknowledgement or dismissal.
-- [Privacy-safe diagnostic export (#10)](https://github.com/cliffom/bambu-tui/issues/10): explicitly export useful, sanitized troubleshooting artifacts for unknown codes and partial telemetry. Never upload automatically.
+- [View and restore persisted dismissed notices (#7)](https://github.com/cliffom/bambu-tui/issues/7): **released v0.0.8** — inspect hidden active conditions, reverse individual decisions, and explicitly reset saved reviews from the TUI.
+- [Attention-focused farm summary, filtering, and sorting (#8)](https://github.com/cliffom/bambu-tui/issues/8): **released v0.0.10** — find troubled printers and upcoming completions while keeping selection stable during live updates.
+- [Per-printer alert preferences and snoozing (#9)](https://github.com/cliffom/bambu-tui/issues/9): **released v0.0.9** — define global defaults, printer overrides, and temporary suppression distinct from acknowledgement or dismissal.
+- [Privacy-safe diagnostic export (#10)](https://github.com/cliffom/bambu-tui/issues/10): **released v0.1.0** — explicitly export useful, sanitized troubleshooting artifacts for unknown codes and partial telemetry. Never upload automatically.
 
 Sound preferences should be coordinated with the notification milestone; do not expose settings that have no working delivery backend. Underlying faults and connection state must remain visible when notifications are muted or snoozed.
 
@@ -44,7 +44,7 @@ LAN delivery depends on hardware-backed feasibility. If a required combination i
 
 ## Recommended implementation order
 
-1. Complete live validation and fix findings: [#6](https://github.com/cliffom/bambu-tui/issues/6).
+1. Record remaining live validation and fix findings (original scope: [#6](https://github.com/cliffom/bambu-tui/issues/6)).
 2. Make persisted notice decisions inspectable and reversible: [#7](https://github.com/cliffom/bambu-tui/issues/7).
 3. Improve attention-focused farm navigation: [#8](https://github.com/cliffom/bambu-tui/issues/8).
 4. Add per-printer interruption preferences and snoozing: [#9](https://github.com/cliffom/bambu-tui/issues/9).

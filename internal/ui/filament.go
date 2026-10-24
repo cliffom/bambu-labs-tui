@@ -313,7 +313,7 @@ func (m Model) filamentView() string {
 	if message := m.storageWarning(); message != "" {
 		footer = ansi.Truncate(message, max(1, m.width-8), "…")
 	}
-	lines := []string{accent.Bold(true).Render("AMS / FILAMENT"), white.Render(unit), muted.Render("Tab/←/→ unit · ↑/↓ slot · Enter details"), "", d.view.View(), "", footer}
+	lines := []string{versionedTitle(accent.Bold(true).Render("AMS / FILAMENT"), max(1, m.width-8)), white.Render(unit), muted.Render("Tab/←/→ unit · ↑/↓ slot · Enter details"), "", d.view.View(), "", footer}
 	box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#A3E4BB")).Padding(0, 1).Width(max(1, m.width-4)).Render(strings.Join(lines, "\n"))
 	return fit(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box), m.width, m.height)
 }

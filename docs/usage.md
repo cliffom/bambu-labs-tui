@@ -60,6 +60,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `g` / `G` | Select the first/last printer or notice |
 | `Enter` | View the selected notice; `Esc` or `Enter` returns |
 | `f` | Open the selected printer's first active fault |
+| `D` | Preview and confirm a local allowlisted diagnostic export |
 | `F` / `S` | Cycle the printer filter / sort without changing panel focus |
 | `m` | Open the selected printer's AMS/filament browser |
 | `s` | View effective printer alert settings and snooze/resume controls |
@@ -75,6 +76,10 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `q` / `Ctrl+C` | Quit from the dashboard; close any modal first |
 
 Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color.
+
+### Diagnostic export
+
+Press `D` on the dashboard to preview a local JSON export for the selected printer. Enter creates the file; Esc cancels. The export includes classified telemetry and structure, sanitized partial reports, app/platform/model/firmware metadata, connection state, and fault codes. Unknown/private fields and free-form values are omitted. No upload occurs. Inspect the file before attaching it voluntarily; see [diagnostic exports](diagnostics.md) for scope, limitations, and fixture creation.
 
 ### Farm view
 

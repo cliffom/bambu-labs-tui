@@ -309,6 +309,9 @@ func (m Model) fullView(lines []string, footer string) string {
 		footer = message
 	}
 	rows := strings.Split(strings.Join(lines, "\n"), "\n")
+	if len(rows) > 0 {
+		rows[0] = versionedTitle(rows[0], m.width)
+	}
 	if len(rows) > max(0, m.height-1) {
 		rows = rows[:max(0, m.height-1)]
 	}

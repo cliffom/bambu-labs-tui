@@ -23,12 +23,12 @@ Download an archive and the checksums file from the [latest release](https://git
 | Linux with x86-64 processor | `linux_amd64.tar.gz` |
 | Linux with ARM64 processor | `linux_arm64.tar.gz` |
 
-For example, on an Apple silicon Mac with v0.0.9 downloaded:
+For example, on an Apple silicon Mac with v0.0.10 downloaded:
 
 ```sh
-shasum -a 256 bambu-tui_v0.0.9_darwin_arm64.tar.gz
-# Compare the output with the matching line in bambu-tui_v0.0.9_checksums.txt.
-tar -xzf bambu-tui_v0.0.9_darwin_arm64.tar.gz
+shasum -a 256 bambu-tui_v0.0.10_darwin_arm64.tar.gz
+# Compare the output with the matching line in bambu-tui_v0.0.10_checksums.txt.
+tar -xzf bambu-tui_v0.0.10_darwin_arm64.tar.gz
 ./bambu-tui --version
 ```
 
@@ -65,6 +65,7 @@ Use a terminal of at least **60 columns × 18 rows**; a wider window shows print
 | --- | --- |
 | `↑` / `↓` or `j` / `k` | Select a printer or notice; scroll details |
 | `Tab` / `Shift+Tab` | Switch panels |
+| `F` / `S` | Cycle printer filters / sorting |
 | `m` | Browse the selected printer's AMS units and filament |
 | `Enter` | Inspect a selected notice |
 | `f` | Inspect the selected printer's first active fault |
@@ -75,6 +76,8 @@ Use a terminal of at least **60 columns × 18 rows**; a wider window shows print
 | `r` | Refresh printer status and firmware information |
 | `Esc` | Close a dialog |
 | `q` / `Ctrl+C` | Quit from the dashboard after closing dialogs |
+
+The farm summary counts printing, paused/failed, idle/finished, attention-needed, and unavailable printers. Use `F` to find actionable, printing, or unavailable printers; `S` sorts by name, attention, state, or finish time. Selection follows the printer during updates. See the [farm view guide](docs/farm-view.md) for definitions and ETA handling.
 
 In the **AMS/filament browser**, use `Tab` or left/right to switch units and up/down to select a slot. Each material has a color chip; selected-slot details show its color, remaining estimate, and nozzle assignment. Press `m` or `Esc` to return to the dashboard.
 
@@ -116,6 +119,7 @@ The executable is built at `bin/bambu-tui`. See the [development guide](docs/dev
 ## More information
 
 - [User guide](docs/usage.md): login, keyboard controls, saved notices, and telemetry details
+- [Farm view](docs/farm-view.md): summary definitions, filters, sorting, and selection
 - [Alert preferences and snoozing](docs/alerts.md): per-printer interruption controls
 - [Roadmap](ROADMAP.md): upcoming work and tracked issues
 - [Changelog](CHANGELOG.md): release history

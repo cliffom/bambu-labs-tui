@@ -59,6 +59,11 @@ type Model struct {
 	snoozesDirty                    bool
 	alertStorageError               string
 	printersDiscovered              bool
+	printerIDs                      []string
+	printerMetrics                  map[string]printerOverview
+	printerFilter                   printerFilter
+	printerSort                     printerSort
+	overview                        farmOverview
 }
 
 // WithNoticePersistence enables immediate saves from the UI reducer. A failed
@@ -134,18 +139,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.now = time.Now()
 		switch v.Kind {
 		case "devices":
-			id := ""
-			if p := m.current(); p != nil {
-				id = p.ID
-			}
 			m.Farm.Discover(v.Devices, v.At)
 			m.printersDiscovered = true
-			m.selection = 0
-			for i, k := range m.Farm.Order {
-				if k == id {
-					m.selection = i
-				}
-			}
 		case "connection":
 			m.Farm.Cloud(v.Connected, v.Problem, v.At)
 		case "report":
@@ -216,6 +211,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focus = (m.focus + 1) % 3
 		case "shift+tab":
 			m.focus = (m.focus + 2) % 3
+		case "F":
+			m.printerFilter = (m.printerFilter + 1) % filterCount
+		case "S":
+			m.printerSort = (m.printerSort + 1) % sortCount
 		case "f":
 			m.focusFault()
 		case "m":
@@ -265,11 +264,11 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "up", "k":
 					m.selection = max(0, m.selection-1)
 				case "down", "j":
-					m.selection = min(max(0, len(m.Farm.Order)-1), m.selection+1)
+					m.selection = min(max(0, len(m.printerIDs)-1), m.selection+1)
 				case "home", "g":
 					m.selection = 0
 				case "end", "G":
-					m.selection = max(0, len(m.Farm.Order)-1)
+					m.selection = max(0, len(m.printerIDs)-1)
 				}
 				if old != m.selection {
 					m.details.GotoTop()
@@ -298,10 +297,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 func (m Model) current() *farm.Printer {
-	if m.selection < 0 || m.selection >= len(m.Farm.Order) {
-		return nil
-	}
-	return m.Farm.Printers[m.Farm.Order[m.selection]]
+	return m.Farm.Printers[m.selectedPrinterID()]
 }
 
 // hasOpenDialog reports whether a dialog currently owns keyboard focus.
@@ -378,16 +374,17 @@ func stateLabel(s string) string {
 		return strings.ToLower(s)
 	}
 }
-func (m Model) tableRows() int { return min(max(1, len(m.Farm.Order)), max(1, min(6, m.height/5))) }
+func (m Model) tableRows() int { return min(max(1, len(m.printerIDs)), max(1, min(6, m.height/5))) }
 func (m Model) panelSizes() (int, int, int) {
-	available := max(4, m.height-m.tableRows()-9)
+	available := max(4, m.height-m.tableRows()-11)
 	if m.width >= 105 {
 		left := (m.width - 3) * 57 / 100
 		return left, m.width - left - 3, available
 	}
-	return m.width, m.width, max(3, (available-2)/2)
+	return m.width, m.width, max(1, available/2)
 }
 func (m *Model) syncPanels() {
+	m.syncPrinterList()
 	left, right, h := m.panelSizes()
 	m.details.Width = left
 	m.details.Height = h
@@ -444,24 +441,15 @@ func (m Model) View() string {
 	header := accent.Bold(true).Render("BAMBU") + muted.Render(" / FARM") + "  " + muted.Render(mode) + "  " + conn
 	clock := m.now.Local().Format("Mon 02 Jan · 15:04:05")
 	header += strings.Repeat(" ", max(1, m.width-ansi.StringWidth(header)-ansi.StringWidth(clock))) + muted.Render(clock)
-	printing, attention := 0, m.Farm.NoticeCount()
-	for _, p := range m.Farm.Printers {
-		if p.State == "RUNNING" {
-			printing++
-		}
-	}
-	summary := fmt.Sprintf("%d printers   %d printing   %d active notices · %d unreviewed", len(m.Farm.Order), printing, attention, m.Farm.Unacknowledged()) + m.alertSummary()
-	lines := []string{header, muted.Render(summary), "", m.section("01  PRINTERS", m.focus == 0, m.width), m.tableHeader()}
-	if len(m.Farm.Order) == 0 {
-		text := "Discovering account printers…"
-		if m.Farm.Connected {
-			text = "No printers found. Bind your printers to this Bambu account."
-		}
-		lines = append(lines, muted.Render(text))
+	lines := []string{header}
+	lines = append(lines, m.overviewLines()...)
+	lines = append(lines, "", m.section("01  PRINTERS", m.focus == 0, m.width), muted.Render(m.printerListStatus()), m.tableHeader())
+	if len(m.printerIDs) == 0 {
+		lines = append(lines, muted.Render(m.emptyPrinterList()))
 	} else {
 		count := m.tableRows()
 		start := max(0, m.selection-count+1)
-		for i := start; i < min(len(m.Farm.Order), start+count); i++ {
+		for i := start; i < min(len(m.printerIDs), start+count); i++ {
 			lines = append(lines, m.printerRow(i))
 		}
 	}
@@ -491,7 +479,7 @@ func (m Model) View() string {
 		foot = warning.Render(message)
 	}
 	if m.help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
+		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")
@@ -534,7 +522,7 @@ func (m Model) tableHeader() string {
 	return muted.Render(cell("  PRINTER", 23) + cell("LINK", 10) + cell("STATE", 12) + cell("PROGRESS", 16) + cell("LEFT", 11) + cell("FINISH", 10) + cell("!", 4) + "JOB")
 }
 func (m Model) printerRow(i int) string {
-	p := m.Farm.Printers[m.Farm.Order[i]]
+	p := m.Farm.Printers[m.printerIDs[i]]
 	marker := "  "
 	if i == m.selection {
 		marker = "› "
@@ -553,11 +541,13 @@ func (m Model) printerRow(i int) string {
 	if t, ok := p.ETA(); ok {
 		eta = t.Local().Format("15:04")
 		if t.Local().Format("2006-01-02") != m.now.Local().Format("2006-01-02") {
-			eta += " +1d"
+			eta = t.Local().Format("Mon 15:04")
 		}
 	}
 	if !m.printerTelemetryCurrent(p) {
 		left = "~" + left
+	}
+	if eta != "—" && !m.finishTimeCurrent(p) {
 		eta = "~" + eta
 	}
 	var row string
@@ -571,12 +561,7 @@ func (m Model) printerRow(i int) string {
 			n := *p.Progress * 8 / 100
 			bar = strings.Repeat("━", n) + strings.Repeat("─", 8-n)
 		}
-		notices := 0
-		for _, c := range m.Farm.Active {
-			if c.Printer == p.Name && !c.Dismissed {
-				notices++
-			}
-		}
+		notices := m.printerMetrics[p.ID].notices
 		row = cell(name, 23) + cell(connection, 10) + cell(state, 12) + cell(bar+" "+percent(p.Progress), 16) + cell(left, 11) + cell(eta, 10) + cell(fmt.Sprint(notices), 4) + safe(p.Job)
 	}
 	row = cell(row, m.width)

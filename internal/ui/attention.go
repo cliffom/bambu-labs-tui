@@ -150,12 +150,8 @@ func (m *Model) attentionKey(key string, msg tea.Msg) tea.Cmd {
 		}
 	case "enter", "p":
 		m.closeAttention()
-		for i, id := range m.Farm.Order {
-			if id == group.id {
-				m.selection, m.focus = i, 1
-				m.details.GotoTop()
-				break
-			}
+		if m.selectPrinter(group.id) {
+			m.focus = 1
 		}
 		if key == "enter" {
 			for _, item := range group.items {

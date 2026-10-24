@@ -35,10 +35,10 @@ func (m Model) dashboardHeader() string {
 	if m.ended && !m.Demo {
 		connection = danger.Render("SIGN-IN REQUIRED")
 	}
-	header := accent.Bold(true).Render("BAMBU") + muted.Render(" / FARM "+versionLabel()+"  "+mode) + "  " + connection
-	if ansi.StringWidth(header) > m.width {
-		header = accent.Bold(true).Render("BAMBU") + muted.Render(" "+versionLabel()+"  "+mode) + "  " + connection
-	}
+	prefix := accent.Bold(true).Render("BAMBU TUI ")
+	suffix := muted.Render(" / FARM / "+mode+" ") + connection
+	version := ansi.Truncate(versionLabel(), max(1, m.width-ansi.StringWidth(prefix+suffix)), "…")
+	header := prefix + muted.Render(version) + suffix
 	clock := m.now.Local().Format("Mon 02 Jan · 15:04:05")
 	available := m.width - ansi.StringWidth(header) - 1
 	if ansi.StringWidth(clock) > available {

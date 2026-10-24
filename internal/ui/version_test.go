@@ -62,12 +62,12 @@ func TestCompactHeaderPreservesVersionAndConnection(t *testing.T) {
 	buildinfo.Version = "0.0.10"
 	m := demoModel()
 	m.width = 60
-	if header := ansi.Strip(m.dashboardHeader()); !strings.Contains(header, "v0.0.10") || !strings.Contains(header, "CONNECTED") || !strings.Contains(header, m.now.Local().Format("15:04:05")) || ansi.StringWidth(header) > 60 {
+	if header := ansi.Strip(m.dashboardHeader()); !strings.HasPrefix(header, "BAMBU TUI v0.0.10 / FARM / DEMO CONNECTED") || !strings.Contains(header, m.now.Local().Format("15:04:05")) || ansi.StringWidth(header) > 60 {
 		t.Fatal("compact header loses version, connection, or clock")
 	}
 	m.Demo = false
 	m.ended = true
-	if header := ansi.Strip(m.dashboardHeader()); !strings.Contains(header, "v0.0.10") || !strings.Contains(header, "SIGN-IN REQUIRED") || ansi.StringWidth(header) > 60 {
+	if header := ansi.Strip(m.dashboardHeader()); !strings.HasPrefix(header, "BAMBU TUI v0.0.10 / FARM / CLOUD SIGN-IN REQUIRED") || ansi.StringWidth(header) > 60 {
 		t.Fatal("sign-in state displaced version")
 	}
 	buildinfo.Version = "0.1.0\x1b]52;c;PRIVATE\a\n"

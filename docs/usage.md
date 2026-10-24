@@ -60,6 +60,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `g` / `G` | Select the first/last printer or notice |
 | `Enter` | View the selected notice; `Esc` or `Enter` returns |
 | `f` | Open the selected printer's first active fault |
+| `F` / `S` | Cycle the printer filter / sort without changing panel focus |
 | `m` | Open the selected printer's AMS/filament browser |
 | `s` | View effective printer alert settings and snooze/resume controls |
 | `n` | Manage local notice decisions, including dismissals |
@@ -74,6 +75,10 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `q` / `Ctrl+C` | Quit from the dashboard; close any modal first |
 
 Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color.
+
+### Farm view
+
+The summary counts the whole farm. `F` cycles All, Attention, Printing, and Unavailable; `S` cycles Name, Attention, State, and Finish. Active settings and visible/total counts stay above the printer list. Selection follows printer identity through live sorting, and filtered-out/removed printers fall back to another visible row. Missing/stale ETAs sort after live estimates. These view settings last for the session; they do not alter notices, review decisions, or alert eligibility. See the [farm view guide](farm-view.md) for exact definitions and navigation behavior.
 
 ### AMS and filament
 

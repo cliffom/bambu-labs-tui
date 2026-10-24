@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.10 — Farm overview and navigation
+
+- Add whole-farm printing, paused/failed, idle/finished, actionable-attention, and unavailable counts, independent of the visible printer filter.
+- Add `F` filters for All, Attention, Printing, and Unavailable, plus `S` sorting by Name, Attention, State, and Finish. Preserve selected printer identity and details scroll during live reordering, and handle empty lists and explicit alert navigation.
+- Sort only live, recent running-print ETAs as comparable; mark old estimates as last known, retain unknown/paused cases, and make duplicate-name ordering/notice counts deterministic by printer ID. Keep view controls visible at minimum terminal size.
+
 ## 0.0.9 — Alert preferences and snoozing
 
 - Add validated global alert defaults and independent per-printer overrides for automatic modals, filament, extrusion, printer faults, failed prints, and unknown pauses. Preserve existing defaults and verified recovery/intervention classification.

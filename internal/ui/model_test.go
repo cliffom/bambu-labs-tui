@@ -89,8 +89,13 @@ func TestEmptyAccountAndSelectionAfterDiscovery(t *testing.T) {
 	m := New(farm.New(10), make(chan monitor.Event), make(chan struct{}, 1), false)
 	next, _ := m.Update(monitor.Event{Kind: "connection", Connected: true, At: time.Now()})
 	m = next.(Model)
+	if !strings.Contains(ansi.Strip(m.View()), "Discovering account printers") {
+		t.Fatal("connection alone incorrectly completed discovery")
+	}
+	next, _ = m.Update(monitor.Event{Kind: "devices", At: time.Now()})
+	m = next.(Model)
 	if !strings.Contains(ansi.Strip(m.View()), "No printers found") {
-		t.Fatal("empty state missing")
+		t.Fatal("empty account state missing after discovery")
 	}
 	m = demoModel()
 	m = key(m, "j")

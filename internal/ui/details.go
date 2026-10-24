@@ -34,7 +34,7 @@ func detailField(label, value string, width int, style lipgloss.Style) string {
 func (m Model) detailText(w int) string {
 	p := m.current()
 	if p == nil {
-		return muted.Render("Select a printer once discovery completes.")
+		return muted.Render(m.emptyPrinterList())
 	}
 	field := func(label, value string) string { return detailField(label, value, w, white) }
 	job := safe(p.Job)
@@ -58,7 +58,7 @@ func (m Model) detailText(w int) string {
 		if eta.Local().Format("2006-01-02") != m.now.Local().Format("2006-01-02") {
 			finish = eta.Local().Format("Mon 02 Jan · 15:04")
 		}
-		if !m.printerTelemetryCurrent(p) {
+		if !m.finishTimeCurrent(p) {
 			finish = "~" + finish
 		}
 	}

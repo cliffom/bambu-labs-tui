@@ -3,7 +3,7 @@ package buildinfo
 import "fmt"
 
 // Release builds inject these through -ldflags. Direct go builds remain useful.
-var Version = "0.0.9"
+var Version = "0.0.10"
 var Commit = "unknown"
 var Date = "unknown"
 

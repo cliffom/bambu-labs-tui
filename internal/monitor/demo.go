@@ -1,0 +1,51 @@
+package monitor
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	"github.com/cliffom/bambu-labs-tui/internal/farm"
+)
+
+func Demo(ctx context.Context, out chan<- Event, refresh <-chan struct{}) {
+	defer close(out)
+	devices := []farm.Device{{ID: "DEMOH2D", Name: "H2D · Workshop", Model: "H2D", Online: true}, {ID: "DEMOX2D", Name: "X2D · Studio", Model: "X2D", Online: true}}
+	if !emit(ctx, out, Event{Kind: "devices", Devices: devices}) {
+		return
+	}
+	if !emit(ctx, out, Event{Kind: "connection", Connected: true}) {
+		return
+	}
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+	step := 0
+	for {
+		for i, d := range devices {
+			state := "RUNNING"
+			progress := (62 + step + i*9) % 100
+			remaining := 125 - progress
+			if i == 1 && step%20 >= 5 && step%20 < 8 {
+				state = "PAUSE"
+			}
+			if i == 1 && step%20 >= 15 {
+				state = "FINISH"
+				progress = 100
+				remaining = 0
+			}
+			trays := []any{map[string]any{"id": "0", "state": 3, "tray_type": "PLA", "tray_color": "B7E4C7FF", "remain": 68}, map[string]any{"id": "1", "state": 3, "tray_type": "PETG", "tray_color": "EF8354FF", "remain": 8}, map[string]any{"id": "2", "state": 3, "tray_type": "PLA-CF", "tray_color": "353B48FF", "remain": -1}, map[string]any{"id": "3", "state": 0}}
+			payload := map[string]any{"print": map[string]any{"command": "push_status", "task_id": "demo", "gcode_state": state, "subtask_name": []string{"Gridfinity baseplate · plate 2", "Enclosure brackets · PETG"}[i], "mc_percent": progress, "mc_remaining_time": remaining, "layer_num": progress * 3, "total_layer_num": 300, "stg_cur": 0, "print_error": 0, "hms": []any{}, "device": map[string]any{"bed": map[string]any{"info": map[string]any{"temp": 60<<16 | 60}}, "ctc": map[string]any{"info": map[string]any{"temp": 35}}, "extruder": map[string]any{"state": 2, "info": []any{map[string]any{"id": 0, "temp": 220<<16 | 219, "snow": 0}, map[string]any{"id": 1, "temp": 180<<16 | 179, "snow": 1}}}}, "ams": map[string]any{"ams": []any{map[string]any{"id": "0", "temp": "28.4", "humidity_raw": "22", "tray": trays}}}, "vir_slot": []any{map[string]any{"id": "254", "tray_type": "TPU", "tray_color": "8899AAFF", "remain": 0}}}}
+			b, _ := json.Marshal(payload)
+			if !emit(ctx, out, Event{Kind: "report", ID: d.ID, Payload: b}) {
+				return
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			step++
+		case <-refresh:
+		}
+	}
+}

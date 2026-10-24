@@ -1,0 +1,29 @@
+# Build and release artifacts
+/bin/
+/dist/
+/bambu-tui
+*.test
+
+# Coverage, profiling, and logs
+/coverage.out
+/coverage/
+*.prof
+*.pprof
+*.log
+
+# Local configuration and environment variables
+/config.toml
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Editor and operating-system files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+._*
+Thumbs.db

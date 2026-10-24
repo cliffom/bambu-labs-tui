@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make test check build
+      - name: Check formatting
+        run: test -z "$(gofmt -l cmd internal)"
+      - name: Check native macOS credential persistence
+        if: runner.os == 'macOS'
+        run: ./bin/bambu-tui doctor
+      - name: Package release candidates
+        if: runner.os == 'Linux'
+        run: make release COMMIT="${{ github.sha }}"
+      - name: Verify checksums
+        if: runner.os == 'Linux'
+        working-directory: dist
+        run: sha256sum -c "bambu-tui_v$(cat ../VERSION)_checksums.txt"
+      - uses: actions/upload-artifact@v7
+        if: runner.os == 'Linux'
+        with:
+          name: release-candidates
+          path: |
+            dist/*.tar.gz
+            dist/*checksums.txt
+          retention-days: 14

@@ -1,0 +1,26 @@
+{
+  "print": {
+    "command": "push_status", "task_id": "synthetic-h2d-job",
+    "gcode_state": "RUNNING", "subtask_name": "Fixture baseplate",
+    "mc_percent": 40, "mc_remaining_time": 90, "layer_num": 80, "total_layer_num": 200, "stg_cur": 0,
+    "device": {
+      "bed": {"info": {"temp": 3932220}},
+      "ctc": {"info": {"temp": 2621475}},
+      "extruder": {"state": 18, "info": [
+        {"id": 0, "temp": 14418139, "snow": 0},
+        {"id": 1, "temp": 15728879, "snow": 32768}
+      ]}
+    },
+    "ams": {"ams": [
+      {"id": "0", "temp": "28.5", "humidity_raw": "22", "tray": [
+        {"id": "0", "state": 3, "tray_uuid": "synthetic-spool-a", "tray_type": "PLA", "tray_color": "B7E4C7FF", "remain": 68},
+        {"id": "1", "state": 3, "tray_type": "PETG", "remain": 0},
+        {"id": "2", "state": 3, "tray_type": "PLA-CF", "remain": -1},
+        {"id": "3", "state": 0, "remain": 0}
+      ]},
+      {"id": "128", "temp": "32", "tray": [{"id": "0", "state": 3, "tray_type": "PA", "remain": 50}]}
+    ]},
+    "vir_slot": [{"id": "254", "tray_type": "TPU", "remain": 0}],
+    "print_error": 0, "hms": []
+  }
+}

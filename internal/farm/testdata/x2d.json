@@ -1,0 +1,17 @@
+{
+  "print": {
+    "command": "push_status", "task_id": "synthetic-x2d-job", "gcode_state": "PAUSE",
+    "subtask_name": "Fixture brackets", "mc_percent": 72, "mc_remaining_time": 21, "stg_cur": 6,
+    "device": {
+      "bed": {"info": {"temp": 5242960}},
+      "extruder": {"state": 2, "info": [
+        {"id": 0, "temp": 15728880, "snow": 256},
+        {"id": 1, "temp": 11796660, "snow": 65280}
+      ]}
+    },
+    "ams": {"ams": [{"id": "1", "tray": [{"id": "0", "state": 3, "tray_type": "PETG", "remain": "8"}]}]},
+    "vir_slot": [{"id": "255", "tray_type": "TPU", "remain": 100}],
+    "print_error": 117473286,
+    "hms": [{"attr": 50331904, "code": 65543}]
+  }
+}

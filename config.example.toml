@@ -1,0 +1,3 @@
+# Copy to the path printed by `bambu-tui --config-path`.
+region = "global" # global or china
+low_filament_percent = 10

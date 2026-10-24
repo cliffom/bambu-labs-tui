@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.3 — Expanded filament fault descriptions
 
 - Add `make audit-faults` and a CI check to verify all bundled fault codes and generated HMS slot labels against pinned upstream catalogues.
 - Expand verified filament fault descriptions for standard AMS, AMS HT, and external spools: distinguish runout, empty slots, recovery, feed/retract failures, possible tangles, and nozzle clogs.

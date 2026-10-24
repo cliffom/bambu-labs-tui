@@ -8,14 +8,14 @@
 
 A terminal dashboard for a Bambu Lab print farm. Built for monitoring an **H2D and X2D through Bambu Cloud**, with a simulated farm you can try immediately. Source: [cliffom/bambu-labs-tui](https://github.com/cliffom/bambu-labs-tui).
 
-## Install v0.0.2
+## Install v0.0.3
 
 Download the archive for your OS and CPU from [Releases](https://github.com/cliffom/bambu-labs-tui/releases), along with its checksums file. Verify the archive before extracting it:
 
 ```sh
 # macOS example; use the matching Linux archive on Linux.
-shasum -a 256 -c bambu-tui_v0.0.2_checksums.txt --ignore-missing
-tar -xzf bambu-tui_v0.0.2_darwin_arm64.tar.gz
+shasum -a 256 -c bambu-tui_v0.0.3_checksums.txt --ignore-missing
+tar -xzf bambu-tui_v0.0.3_darwin_arm64.tar.gz
 ./bambu-tui --version
 ./bambu-tui --demo
 ```

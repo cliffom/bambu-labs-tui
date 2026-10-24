@@ -65,6 +65,7 @@ Use a terminal of at least **60 columns × 18 rows**; a wider window shows print
 | --- | --- |
 | `↑` / `↓` or `j` / `k` | Select a printer or notice; scroll details |
 | `Tab` / `Shift+Tab` | Switch panels |
+| `D` | Preview and confirm a local diagnostic export (source builds) |
 | `F` / `S` | Cycle printer filters / sorting |
 | `m` | Browse the selected printer's AMS units and filament |
 | `Enter` | Inspect a selected notice |
@@ -86,6 +87,8 @@ In the **AMS/filament browser**, use `Tab` or left/right to switch units and up/
 Press `s` to snooze a printer for 15 minutes, 1 hour, or 4 hours, or resume alerts early. Global and per-printer [alert preferences](docs/alerts.md) control automatic interruptions while keeping printer state and notices visible. Snoozes survive restarts until their deadline.
 
 Filament quantities are printer estimates; **Unknown**, **Empty**, and **0%** mean different things. External spool quantities are unavailable. Firmware status reflects the printer's reported assessment and may be unknown or out of date. The [user guide](docs/usage.md) explains these fields, all keyboard controls, and notice behavior.
+
+For troubleshooting, source builds also provide a local diagnostic export via `D`. The preview shows what is included and where the file will go; Enter writes it locally. Unknown/private fields and free-form messages are omitted, and nothing is uploaded. See [diagnostic exports](docs/diagnostics.md).
 
 ## Configuration
 
@@ -119,6 +122,8 @@ The executable is built at `bin/bambu-tui`. See the [development guide](docs/dev
 ## More information
 
 - [User guide](docs/usage.md): login, keyboard controls, saved notices, and telemetry details
+- [Diagnostic export](docs/diagnostics.md): local export scope, inspection, and synthetic fixtures
+- [v0.1.0 readiness](docs/v0.1.0-readiness.md): feature coverage and remaining operational checks
 - [Farm view](docs/farm-view.md): summary definitions, filters, sorting, and selection
 - [Alert preferences and snoozing](docs/alerts.md): per-printer interruption controls
 - [Roadmap](ROADMAP.md): upcoming work and tracked issues

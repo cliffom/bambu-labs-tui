@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/config"
+	"github.com/cliffom/bambu-tui/internal/diagnostics"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
 )
@@ -64,6 +65,8 @@ type Model struct {
 	printerFilter                   printerFilter
 	printerSort                     printerSort
 	overview                        farmOverview
+	diagnostics                     diagnostics.Recorder
+	exportDialog                    *exportDialog
 }
 
 // WithNoticePersistence enables immediate saves from the UI reducer. A failed
@@ -101,6 +104,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	result.pruneSnoozes()
 	result.persistSnoozes()
 	result.syncAlertDialog()
+	result.syncExport()
 	result.syncFilament()
 	result.syncDecisions()
 	result.syncAttention(false)
@@ -122,6 +126,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = v.Width, v.Height
 	case endMsg:
 		m.ended = true
+	case exportResultMsg:
+		m.exportResult(v)
 	case browserResultMsg:
 		m.toast = "Opened Bambu troubleshooting in your browser"
 		if v.err != nil {
@@ -144,6 +150,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "connection":
 			m.Farm.Cloud(v.Connected, v.Problem, v.At)
 		case "report":
+			if m.Farm.Printers[v.ID] != nil {
+				m.diagnostics.Record(v.ID, v.Payload)
+			}
 			if err := m.Farm.Report(v.ID, v.Payload, v.At); err != nil {
 				m.toast = "Ignored malformed printer status"
 				m.toastAt = m.now
@@ -155,6 +164,11 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = m.wait()
 	case tea.KeyMsg:
 		key := v.String()
+		if m.exportDialog != nil {
+			cmd = m.exportKey(key, msg)
+			m.syncPanels()
+			return m, cmd
+		}
 		if m.alertDialog != nil {
 			cmd = m.alertKey(key, msg)
 			m.syncPanels()
@@ -211,6 +225,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focus = (m.focus + 1) % 3
 		case "shift+tab":
 			m.focus = (m.focus + 2) % 3
+		case "D":
+			m.openExport()
 		case "F":
 			m.printerFilter = (m.printerFilter + 1) % filterCount
 		case "S":
@@ -303,7 +319,7 @@ func (m Model) current() *farm.Printer {
 // hasOpenDialog reports whether a dialog currently owns keyboard focus.
 func (m Model) hasOpenDialog() bool {
 	return m.attention != nil || m.filament != nil || m.decisions != nil ||
-		m.inspected != nil || m.confirmClear || m.help || m.alertDialog != nil
+		m.inspected != nil || m.confirmClear || m.help || m.alertDialog != nil || m.exportDialog != nil
 }
 
 // terminalFits reports whether the dashboard and dialogs fit at their minimum size.
@@ -409,6 +425,9 @@ func (m Model) View() string {
 		}
 		return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
 	}
+	if m.exportDialog != nil {
+		return m.exportView()
+	}
 	if m.alertDialog != nil {
 		return m.alertView()
 	}
@@ -462,7 +481,7 @@ func (m Model) View() string {
 	} else {
 		lines = append(lines, m.section("02  PRINTER DETAILS", m.focus == 1, left), m.details.View(), m.section("03  NOTICES", m.focus == 2, right), m.notices.View())
 	}
-	foot := muted.Render("j/k select  tab panel  m filament  n decisions  s alerts  ? help  q quit")
+	foot := muted.Render("j/k select  tab panel  m AMS  n reviews  s alerts  D export  ? help  q quit")
 	if m.focus == 1 {
 		foot = muted.Render("↑/↓ scroll  m filament  n decisions  s alerts  q quit")
 	}
@@ -470,7 +489,7 @@ func (m Model) View() string {
 		foot = muted.Render("j/k select  enter view  a ack  c clear  n decisions  s alerts")
 	}
 	if m.width < 80 {
-		foot = muted.Render("j/k move  tab panel  m AMS  n reviews  s alerts  ?  q quit")
+		foot = muted.Render("j/k move  tab  m AMS  n reviews  s alerts  D diag  ?  q quit")
 	}
 	if m.toast != "" {
 		foot = warning.Render(safe(m.toast))
@@ -479,7 +498,7 @@ func (m Model) View() string {
 		foot = warning.Render(message)
 	}
 	if m.help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
+		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")

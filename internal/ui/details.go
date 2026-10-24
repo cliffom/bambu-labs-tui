@@ -95,26 +95,8 @@ func (m Model) detailText(w int) string {
 	if !p.LastReport.IsZero() {
 		lastReport = p.LastReport.Local().Format("15:04:05")
 	}
-	lines = append(lines, detailField("Last Report", lastReport, w, muted), "", accent.Render("FILAMENT"))
-	if len(p.AMS) == 0 && len(p.External) == 0 {
-		lines = append(lines, detailField("Filament", "No data reported", w, muted))
-	}
-	for _, a := range p.AMS {
-		humidity, temperature := "Unknown", "Unknown"
-		if a.Humidity != nil {
-			humidity = fmt.Sprintf("%d%% RH", *a.Humidity)
-		}
-		if a.Temperature != nil {
-			temperature = fmt.Sprintf("%d°C", *a.Temperature)
-		}
-		lines = append(lines, detailField("AMS", farm.AMSLabel(a.ID), w, white.Bold(true)), field("Humidity", humidity), field("Temperature", temperature))
-		for _, slot := range a.Slots {
-			lines = append(lines, field(fmt.Sprintf("Slot %d", slot.ID+1), slotValue(slot)))
-		}
-	}
-	for _, slot := range p.External {
-		lines = append(lines, field(fmt.Sprintf("External %d", 256-slot.ID), slotValue(slot)))
-	}
+	lines = append(lines, detailField("Last Report", lastReport, w, muted), "", accent.Render("FILAMENT · m details"))
+	lines = append(lines, m.filamentSummary(p, w)...)
 	var visibleFaults []farm.Fault
 	for _, f := range p.Faults {
 		if c := m.Farm.Active[p.ID+"/fault/"+f.Code]; !c.Dismissed {
@@ -159,42 +141,4 @@ func (m Model) firmwareStatus(p *farm.Printer) string {
 		status = "Last known: " + status
 	}
 	return status
-}
-
-// slotValue labels filament attributes while preserving empty and unknown states.
-func slotValue(s farm.Slot) string {
-	if s.Present != nil && !*s.Present {
-		return muted.Render("Empty")
-	}
-	material := safe(s.Material)
-	if material == "" {
-		material = "Unknown material"
-	}
-	color := strings.ToUpper(s.Color)
-	swatch, hex := "○", "Unknown"
-	if len(color) == 8 || len(color) == 6 {
-		valid := true
-		for _, r := range color {
-			if !strings.ContainsRune("0123456789ABCDEF", r) {
-				valid = false
-			}
-		}
-		if valid {
-			hex = "#" + color[:6]
-			swatch = lipgloss.NewStyle().Foreground(lipgloss.Color(hex)).Render("●")
-		}
-	}
-	parts := []string{swatch + " " + material, "Color: " + hex, "Remaining: " + percent(s.Remaining)}
-	var nozzles []string
-	for _, id := range s.Nozzles {
-		side := "Right"
-		if id == 1 {
-			side = "Left"
-		}
-		nozzles = append(nozzles, side)
-	}
-	if len(nozzles) > 0 {
-		parts = append(parts, "Nozzle: "+strings.Join(nozzles, "/"))
-	}
-	return strings.Join(parts, " · ")
 }

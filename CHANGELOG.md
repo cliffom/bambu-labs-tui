@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.7 — AMS/filament browser
+
+- Replace expanded filament inventory in printer details with a compact summary and an `m` AMS/filament browser. Navigate units and slots, inspect selected-slot details, and retain focus/selection through live updates.
+- Defer action-needed alerts while the inventory browser is open; preserve close-before-quit behavior, empty/unknown/zero distinctions, external-spool limitations, and read-only monitoring.
+- Show filament color chips beside material types in the inventory table, with an outline for unknown colors and aligned columns.
+- Extend demo mode with multiple standard AMS units and an AMS HT for browser navigation.
+
 ## 0.0.6 — Firmware reporting
 
 - Display the installed printer OTA firmware and reported update status in aligned printer details. Distinguish current, offered update, unknown, and last-known assessments without confusing AMS/controller versions with printer firmware.

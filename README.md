@@ -10,14 +10,14 @@ A terminal dashboard for a Bambu Lab print farm. Built for monitoring an **H2D a
 
 See the [roadmap](ROADMAP.md) for planned milestones, release criteria, and tracked issues.
 
-## Install v0.0.6
+## Install v0.0.7
 
 Download the archive for your OS and CPU from [Releases](https://github.com/cliffom/bambu-tui/releases), along with its checksums file. Verify the archive before extracting it:
 
 ```sh
 # macOS example; use the matching Linux archive on Linux.
-shasum -a 256 -c bambu-tui_v0.0.6_checksums.txt --ignore-missing
-tar -xzf bambu-tui_v0.0.6_darwin_arm64.tar.gz
+shasum -a 256 -c bambu-tui_v0.0.7_checksums.txt --ignore-missing
+tar -xzf bambu-tui_v0.0.7_darwin_arm64.tar.gz
 ./bambu-tui --version
 ./bambu-tui --demo
 ```
@@ -93,6 +93,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `g` / `G` | Select the first/last printer or notice |
 | `Enter` | View the selected notice; `Esc` or `Enter` returns |
 | `f` | Open the selected printer's first active fault |
+| `m` | Open the selected printer's AMS/filament browser |
 | `!` | Reopen unreviewed action-needed alerts |
 | `a` | Toggle local acknowledgement of the selected active notice |
 | `c` | Dismiss an active notice from the TUI, or delete a historical event |
@@ -104,6 +105,10 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `q` / `Ctrl+C` | Quit from the dashboard; close any modal first |
 
 Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color.
+
+Starting with v0.0.7, we keep printer details compact: the filament summary shows inventory counts, low/unknown AMS estimates, and the active nozzle path. Press `m` for the full **AMS / Filament** browser. `Tab` / `Shift+Tab` or left/right switches standard AMS units, AMS HT units, and external spools; up/down or `j/k` selects a slot, `Home/End` selects the first/last slot, `Enter` brings its details into view, and `PgUp/PgDn` scrolls. `m` or `Esc` closes the browser and preserves dashboard focus/scroll. As with other modals, `q` and `Ctrl+C` do not quit until you close it.
+
+The browser stays on the same printer, unit, and slot as reports arrive, and falls back safely if an inventory item disappears. Live telemetry continues; action-needed alerts queue until the browser closes. A reported 0% remains distinct from an empty slot, missing estimates stay unknown, and external spool quantity remains unavailable. The compact low-estimate count reflects reported AMS quantities even if the corresponding notice was locally dismissed. Try `make demo` and press `m` to browse two standard AMS units, an AMS HT, and an external spool without logging in.
 
 To review notices, press `Tab` until the notices panel is focused, use `j/k` or the arrow keys to select an entry, and press `Enter`. The detail view shows the full message, status, severity, first-seen/event time, and fault code. HMS entries include a Bambu troubleshooting link; `o` opens it in your browser. While viewing a printer, `f` jumps straight to its first active fault.
 

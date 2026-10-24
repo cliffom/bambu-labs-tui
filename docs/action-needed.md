@@ -15,7 +15,7 @@ The catalogue is deliberately partial. Unknown errors while the printer reports 
 
 The first eligible occurrence starts a two-second collection window. Available incidents are presented in one dialog, grouped by printer. Additional reports update the current group or append another printer without replacing the dialog being read. Grouping is presentation only: HMS, print-error, and state notice identities remain separate.
 
-Help, notice inspectors, and history confirmations defer opening. Alerts also wait until the terminal reaches 60 columns × 18 rows. Transport events, reconnects, and status refresh processing continue while the dialog is open. Resolved or replaced occurrences lose action guidance and remain marked in the dialog until the operator leaves it. If later telemetry supplies an explicit pause/recovery explanation, an earlier generic pause can be marked as no longer requiring an alert.
+Help, notice inspectors, AMS/filament browsers, and history confirmations defer opening. Alerts also wait until the terminal reaches 60 columns × 18 rows. Transport events, reconnects, and status refresh processing continue while the dialog is open. Resolved or replaced occurrences lose action guidance and remain marked in the dialog until the operator leaves it. If later telemetry supplies an explicit pause/recovery explanation, an earlier generic pause can be marked as no longer requiring an alert.
 
 | Key | Effect |
 | --- | --- |

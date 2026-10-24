@@ -177,7 +177,7 @@ func TestDemoProducesBothModels(t *testing.T) {
 		}
 	}
 	for _, p := range s.Printers {
-		if len(p.Nozzles) != 2 || len(p.AMS) == 0 {
+		if len(p.Nozzles) != 2 || len(p.AMS) != 3 || p.AMS[2].ID != 128 || len(p.External) == 0 {
 			t.Fatal("incomplete demo")
 		}
 	}

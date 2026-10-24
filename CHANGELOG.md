@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Move notice and snooze saves into background commands with immutable snapshots, serialized writes per store, and coalesced pending changes. Keep failures visible without continuous retries.
+- Wait up to five seconds for saves on normal quit; show explicit exit/cancel controls on failure or timeout and report unconfirmed saves after interrupted exits.
+
 ## 0.1.0 — Daily farm usability
 
 - Show `BAMBU TUI vX.Y.Z / CLOUD STATUS / FARM` in the dashboard header and the running version in dialog headings; shorten the clock on compact terminals to preserve version and connection visibility.

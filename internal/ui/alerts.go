@@ -69,23 +69,6 @@ func (m *Model) pruneSnoozes() {
 	}
 }
 
-// persistSnoozes saves once per local change and leaves failures visible without busy retries.
-func (m *Model) persistSnoozes() {
-	if !m.snoozesDirty || m.saveSnoozes == nil {
-		return
-	}
-	m.snoozesDirty = false
-	snapshot := make(map[string]time.Time, len(m.snoozes))
-	for id, until := range m.snoozes {
-		snapshot[id] = until
-	}
-	if err := m.saveSnoozes(snapshot); err != nil {
-		m.alertStorageError = "Could not save snoozes; changes may be lost on restart"
-	} else {
-		m.alertStorageError = ""
-	}
-}
-
 // setSnooze changes a printer deadline without acknowledging, dismissing, or hiding notices.
 func (m *Model) setSnooze(id string, duration time.Duration) {
 	if _, exists := m.Farm.Printers[id]; !exists {

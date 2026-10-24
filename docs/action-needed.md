@@ -30,7 +30,7 @@ Help, notice inspectors, the AMS/filament browser, the notice decisions view, pr
 | `Esc` | Close all queued prompts without acknowledging/dismissing notices; preserve dashboard focus |
 | `q` / `Ctrl+C` | Ignored while the modal is open; close it with `Esc` before quitting from the dashboard |
 
-Closing or navigating away suppresses automatic re-prompting for the dialog's occurrences during the current session. It does not persist an acknowledgement. `!` from the dashboard explicitly reopens eligible unreviewed alerts. Acknowledgement and dismissal use the existing immediate account/region-scoped storage; storage failures remain visible.
+Closing or navigating away suppresses automatic re-prompting for the dialog's occurrences during the current session. It does not persist an acknowledgement. `!` from the dashboard explicitly reopens eligible unreviewed alerts. Acknowledgement and dismissal queue background saves to account/region-scoped storage; storage failures remain visible.
 
 ## Recurrence and startup
 

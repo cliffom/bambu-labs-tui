@@ -73,11 +73,11 @@ Snoozes use absolute host-clock deadlines. Until the deadline, automatic prompts
 
 Manual inspection does not end the snooze or edit configuration. Closing that manual prompt during a snooze does not prevent the deadline from re-arming its occurrences.
 
-Snooze deadlines save immediately, separately for each Bambu account and region, in the OS configuration directory under `bambu-tui/alerts/`. Files have private permissions and contain only printer identifiers and deadlines. Tokens stay in the OS credential store; review decisions stay in their existing notice store. A custom configuration path does not change account-scoped storage.
+Snooze deadlines are queued for background saving as soon as they change, separately for each Bambu account and region, in the OS configuration directory under `bambu-tui/alerts/`. Files have private permissions and contain only printer identifiers and deadlines. Tokens stay in the OS credential store; review decisions stay in their existing notice store. A custom configuration path does not change account-scoped storage.
 
 On restart, unexpired deadlines remain effective. Expired deadlines are removed on the next update. Successful device discovery removes snoozes for printers no longer bound to the account; snoozes are retained while discovery has not completed. Renaming a printer preserves its deadline. A returning removed printer starts without its previous snooze; configured overrides still apply.
 
-Write failures produce a persistent warning and the current session continues with its local deadline. A failed load preserves the unreadable/unsupported file and disables snooze writes for that session. Another explicit snooze/resume action retries a previous write failure; the app does not continuously retry on every tick. Demo mode uses only in-memory deadlines and never loads or saves account snoozes.
+Write failures produce a persistent warning and the current session continues with its local deadline. A failed load preserves the unreadable/unsupported file and disables snooze writes for that session. Another explicit snooze/resume action retries a previous write failure; the app does not continuously retry on every tick. Demo mode uses only in-memory deadlines and never loads or saves account snoozes. Normal quit waits up to five seconds for pending notice and snooze saves; failures or timeouts require an explicit exit or cancellation. See [saved notice decisions](usage.md#saved-notice-decisions) for shutdown controls.
 
 ## Sound
 

@@ -236,7 +236,10 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 		}
 		model = model.WithSnoozePersistence(snoozes, snoozeStore.Save, snoozeErr)
 	}
-	_, err := tea.NewProgram(model, tea.WithContext(ctx), tea.WithAltScreen()).Run()
+	result, err := tea.NewProgram(model, tea.WithContext(ctx), tea.WithAltScreen()).Run()
+	if final, ok := result.(ui.Model); ok && final.HasUnsavedPersistence() {
+		fmt.Fprintln(os.Stderr, "Notice or snooze changes were not confirmed saved before exit; changes may be lost.")
+	}
 	cancel()
 	<-done
 	if errors.Is(err, tea.ErrProgramKilled) && ctx.Err() != nil {

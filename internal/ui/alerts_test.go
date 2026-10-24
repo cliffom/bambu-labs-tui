@@ -17,8 +17,7 @@ import (
 
 // alertTickAt advances exact deadlines without waiting on real time.
 func alertTickAt(m Model, at time.Time) Model {
-	next, _ := m.Update(tickMsg(at))
-	return next.(Model)
+	return persistenceUpdate(m, tickMsg(at))
 }
 
 // TestAutomaticAlertPreferences preserves visibility and supports explicit manual inspection.
@@ -100,13 +99,13 @@ func TestSnoozeRestartExpiryAndRecurrence(t *testing.T) {
 	m.Demo = false
 	m = m.WithSnoozePersistence(nil, store.Save, nil)
 	m = attentionTick(attentionReport(t, m, "H", runoutReport))
-	m = key(m, "esc") // Existing session suppression must not outlast the snooze.
-	m = key(m, "s")
-	m = key(m, "2")
+	m = persistenceKey(m, "esc") // Existing session suppression must not outlast the snooze.
+	m = persistenceKey(m, "s")
+	m = persistenceKey(m, "2")
 	until := m.snoozes["H"]
 	saved, err := store.Load()
 	if err != nil || !saved["H"].Equal(until) {
-		t.Fatal("snooze not saved immediately")
+		t.Fatal("snooze not saved after command completion")
 	}
 	state := farm.New(10)
 	next := New(state, nil, nil, false).WithSnoozePersistence(saved, store.Save, nil)
@@ -126,8 +125,8 @@ func TestSnoozeRestartExpiryAndRecurrence(t *testing.T) {
 	if next.attention != nil {
 		t.Fatal("recurrence bypassed printer snooze")
 	}
-	next = key(next, "!")
-	next = key(next, "esc") // Manual viewing during a snooze must not suppress its expiry alert.
+	next = persistenceKey(next, "!")
+	next = persistenceKey(next, "esc") // Manual viewing during a snooze must not suppress its expiry alert.
 	next = alertTickAt(next, until.Add(-time.Second))
 	if next.attention != nil || !next.snoozed("H") {
 		t.Fatal("snooze expired early")
@@ -188,13 +187,12 @@ func TestResumeAndRemovedPrinterCleanup(t *testing.T) {
 	if len(m.snoozes) != 2 {
 		t.Fatal("pending printer was pruned before discovery")
 	}
-	updated, _ := m.Update(monitor.Event{Kind: "devices", Devices: []farm.Device{{ID: "H", Online: true}}, At: m.now})
-	m = updated.(Model)
+	m = persistenceUpdate(m, monitor.Event{Kind: "devices", Devices: []farm.Device{{ID: "H", Online: true}}, At: m.now})
 	if len(m.snoozes) != 1 || saves != 1 {
 		t.Fatal("confirmed removed printer's snooze was not pruned/saved")
 	}
-	m = key(m, "s")
-	m = key(m, "u")
+	m = persistenceKey(m, "s")
+	m = persistenceKey(m, "u")
 	m = attentionTick(m)
 	if m.snoozed("H") || saves != 2 || m.attention == nil {
 		t.Fatal("resume did not persist or re-arm alerts")
@@ -207,29 +205,29 @@ func TestSnoozeStorageFailuresAndDemoIsolation(t *testing.T) {
 	m.Demo = false
 	writes := 0
 	m = m.WithSnoozePersistence(nil, func(map[string]time.Time) error { writes++; return errors.New("disk full") }, nil)
-	m = key(m, "s")
-	m = key(m, "1")
+	m = persistenceKey(m, "s")
+	m = persistenceKey(m, "1")
 	if writes != 1 || !strings.Contains(ansi.Strip(m.View()), "Could not save snoozes") {
 		t.Fatal("failed save was not visible")
 	}
-	m = key(m, "s")
+	m = persistenceKey(m, "s")
 	if !strings.Contains(ansi.Strip(m.View()), "Could not save snoozes") {
 		t.Fatal("controls hid storage warning")
 	}
-	m = key(m, "esc")
+	m = persistenceKey(m, "esc")
 	m = attentionTick(m)
 	if writes != 1 {
 		t.Fatal("save retried continuously")
 	}
 	m = m.WithSnoozePersistence(nil, func(map[string]time.Time) error { writes++; return nil }, errors.New("bad file"))
-	m = key(m, "s")
-	m = key(m, "2")
+	m = persistenceKey(m, "s")
+	m = persistenceKey(m, "2")
 	if writes != 1 || !strings.Contains(ansi.Strip(m.View()), "Saved snoozes unavailable") {
 		t.Fatal("failed load overwrote original data")
 	}
 	demo := demoModel().WithSnoozePersistence(nil, func(map[string]time.Time) error { writes++; return nil }, nil)
-	demo = key(demo, "s")
-	demo = key(demo, "1")
+	demo = persistenceKey(demo, "s")
+	demo = persistenceKey(demo, "1")
 	if writes != 1 || !demo.snoozed("H") {
 		t.Fatal("demo wrote account snoozes or could not snooze locally")
 	}

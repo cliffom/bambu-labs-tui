@@ -16,14 +16,12 @@ const runoutReport = `{"print":{"gcode_state":"PAUSE","stg_cur":6,"print_error":
 // attentionReport sends telemetry through the real UI update and persistence path.
 func attentionReport(t *testing.T, m Model, id, payload string) Model {
 	t.Helper()
-	next, _ := m.Update(monitor.Event{Kind: "report", ID: id, Payload: []byte(payload), At: m.now})
-	return next.(Model)
+	return persistenceUpdate(m, monitor.Event{Kind: "report", ID: id, Payload: []byte(payload), At: m.now})
 }
 
 // attentionTick advances the batching window without sleeping.
 func attentionTick(m Model) Model {
-	next, _ := m.Update(tickMsg(m.now.Add(3 * time.Second)))
-	return next.(Model)
+	return persistenceUpdate(m, tickMsg(m.now.Add(3*time.Second)))
 }
 
 // attentionText reads all modal content without depending on scroll position.
@@ -84,7 +82,7 @@ func TestAttentionQueueAndLocalActions(t *testing.T) {
 	if len(m.attention.groups) != 2 || m.attention.groups[m.attention.index].id != "H" {
 		t.Fatal("new printer replaced the incident being read")
 	}
-	m = key(m, "tab")
+	m = persistenceKey(m, "tab")
 	if m.attention.groups[m.attention.index].id != "X" {
 		t.Fatal("Tab did not navigate queued printers")
 	}
@@ -94,6 +92,7 @@ func TestAttentionQueueAndLocalActions(t *testing.T) {
 		t.Fatal("Shift+Tab did not restore the first printer")
 	}
 	writes := 0
+	m.Demo = false
 	m = m.WithNoticePersistence(func(reviews map[string]farm.Review) error {
 		writes++
 		if len(reviews) == 0 {
@@ -101,16 +100,16 @@ func TestAttentionQueueAndLocalActions(t *testing.T) {
 		}
 		return nil
 	}, nil)
-	m = key(m, "a")
+	m = persistenceKey(m, "a")
 	if writes != 1 || len(m.attention.groups) != 1 || m.attention.groups[0].id != "X" {
-		t.Fatal("ack did not advance to next printer or save immediately")
+		t.Fatal("ack did not advance to next printer or save after command completion")
 	}
 	for key, c := range m.Farm.Active {
 		if strings.HasPrefix(key, "H/") && !c.Acknowledged || strings.HasPrefix(key, "X/") && c.Acknowledged {
 			t.Fatal("acknowledgement crossed printer groups")
 		}
 	}
-	m = key(m, "c")
+	m = persistenceKey(m, "c")
 	if m.attention != nil || writes != 2 || len(m.Farm.Printers["X"].Faults) != 2 {
 		t.Fatal("dismissal did not save/close or edited telemetry")
 	}

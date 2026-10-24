@@ -46,7 +46,12 @@ type Model struct {
 	inspection                      viewport.Model
 	confirmClear                    bool
 	saveReviews                     func(map[string]farm.Review) error
-	savedReviewRevision             uint64
+	reviewWrites                    persistence
+	snoozeWrites                    persistence
+	snoozeRevision                  uint64
+	quitting                        bool
+	quitProblem                     bool
+	quitGeneration                  uint64
 	noticeStorageError              string
 	attention                       *attentionDialog
 	attentionSeen                   map[attentionOccurrence]bool
@@ -69,14 +74,14 @@ type Model struct {
 	exportDialog                    *exportDialog
 }
 
-// WithNoticePersistence enables immediate saves from the UI reducer. A failed
+// WithNoticePersistence enables asynchronous saves from the UI reducer. A failed
 // load disables writes for this session to preserve the original file.
 func (m Model) WithNoticePersistence(save func(map[string]farm.Review) error, loadErr error) Model {
-	m.savedReviewRevision = m.Farm.ReviewRevision()
+	m.reviewWrites = persistence{attempted: m.Farm.ReviewRevision(), saved: m.Farm.ReviewRevision()}
 	m.saveReviews = nil
 	if loadErr != nil {
 		m.noticeStorageError = "Saved notices unavailable; decisions apply only to this session"
-	} else {
+	} else if !m.Demo {
 		m.saveReviews = save
 	}
 	return m
@@ -102,18 +107,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
 	result := next.(Model)
 	result.pruneSnoozes()
-	result.persistSnoozes()
 	result.syncAlertDialog()
 	result.syncExport()
 	result.syncFilament()
 	result.syncDecisions()
 	result.syncAttention(false)
-	if result.saveReviews != nil && result.savedReviewRevision != result.Farm.ReviewRevision() {
-		result.savedReviewRevision = result.Farm.ReviewRevision()
-		if err := result.saveReviews(result.Farm.Reviews()); err != nil {
-			result.noticeStorageError = "Could not save notices; decisions may be lost on restart"
+	cmd = tea.Batch(cmd, result.persist())
+	if result.quitting && !result.persistencePending() {
+		if result.reviewWrites.failed != 0 || result.snoozeWrites.failed != 0 {
+			result.quitting, result.quitProblem = false, true
 		} else {
-			result.noticeStorageError = ""
+			return result, tea.Quit
 		}
 	}
 	return result, cmd
@@ -122,6 +126,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch v := msg.(type) {
+	case persistenceResultMsg:
+		m.persistenceResult(v)
+	case shutdownTimeoutMsg:
+		if m.quitting && uint64(v) == m.quitGeneration {
+			m.quitting, m.quitProblem = false, true
+		}
 	case tea.WindowSizeMsg:
 		m.width, m.height = v.Width, v.Height
 	case endMsg:
@@ -164,6 +174,18 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = m.wait()
 	case tea.KeyMsg:
 		key := v.String()
+		if m.quitting || m.quitProblem {
+			switch key {
+			case "esc":
+				// Cancel shutdown, keeping in-flight saves serialized and tracked.
+				m.quitting, m.quitProblem = false, false
+			case "q", "ctrl+c":
+				if m.quitProblem {
+					return m, tea.Quit
+				}
+			}
+			return m, nil
+		}
 		if m.exportDialog != nil {
 			cmd = m.exportKey(key, msg)
 			m.syncPanels()
@@ -212,7 +234,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch v.String() {
 		case "q", "ctrl+c":
-			return m, tea.Quit
+			cmd = m.beginShutdown()
+			return m, cmd
 		case "?":
 			m.help = !m.help
 		case "!":
@@ -419,6 +442,12 @@ func (m *Model) syncPanels() {
 }
 
 func (m Model) View() string {
+	if m.quitting {
+		return fit("Saving notice decisions and snoozes before quitting (up to 5 seconds).\nEsc cancels quitting; saves continue in the background.", m.width, m.height)
+	}
+	if m.quitProblem {
+		return fit("Storage failed or did not finish within 5 seconds; changes may be lost.\nPress q / Ctrl+C to exit anyway, or Esc to keep using the app.\n"+m.storageWarning(), m.width, m.height)
+	}
 	if !m.terminalFits() {
 		if m.hasOpenDialog() {
 			return fit(versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)

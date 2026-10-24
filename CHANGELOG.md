@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 — Responsive persistence
 
 - Move notice and snooze saves into background commands with immutable snapshots, serialized writes per store, and coalesced pending changes. Keep failures visible without continuous retries.
 - Wait up to five seconds for saves on normal quit; show explicit exit/cancel controls on failure or timeout and report unconfirmed saves after interrupted exits.

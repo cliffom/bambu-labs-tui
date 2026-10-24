@@ -306,7 +306,7 @@ func TestPersistenceShutdownFailureAndTimeout(t *testing.T) {
 			if cmd != nil || m.quitting || !m.quitProblem || !strings.Contains(m.View(), "changes may be lost") {
 				t.Fatal("shutdown failure did not remain visible")
 			}
-			next, quit := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})
+			_, quit := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})
 			if quit == nil {
 				t.Fatal("explicit exit was ignored")
 			}

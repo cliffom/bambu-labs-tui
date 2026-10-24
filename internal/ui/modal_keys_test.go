@@ -27,14 +27,15 @@ func TestModalQuitKeys(t *testing.T) {
 			case "filament":
 				m = key(m, "m")
 			case "confirmation":
-				m.confirmClear = true
+				m.openDialog(dialogClearHistory)
 			case "help":
-				m.help = true
+				m.openDialog(dialogHelp)
 			}
+			owner := m.dialog.active
 			for _, input := range []tea.KeyMsg{{Type: tea.KeyRunes, Runes: []rune{'q'}}, {Type: tea.KeyCtrlC}} {
 				next, cmd := m.Update(input)
 				m = next.(Model)
-				if cmd != nil || (m.attention == nil && m.filament == nil && m.decisions == nil && m.alertDialog == nil && m.exportDialog == nil && m.inspected == nil && !m.confirmClear && !m.help) {
+				if cmd != nil || !m.hasOpenDialog() || m.dialog.active != owner {
 					t.Fatal("quit key escaped or closed a modal")
 				}
 			}

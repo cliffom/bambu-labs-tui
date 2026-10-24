@@ -34,7 +34,7 @@ func TestVersionVisibleInDashboardAndDialogs(t *testing.T) {
 			case "inspector":
 				m = key(m, "enter")
 			case "history":
-				m.confirmClear = true
+				m.openDialog(dialogClearHistory)
 			case "diagnostics":
 				m = key(m, "D")
 			}

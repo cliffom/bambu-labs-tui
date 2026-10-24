@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — Explicit dialog ownership
+
+- Centralize dialog focus, keyboard routing, rendering, synchronization, and open/close transitions around one active owner. Preserve existing dialog controls and confirmations.
+- Make the attention-to-snooze return path explicit, keep suspended attention current during telemetry and resizing, and defer automatic attention while another dialog or shutdown screen owns focus.
+
 ## 0.1.1 — Responsive persistence
 
 - Move notice and snooze saves into background commands with immutable snapshots, serialized writes per store, and coalesced pending changes. Keep failures visible without continuous retries.

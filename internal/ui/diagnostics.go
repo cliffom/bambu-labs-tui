@@ -28,6 +28,7 @@ func (m *Model) openExport() {
 		return
 	}
 	destination, err := diagnostics.Destination(time.Now())
+	m.openDialog(dialogExport)
 	m.exportDialog = &exportDialog{printerID: p.ID, destination: destination, view: viewport.New(1, 1)}
 	if err != nil {
 		m.exportDialog.problem = "Diagnostic destination unavailable; check your cache-directory settings."
@@ -40,7 +41,7 @@ func (m *Model) exportKey(key string, msg tea.Msg) tea.Cmd {
 	d := m.exportDialog
 	switch key {
 	case "esc":
-		m.exportDialog = nil
+		m.closeDialog()
 	case "q", "ctrl+c":
 		return nil
 	case "enter":

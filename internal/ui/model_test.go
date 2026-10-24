@@ -213,11 +213,11 @@ func TestHistoryClearRequiresConfirmation(t *testing.T) {
 	m := noticeModel(t)
 	count, active := len(m.Farm.Events), len(m.Farm.Active)
 	m = key(m, "C")
-	if !m.confirmClear || !strings.Contains(m.View(), "CLEAR RECENT EVENTS?") {
+	if m.dialog.active != dialogClearHistory || !strings.Contains(m.View(), "CLEAR RECENT EVENTS?") {
 		t.Fatal("confirmation missing")
 	}
 	m = key(m, "n")
-	if m.confirmClear || len(m.Farm.Events) != count {
+	if m.dialog.active == dialogClearHistory || len(m.Farm.Events) != count {
 		t.Fatal("cancel cleared history")
 	}
 	m = key(m, "C")

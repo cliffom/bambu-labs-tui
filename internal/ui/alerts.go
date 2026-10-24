@@ -94,7 +94,7 @@ func (m *Model) setSnooze(id string, duration time.Duration) {
 		}
 		m.attention.groups = groups
 		if len(groups) == 0 {
-			m.attention = nil
+			m.dismissDialog(dialogAttention)
 		} else {
 			m.attention.index = min(m.attention.index, len(groups)-1)
 			m.attention.view.GotoTop()
@@ -104,6 +104,7 @@ func (m *Model) setSnooze(id string, duration time.Duration) {
 
 // openAlerts opens per-printer interruption status and snooze controls.
 func (m *Model) openAlerts(id string) {
+	m.openDialog(dialogAlerts)
 	m.alertDialog = &alertDialog{printerID: id, view: viewport.New(1, 1)}
 	m.syncAlertDialog()
 }
@@ -112,13 +113,13 @@ func (m *Model) openAlerts(id string) {
 func (m *Model) alertKey(key string, msg tea.Msg) tea.Cmd {
 	switch key {
 	case "s", "esc":
-		m.alertDialog = nil
+		m.closeDialog()
 	case "q", "ctrl+c":
 		return nil
 	case "1", "2", "3", "u":
 		durations := map[string]time.Duration{"1": 15 * time.Minute, "2": time.Hour, "3": 4 * time.Hour}
 		m.setSnooze(m.alertDialog.printerID, durations[key])
-		m.alertDialog = nil
+		m.closeDialog()
 	default:
 		var cmd tea.Cmd
 		m.alertDialog.view, cmd = m.alertDialog.view.Update(msg)

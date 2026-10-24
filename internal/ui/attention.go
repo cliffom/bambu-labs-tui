@@ -47,7 +47,6 @@ func (m *Model) syncAttention(force bool) {
 	}
 	if m.attention != nil {
 		m.attention.add(pending)
-		m.syncAttentionView()
 		return
 	}
 	if len(pending) == 0 {
@@ -63,10 +62,10 @@ func (m *Model) syncAttention(force bool) {
 	if !force && m.now.Sub(m.attentionPending) < 2*time.Second {
 		return
 	}
+	m.openDialog(dialogAttention)
 	m.attention = &attentionDialog{view: viewport.New(1, 1), manual: force}
 	m.attention.add(pending)
 	m.attentionPending = time.Time{}
-	m.syncAttentionView()
 }
 
 // add groups incoming occurrences by printer while preserving existing order.
@@ -112,7 +111,7 @@ func (m *Model) closeAttention() {
 			m.attentionSeen[attentionOccurrence{item.Key, item.Since}] = true
 		}
 	}
-	m.attention = nil
+	m.dismissDialog(dialogAttention)
 }
 
 // attentionKey handles local actions while transport events continue normally.
@@ -143,7 +142,7 @@ func (m *Model) attentionKey(key string, msg tea.Msg) tea.Cmd {
 		}
 		m.attention.groups = append(m.attention.groups[:m.attention.index], m.attention.groups[m.attention.index+1:]...)
 		if len(m.attention.groups) == 0 {
-			m.attention = nil
+			m.dismissDialog(dialogAttention)
 		} else {
 			m.attention.index %= len(m.attention.groups)
 			m.attention.view.GotoTop()

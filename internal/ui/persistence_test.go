@@ -247,7 +247,7 @@ func TestPersistenceQuitFlushAndCancellation(t *testing.T) {
 			m.Farm.Acknowledge(item.ActiveKey, true)
 			next, save := m.Update(nil)
 			m = next.(Model)
-			m.inspected, m.attention = nil, nil
+			m.closeDialog()
 			next, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})
 			m = next.(Model)
 			if !m.quitting || !strings.Contains(m.View(), "Saving") {

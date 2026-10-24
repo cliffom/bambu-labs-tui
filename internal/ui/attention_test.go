@@ -150,11 +150,12 @@ func TestAttentionDeferralIncrementalAndResolution(t *testing.T) {
 			m := demoModel()
 			switch dialog {
 			case "help":
-				m.help = true
+				m.openDialog(dialogHelp)
 			case "inspection":
+				m.openDialog(dialogInspector)
 				m.inspected = &noticeItem{Text: "Reading another notice"}
 			case "confirmation":
-				m.confirmClear = true
+				m.openDialog(dialogClearHistory)
 			}
 			m = attentionTick(attentionReport(t, m, "H", runoutReport))
 			if m.attention != nil {

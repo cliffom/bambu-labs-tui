@@ -101,6 +101,7 @@ func (m Model) filamentSummary(p *farm.Printer, width int) []string {
 // openFilament opens the selected printer's inventory without changing dashboard focus.
 func (m *Model) openFilament() {
 	if p := m.current(); p != nil {
+		m.openDialog(dialogFilament)
 		m.filament = &filamentDialog{printerID: p.ID, slotID: -1, view: viewport.New(1, 1)}
 		m.syncFilament()
 	}
@@ -144,7 +145,7 @@ func (d *filamentDialog) filamentSelection(units []filamentUnit) (int, int) {
 func (m *Model) filamentKey(key string, msg tea.Msg) tea.Cmd {
 	d := m.filament
 	if key == "esc" || key == "m" {
-		m.filament = nil
+		m.closeDialog()
 		return nil
 	}
 	if key == "q" || key == "ctrl+c" {

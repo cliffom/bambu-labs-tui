@@ -188,8 +188,8 @@ func TestAttentionDeferralIncrementalAndResolution(t *testing.T) {
 	}
 }
 
-// TestAttentionNavigationBoundsAndQuit exercises supported terminal dimensions.
-func TestAttentionNavigationBoundsAndQuit(t *testing.T) {
+// TestAttentionNavigationBounds exercises supported terminal dimensions.
+func TestAttentionNavigationBounds(t *testing.T) {
 	for _, size := range [][2]int{{120, 35}, {80, 24}, {60, 18}, {40, 10}} {
 		m := attentionTick(attentionReport(t, demoModel(), "H", runoutReport))
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
@@ -205,9 +205,12 @@ func TestAttentionNavigationBoundsAndQuit(t *testing.T) {
 		if size[0] >= 60 && size[1] >= 18 && !strings.Contains(ansi.Strip(m.View()), "Esc close") {
 			t.Fatal("modal actions were clipped at a supported terminal size")
 		}
-		_, quit := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
-		if quit == nil {
-			t.Fatal("quit unavailable inside modal")
+		for _, quitKey := range []tea.KeyMsg{{Type: tea.KeyRunes, Runes: []rune{'q'}}, {Type: tea.KeyCtrlC}} {
+			next, cmd := m.Update(quitKey)
+			m = next.(Model)
+			if cmd != nil || m.attention == nil {
+				t.Fatal("quit key escaped the modal")
+			}
 		}
 	}
 	m := attentionTick(attentionReport(t, demoModel(), "H", runoutReport))

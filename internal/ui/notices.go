@@ -298,7 +298,7 @@ func (m *Model) syncInspector() {
 }
 func (m Model) inspectorView() string {
 	lines := []string{accent.Bold(true).Render("NOTICE / FAULT DETAILS"), muted.Render("↑/↓ or PgUp/PgDown scroll · Esc/Enter back"), "", m.inspection.View()}
-	footer := "a acknowledge  c clear locally  Esc back  q quit"
+	footer := "a acknowledge  c clear locally  Esc back"
 	if m.toast != "" {
 		footer = safe(m.toast)
 	}
@@ -319,5 +319,5 @@ func (m Model) fullView(lines []string, footer string) string {
 	return fit(strings.Join(rows, "\n"), m.width, m.height)
 }
 func (m Model) clearHistoryView() string {
-	return m.fullView([]string{warning.Bold(true).Render("CLEAR RECENT EVENTS?"), "", fmt.Sprintf("Remove %d events from this session's history?", len(m.Farm.Events)), "", "Active notices and printer faults remain visible.", "", "y: clear history     n / Esc: keep history"}, "q quit")
+	return m.fullView([]string{warning.Bold(true).Render("CLEAR RECENT EVENTS?"), "", fmt.Sprintf("Remove %d events from this session's history?", len(m.Farm.Events)), "", "Active notices and printer faults remain visible.", "", "y: clear history     n / Esc: keep history"}, "n / Esc back")
 }

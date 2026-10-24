@@ -27,7 +27,7 @@ Help, notice inspectors, and history confirmations defer opening. Alerts also wa
 | `a` | Acknowledge the current printer's displayed active occurrences, save decisions, and advance to the next printer |
 | `c` | Dismiss those occurrences locally, save decisions, and advance; printer telemetry is unchanged |
 | `Esc` | Close all queued prompts without acknowledging/dismissing notices; preserve dashboard focus |
-| `q` / `Ctrl+C` | Quit |
+| `q` / `Ctrl+C` | Ignored while the modal is open; close it with `Esc` before quitting from the dashboard |
 
 Closing or navigating away suppresses automatic re-prompting for the dialog's occurrences during the current session. It does not persist an acknowledgement. `!` from the dashboard explicitly reopens eligible unreviewed alerts. Acknowledgement and dismissal use the existing immediate account/region-scoped storage; storage failures remain visible.
 

@@ -97,7 +97,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `r` | Request a full status snapshot |
 | `?` | Toggle help |
 | `Esc` | Close help and focus the printer list |
-| `q` / `Ctrl+C` | Quit |
+| `q` / `Ctrl+C` | Quit from the dashboard; close any modal first |
 
 Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color.
 

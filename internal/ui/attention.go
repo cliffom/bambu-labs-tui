@@ -218,7 +218,7 @@ func (m *Model) syncAttentionView() {
 // attentionView renders a centered keyboard-driven attention modal.
 func (m Model) attentionView() string {
 	d := m.attention
-	lines := []string{danger.Bold(true).Render("ACTION NEEDED"), muted.Render(fmt.Sprintf("Printer %d / %d · Tab switches printer · ↑/↓ scroll", d.index+1, len(d.groups))), "", d.view.View(), "", "Enter notice · p printer · a ack · c hide · o help", "Esc close · q quit"}
+	lines := []string{danger.Bold(true).Render("ACTION NEEDED"), muted.Render(fmt.Sprintf("Printer %d / %d · Tab switches printer · ↑/↓ scroll", d.index+1, len(d.groups))), "", d.view.View(), "", "Enter notice · p printer · a ack · c hide · o help", "Esc close"}
 	if m.noticeStorageError != "" {
 		lines[len(lines)-1] = m.noticeStorageError
 	}

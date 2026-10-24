@@ -282,6 +282,23 @@ func (m Model) current() *farm.Printer {
 	}
 	return m.Farm.Printers[m.Farm.Order[m.selection]]
 }
+
+// hasOpenDialog reports whether a dialog currently owns keyboard focus.
+func (m Model) hasOpenDialog() bool {
+	return m.attention != nil || m.filament != nil || m.decisions != nil ||
+		m.inspected != nil || m.confirmClear || m.help
+}
+
+// terminalFits reports whether the dashboard and dialogs fit at their minimum size.
+func (m Model) terminalFits() bool {
+	return m.width >= 60 && m.height >= 18
+}
+
+// printerTelemetryCurrent reports whether displayed telemetry has a live, fresh source.
+func (m Model) printerTelemetryCurrent(p *farm.Printer) bool {
+	return m.Farm.Connected && p.Online && !p.Stale(m.now)
+}
+
 func safe(s string) string {
 	return strings.Map(func(r rune) rune {
 		if unicode.IsControl(r) {
@@ -368,8 +385,8 @@ func (m *Model) syncPanels() {
 }
 
 func (m Model) View() string {
-	if m.width < 60 || m.height < 18 {
-		if m.attention != nil || m.filament != nil || m.decisions != nil || m.inspected != nil || m.confirmClear || m.help {
+	if !m.terminalFits() {
+		if m.hasOpenDialog() {
 			return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
 		}
 		return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
@@ -512,7 +529,7 @@ func (m Model) printerRow(i int) string {
 			eta += " +1d"
 		}
 	}
-	if p.Stale(m.now) || !m.Farm.Connected || !p.Online {
+	if !m.printerTelemetryCurrent(p) {
 		left = "~" + left
 		eta = "~" + eta
 	}

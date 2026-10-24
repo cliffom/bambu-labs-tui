@@ -58,7 +58,7 @@ func (m Model) detailText(w int) string {
 		if eta.Local().Format("2006-01-02") != m.now.Local().Format("2006-01-02") {
 			finish = eta.Local().Format("Mon 02 Jan · 15:04")
 		}
-		if p.Stale(m.now) || !p.Online || !m.Farm.Connected {
+		if !m.printerTelemetryCurrent(p) {
 			finish = "~" + finish
 		}
 	}
@@ -137,8 +137,15 @@ func (m Model) firmwareStatus(p *farm.Printer) string {
 	if *f.UpdateAvailable {
 		status = "Update available: " + safe(f.Available)
 	}
-	if !m.Farm.Connected || !p.Online || p.Stale(m.now) || m.now.Sub(f.StatusReported) > 120*time.Second || m.now.Sub(f.VersionReported) > 120*time.Second {
+	if !m.firmwareAssessmentCurrent(p) {
 		status = "Last known: " + status
 	}
 	return status
+}
+
+// firmwareAssessmentCurrent requires fresh OTA metadata as well as live printer telemetry.
+func (m Model) firmwareAssessmentCurrent(p *farm.Printer) bool {
+	return m.printerTelemetryCurrent(p) &&
+		m.now.Sub(p.Firmware.StatusReported) <= 120*time.Second &&
+		m.now.Sub(p.Firmware.VersionReported) <= 120*time.Second
 }

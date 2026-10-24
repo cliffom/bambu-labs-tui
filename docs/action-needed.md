@@ -15,7 +15,7 @@ The catalogue is deliberately partial. Unknown errors while the printer reports 
 
 The first eligible occurrence starts a two-second collection window. Available incidents are presented in one dialog, grouped by printer. Additional reports update the current group or append another printer without replacing the dialog being read. Grouping is presentation only: HMS, print-error, and state notice identities remain separate.
 
-Help, notice inspectors, AMS/filament browsers, and history confirmations defer opening. Alerts also wait until the terminal reaches 60 columns × 18 rows. Transport events, reconnects, and status refresh processing continue while the dialog is open. Resolved or replaced occurrences lose action guidance and remain marked in the dialog until the operator leaves it. If later telemetry supplies an explicit pause/recovery explanation, an earlier generic pause can be marked as no longer requiring an alert.
+Help, notice inspectors, the AMS/filament browser, the notice decisions view, and reset/history confirmations defer opening. Alerts also wait until the terminal reaches 60 columns × 18 rows. Transport events, reconnects, and status refresh processing continue while the dialog is open. Resolved or replaced occurrences lose action guidance and remain marked in the dialog until the operator leaves it. If later telemetry supplies an explicit pause/recovery explanation, an earlier generic pause can be marked as no longer requiring an alert.
 
 | Key | Effect |
 | --- | --- |
@@ -46,3 +46,7 @@ Run `make demo` to build and launch the simulated farm without logging in.
 Synthetic H2D/X2D fixtures cover AMS/AMS HT/external runout, feed failures, clogs, and empty slots. Tests also cover unknown stopped-printer faults, failed/ambiguous/explicit user pauses, recovery, wording independence, persisted reviews, incremental reports, multiple printers, dialog deferral, live resolution, recurrence, focus restoration, keyboard navigation, and terminal bounds. The existing demo introduces a runout incident at approximately 15 seconds and clears it at approximately 24 seconds; no live printer is needed and no demo reviews are saved.
 
 Real printer validation is still a hardware smoke check; synthetic and terminal-demo results do not establish live behavior for every model/firmware fault.
+
+## Reversing local decisions
+
+Press `n` on the dashboard to manage saved notice decisions. Restoring a dismissal preserves acknowledgement. Marking a notice unreviewed preserves dismissal. Either explicit reversal clears session prompt suppression for that occurrence; it becomes eligible only when active, visible, unacknowledged, and actionable. The alert waits until the decisions view closes. A confirmed account/region reset clears all review flags and session prompt suppression, without creating faults or restoring deleted event history. See [saved notice decisions](usage.md#saved-notice-decisions) for controls and startup/storage behavior.

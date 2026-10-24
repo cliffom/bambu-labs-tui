@@ -116,3 +116,81 @@ func TestChangedSavedPrintStateAndRemovedPrinter(t *testing.T) {
 		t.Fatal("removed printer retained decisions")
 	}
 }
+
+// TestReverseReviewsPreservesTelemetry checks independent review flags and recurrence.
+func TestReverseReviewsPreservesTelemetry(t *testing.T) {
+	s, _, now := setup(t, "x2d")
+	key := "TEST/fault/0300_0100_0001_0007"
+	s.Acknowledge(key, true)
+	s.Dismiss(key)
+	before, events := s.Active[key], len(s.Events)
+	if !s.RestoreDismissal(key) {
+		t.Fatal("dismissal was not restored")
+	}
+	c := s.Active[key]
+	if c.Dismissed || !c.Acknowledged || c.Text != before.Text || c.Since != before.Since || len(s.Events) != events {
+		t.Fatal("restore changed acknowledgement, telemetry, or history")
+	}
+	s.Reconcile(now)
+	if !s.Active[key].Acknowledged || s.Active[key].Dismissed {
+		t.Fatal("routine reconcile undid restoration")
+	}
+	s.Dismiss(key)
+	if !s.MarkUnreviewed(key) || !s.Active[key].Dismissed || s.Active[key].Acknowledged {
+		t.Fatal("unreviewed did not preserve dismissal")
+	}
+	s.RestoreDismissal(key)
+	if _, ok := s.Reviews()[key]; ok {
+		t.Fatal("fully reversed decision was kept")
+	}
+	report(t, s, `{"hms":[]}`, now.Add(time.Second))
+	if s.RestoreDismissal(key) || s.MarkUnreviewed(key) {
+		t.Fatal("resolved notice was synthesized")
+	}
+	report(t, s, `{"hms":[{"attr":50331904,"code":65543}]}`, now.Add(2*time.Second))
+	if c := s.Active[key]; c.Since.Equal(before.Since) || c.Dismissed || c.Acknowledged {
+		t.Fatal("recurrence reused a saved decision")
+	}
+}
+
+// TestEditPendingReviews checks startup decisions can be reversed before fault reports.
+func TestEditPendingReviews(t *testing.T) {
+	s := New(10)
+	r := Review{Code: "0300_0100_0001_0007", Level: "warning", Since: time.Now(), Acknowledged: true, Dismissed: true}
+	s.RestoreReviews(map[string]Review{"TEST/fault/" + r.Code: r})
+	key := "TEST/fault/" + r.Code
+	if !s.RestoreDismissal(key) || !s.Reviews()[key].Acknowledged || s.Reviews()[key].Dismissed {
+		t.Fatal("pending restoration changed acknowledgement")
+	}
+	if !s.MarkUnreviewed(key) || len(s.Reviews()) != 0 || len(s.Active) != 0 || len(s.Events) != 0 || s.ReviewRevision() != 2 {
+		t.Fatal("pending edits created telemetry or failed to dirty storage")
+	}
+	if s.RestoreDismissal(key) || s.MarkUnreviewed(key) {
+		t.Fatal("missing decisions were recreated")
+	}
+}
+
+// TestResetReviewsPreservesOccurrences checks a bulk reset includes pending startup reviews.
+func TestResetReviewsPreservesOccurrences(t *testing.T) {
+	s, _, now := setup(t, "x2d")
+	key := "TEST/fault/0300_0100_0001_0007"
+	s.Acknowledge(key, true)
+	s.Dismiss(key)
+	reviews := s.Reviews()
+	reviews["OTHER/fault/unknown"] = Review{Dismissed: true, Since: now}
+	s.RestoreReviews(reviews)
+	before, events, revision := s.Active[key], len(s.Events), s.ReviewRevision()
+	s.ResetReviews()
+	if len(s.Reviews()) != 0 || s.Active[key].Acknowledged || s.Active[key].Dismissed || s.Active[key].Since != before.Since || len(s.Events) != events || s.ReviewRevision() != revision+1 {
+		t.Fatal("reset changed occurrence/history or omitted pending decisions")
+	}
+	s.Reconcile(now)
+	if s.Active[key].Acknowledged || s.Active[key].Dismissed {
+		t.Fatal("reconcile undid reset")
+	}
+	revision = s.ReviewRevision()
+	s.ResetReviews()
+	if s.ReviewRevision() != revision {
+		t.Fatal("empty reset dirtied storage")
+	}
+}

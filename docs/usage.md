@@ -61,6 +61,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `Enter` | View the selected notice; `Esc` or `Enter` returns |
 | `f` | Open the selected printer's first active fault |
 | `m` | Open the selected printer's AMS/filament browser |
+| `n` | Manage local notice decisions, including dismissals |
 | `!` | Reopen unreviewed action-needed alerts |
 | `a` | Toggle local acknowledgement of the selected active notice |
 | `c` | Dismiss an active notice from the TUI, or delete a historical event |
@@ -87,7 +88,19 @@ To review notices, press `Tab` until the notices panel is focused, use `j/k` or 
 
 ### Saved notice decisions
 
-Acknowledgements and dismissals are saved immediately and restored when the TUI reopens. Files are separate for each account and region, under the OS configuration directory's `bambu-tui/notices/` folder (`~/Library/Application Support/bambu-tui/notices/` on macOS; `$XDG_CONFIG_HOME/bambu-tui/notices/` or `~/.config/bambu-tui/notices/` on Linux). They contain local notice decisions and printer identifiers, with private file permissions; account tokens stay in the OS credential store. A custom `--config` path does not change this account-scoped storage location. To reset saved decisions, quit the TUI and remove the matching JSON file (or the notice directory to reset all accounts).
+Press `n` from any dashboard panel to open **Notice decisions**. It includes dismissed and acknowledged active notices, showing the printer, description, code, status, visibility, and review state. Use up/down or `j/k` to select an entry, `Home/End` (or `g/G`) to jump to the first/last entry, and `PgUp/PgDn` to scroll its details. Press `n` or `Esc` to close. Close the view before quitting.
+
+- `r` restores a dismissal. The notice becomes visible, and its independent acknowledgement stays unchanged. Deleted history is not recreated.
+- `u` explicitly marks an acknowledged notice unreviewed. This leaves its visibility or dismissal unchanged. To make a dismissed, acknowledged notice both visible and unreviewed, use both actions.
+- `R` opens a confirmation to reset all acknowledgements and dismissals for the **current account and region**, including decisions awaiting telemetry. Press `y` to reset or `n` / `Esc` to cancel. Reset preserves printer telemetry and session event history. Demo mode changes only demo decisions.
+
+Saved decisions awaiting startup reports are labelled **Awaiting telemetry**; saved low-filament decisions show their AMS unit and slot, while other descriptions may be unavailable until the printer reports. Unsupported notice types retain their saved identity. Editing them does not create active notices. When telemetry confirms resolution, the saved decision disappears; a later recurrence is a new, unreviewed occurrence.
+
+An individual restore or mark-unreviewed action clears session-only prompt suppression for that occurrence. A restored notice that remains acknowledged does not prompt. A visible, unreviewed actionable notice can prompt after you close this view and the normal batching delay passes. Reset clears session suppression for all occurrences. Alerts continue to queue while this view or its reset confirmation is open.
+
+Changes save immediately through the normal notice store. Storage failures remain visible in both screens. If the saved file could not be loaded, writes remain disabled to preserve it, and reset affects only this session; the warning remains visible.
+
+Acknowledgements and dismissals are saved immediately and restored when the TUI reopens. Files are separate for each account and region, under the OS configuration directory's `bambu-tui/notices/` folder (`~/Library/Application Support/bambu-tui/notices/` on macOS; `$XDG_CONFIG_HOME/bambu-tui/notices/` or `~/.config/bambu-tui/notices/` on Linux). They contain local notice decisions and printer identifiers, with private file permissions; account tokens stay in the OS credential store. A custom `--config` path does not change this account-scoped storage location. Press `n` to manage these decisions in the TUI; manual file deletion is not needed.
 
 Saved decisions survive discovery and partial startup telemetry until the relevant status arrives. Confirmed resolution removes the saved decision. If a condition resolves and recurs entirely while the TUI is closed, the app cannot identify that as a new occurrence without a printer-provided identifier; the matching decision is retained until resolution is observed. Recent event history remains session-only, and `--demo` neither reads nor writes saved notice decisions. If storage fails, a persistent warning reports that decisions may apply only to the current session; an unreadable or unsupported file is preserved without overwriting it.
 

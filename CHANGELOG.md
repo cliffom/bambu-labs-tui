@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add a notice decisions view (`n`) for inspecting dismissed and acknowledged notices, restoring individual dismissals, explicitly marking notices unreviewed, and resetting decisions for the current account and region with confirmation.
+- Persist reversals immediately, preserve independent acknowledgement/dismissal state, and expose saved startup decisions as awaiting telemetry without creating active faults. Re-arm eligible alerts after the decisions view closes.
+
 ## 0.0.7 — AMS/filament browser
 
 - Replace expanded filament inventory in printer details with a compact summary and an `m` AMS/filament browser. Navigate units and slots, inspect selected-slot details, and retain focus/selection through live updates.

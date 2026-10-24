@@ -130,3 +130,66 @@ func (s *State) reviewKnown(key string) bool {
 	}
 	return false
 }
+
+// RestoreDismissal makes a notice visible without changing its acknowledgement.
+// Pending startup decisions can be edited without inventing an active condition.
+func (s *State) RestoreDismissal(key string) bool {
+	if c, ok := s.Active[key]; ok {
+		if !c.Dismissed {
+			return false
+		}
+		c.Dismissed = false
+		s.Active[key] = c
+		s.rememberReview(key, c)
+		return true
+	}
+	if r, ok := s.reviews[key]; ok && r.Dismissed {
+		r.Dismissed = false
+		s.updatePendingReview(key, r)
+		return true
+	}
+	return false
+}
+
+// MarkUnreviewed removes acknowledgement while preserving a separate dismissal.
+func (s *State) MarkUnreviewed(key string) bool {
+	if c, ok := s.Active[key]; ok {
+		if !c.Acknowledged {
+			return false
+		}
+		return s.Acknowledge(key, false)
+	}
+	if r, ok := s.reviews[key]; ok && r.Acknowledged {
+		r.Acknowledged = false
+		s.updatePendingReview(key, r)
+		return true
+	}
+	return false
+}
+
+// updatePendingReview saves an edited decision until its telemetry is observed.
+func (s *State) updatePendingReview(key string, r Review) {
+	if !r.Acknowledged && !r.Dismissed {
+		s.forgetReview(key)
+		return
+	}
+	s.reviews[key] = r
+	s.reviewRevision++
+}
+
+// ResetReviews clears all local decisions for this state's account and region.
+// Telemetry, occurrence times, and session event history are preserved.
+func (s *State) ResetReviews() {
+	changed := len(s.reviews) > 0
+	for key, c := range s.Active {
+		if c.Acknowledged || c.Dismissed {
+			changed = true
+			c.Acknowledged, c.Dismissed = false, false
+			s.Active[key] = c
+		}
+	}
+	s.reviews = nil
+	if changed {
+		s.reviewRevision++
+	}
+}

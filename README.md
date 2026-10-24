@@ -59,7 +59,7 @@ All printers on the account appear automatically. If you use Bambu's China regio
 
 ## Using the dashboard
 
-The dashboard header reads `BAMBU TUI vX.Y.Z / FARM / CLOUD CONNECTED`, reflecting the running version and connection state. Dialog headings also show the version. Use a terminal of at least **60 columns × 18 rows**; a wider window shows printer details and notices side by side. Press `?` for help.
+The dashboard header reads `BAMBU TUI vX.Y.Z / CLOUD CONNECTED / FARM`, reflecting the running version and connection state. Dialog headings also show the version. Use a terminal of at least **60 columns × 18 rows**; a wider window shows printer details and notices side by side. Press `?` for help.
 
 | Key | Action |
 | --- | --- |

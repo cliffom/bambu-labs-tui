@@ -36,7 +36,7 @@ func (m Model) dashboardHeader() string {
 		connection = danger.Render("SIGN-IN REQUIRED")
 	}
 	prefix := accent.Bold(true).Render("BAMBU TUI ")
-	suffix := muted.Render(" / FARM / "+mode+" ") + connection
+	suffix := muted.Render(" / "+mode+" ") + connection + muted.Render(" / FARM")
 	version := ansi.Truncate(versionLabel(), max(1, m.width-ansi.StringWidth(prefix+suffix)), "…")
 	header := prefix + muted.Render(version) + suffix
 	clock := m.now.Local().Format("Mon 02 Jan · 15:04:05")

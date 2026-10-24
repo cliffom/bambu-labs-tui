@@ -9,9 +9,11 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/cliffom/bambu-tui/internal/alertstore"
 	"github.com/cliffom/bambu-tui/internal/buildinfo"
 	"github.com/cliffom/bambu-tui/internal/cloud"
 	"github.com/cliffom/bambu-tui/internal/config"
@@ -212,7 +214,7 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 		}
 	}()
 	state := farm.New(cfg.LowFilamentPercent)
-	model := ui.New(state, events, refresh, demo)
+	model := ui.New(state, events, refresh, demo).WithAlertPreferences(cfg.Alerts)
 	if !demo {
 		notices, loadErr := noticestore.New(cfg.Region, session.Username)
 		var reviews map[string]farm.Review
@@ -224,6 +226,15 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 			fmt.Fprintln(os.Stderr, "Notice persistence:", loadErr)
 		}
 		model = model.WithNoticePersistence(notices.Save, loadErr)
+		snoozeStore, snoozeErr := alertstore.New(cfg.Region, session.Username)
+		var snoozes map[string]time.Time
+		if snoozeErr == nil {
+			snoozes, snoozeErr = snoozeStore.Load()
+		}
+		if snoozeErr != nil {
+			fmt.Fprintln(os.Stderr, "Alert persistence:", snoozeErr)
+		}
+		model = model.WithSnoozePersistence(snoozes, snoozeStore.Save, snoozeErr)
 	}
 	_, err := tea.NewProgram(model, tea.WithContext(ctx), tea.WithAltScreen()).Run()
 	cancel()

@@ -61,6 +61,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `Enter` | View the selected notice; `Esc` or `Enter` returns |
 | `f` | Open the selected printer's first active fault |
 | `m` | Open the selected printer's AMS/filament browser |
+| `s` | View effective printer alert settings and snooze/resume controls |
 | `n` | Manage local notice decisions, including dismissals |
 | `!` | Reopen unreviewed action-needed alerts |
 | `a` | Toggle local acknowledgement of the selected active notice |
@@ -105,6 +106,10 @@ Acknowledgements and dismissals are saved immediately and restored when the TUI 
 Saved decisions survive discovery and partial startup telemetry until the relevant status arrives. Confirmed resolution removes the saved decision. If a condition resolves and recurs entirely while the TUI is closed, the app cannot identify that as a new occurrence without a printer-provided identifier; the matching decision is retained until resolution is observed. Recent event history remains session-only, and `--demo` neither reads nor writes saved notice decisions. If storage fails, a persistent warning reports that decisions may apply only to the current session; an unreadable or unsupported file is preserved without overwriting it.
 
 For historical events, `c` deletes the selected event; `C` clears all recent events after confirmation. Clearing history leaves active conditions intact. Local dismissal preserves printer telemetry and does not send printer-side fault-clear commands; resolve or dismiss those through the printer or Bambu's own applications.
+
+### Alert preferences and snoozing
+
+Press `s` on the dashboard or an action-needed prompt to snooze its printer for 15 minutes, 1 hour, or 4 hours; `u` in those controls ends a snooze early. Deadlines save across restarts, independently of acknowledgements and dismissals. All underlying notices stay visible. Global and per-printer category/master switches are configured under `[alerts]` in TOML; defaults preserve automatic alerts. `!` manually inspects unreviewed actionable notices even while muted or snoozed. See the [alert guide](alerts.md) for configuration, expiry, removed-printer behavior, and storage errors. Sound is deferred to notification issue #11.
 
 ### Action-needed alerts
 

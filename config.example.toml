@@ -1,3 +1,18 @@
 # Copy to the path printed by `bambu-tui --config-path`.
 region = "global" # global or china
 low_filament_percent = 10
+
+# Automatic action-needed modals; all defaults are enabled.
+[alerts]
+automatic_modals = true
+filament = true
+extrusion = true
+printer_faults = true
+failed_prints = true
+unknown_pauses = true
+
+# Optional per-printer overrides inherit every unspecified global value.
+# Press s in the TUI to find the stable printer ID. Restart after editing.
+# [alerts.printers."YOUR_PRINTER_ID"]
+# automatic_modals = false
+# filament = false

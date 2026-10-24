@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
 )
@@ -51,6 +52,13 @@ type Model struct {
 	attentionPending                time.Time
 	filament                        *filamentDialog
 	decisions                       *decisionsDialog
+	alertDialog                     *alertDialog
+	alertPrefs                      config.AlertPreferences
+	snoozes                         map[string]time.Time
+	saveSnoozes                     func(map[string]time.Time) error
+	snoozesDirty                    bool
+	alertStorageError               string
+	printersDiscovered              bool
 }
 
 // WithNoticePersistence enables immediate saves from the UI reducer. A failed
@@ -67,7 +75,7 @@ func (m Model) WithNoticePersistence(save func(map[string]farm.Review) error, lo
 }
 
 func New(state *farm.State, events <-chan monitor.Event, refresh chan<- struct{}, demo bool) Model {
-	m := Model{Farm: state, Events: events, Refresh: refresh, Demo: demo, width: 100, height: 32, now: time.Now(), details: viewport.New(50, 15), notices: viewport.New(40, 15), inspection: viewport.New(90, 26)}
+	m := Model{alertPrefs: config.DefaultAlerts(), Farm: state, Events: events, Refresh: refresh, Demo: demo, width: 100, height: 32, now: time.Now(), details: viewport.New(50, 15), notices: viewport.New(40, 15), inspection: viewport.New(90, 26)}
 	m.syncPanels()
 	return m
 }
@@ -85,6 +93,9 @@ func (m Model) Init() tea.Cmd { return tea.Batch(m.wait(), tick()) }
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.update(msg)
 	result := next.(Model)
+	result.pruneSnoozes()
+	result.persistSnoozes()
+	result.syncAlertDialog()
 	result.syncFilament()
 	result.syncDecisions()
 	result.syncAttention(false)
@@ -128,6 +139,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				id = p.ID
 			}
 			m.Farm.Discover(v.Devices, v.At)
+			m.printersDiscovered = true
 			m.selection = 0
 			for i, k := range m.Farm.Order {
 				if k == id {
@@ -148,6 +160,11 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = m.wait()
 	case tea.KeyMsg:
 		key := v.String()
+		if m.alertDialog != nil {
+			cmd = m.alertKey(key, msg)
+			m.syncPanels()
+			return m, cmd
+		}
 		if m.attention != nil {
 			cmd = m.attentionKey(key, msg)
 			m.syncPanels()
@@ -205,6 +222,10 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.openFilament()
 		case "n":
 			m.openDecisions()
+		case "s":
+			if p := m.current(); p != nil {
+				m.openAlerts(p.ID)
+			}
 		case "enter":
 			if m.focus == 2 {
 				m.openNotice()
@@ -286,7 +307,7 @@ func (m Model) current() *farm.Printer {
 // hasOpenDialog reports whether a dialog currently owns keyboard focus.
 func (m Model) hasOpenDialog() bool {
 	return m.attention != nil || m.filament != nil || m.decisions != nil ||
-		m.inspected != nil || m.confirmClear || m.help
+		m.inspected != nil || m.confirmClear || m.help || m.alertDialog != nil
 }
 
 // terminalFits reports whether the dashboard and dialogs fit at their minimum size.
@@ -391,6 +412,9 @@ func (m Model) View() string {
 		}
 		return fit("BAMBU / FARM\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
 	}
+	if m.alertDialog != nil {
+		return m.alertView()
+	}
 	if m.attention != nil {
 		return m.attentionView()
 	}
@@ -426,7 +450,7 @@ func (m Model) View() string {
 			printing++
 		}
 	}
-	summary := fmt.Sprintf("%d printers   %d printing   %d active notices · %d unreviewed", len(m.Farm.Order), printing, attention, m.Farm.Unacknowledged())
+	summary := fmt.Sprintf("%d printers   %d printing   %d active notices · %d unreviewed", len(m.Farm.Order), printing, attention, m.Farm.Unacknowledged()) + m.alertSummary()
 	lines := []string{header, muted.Render(summary), "", m.section("01  PRINTERS", m.focus == 0, m.width), m.tableHeader()}
 	if len(m.Farm.Order) == 0 {
 		text := "Discovering account printers…"
@@ -450,21 +474,24 @@ func (m Model) View() string {
 	} else {
 		lines = append(lines, m.section("02  PRINTER DETAILS", m.focus == 1, left), m.details.View(), m.section("03  NOTICES", m.focus == 2, right), m.notices.View())
 	}
-	foot := muted.Render("j/k select  tab panel  m filament  n decisions  ? help  q quit")
+	foot := muted.Render("j/k select  tab panel  m filament  n decisions  s alerts  ? help  q quit")
 	if m.focus == 1 {
-		foot = muted.Render("↑/↓ scroll  m filament  n decisions  tab panel  q quit")
+		foot = muted.Render("↑/↓ scroll  m filament  n decisions  s alerts  q quit")
 	}
 	if m.focus == 2 {
-		foot = muted.Render("j/k select  enter view  a ack  c clear  n decisions  tab")
+		foot = muted.Render("j/k select  enter view  a ack  c clear  n decisions  s alerts")
+	}
+	if m.width < 80 {
+		foot = muted.Render("j/k move  tab panel  m AMS  n reviews  s alerts  ?  q quit")
 	}
 	if m.toast != "" {
 		foot = warning.Render(safe(m.toast))
 	}
-	if m.noticeStorageError != "" {
-		foot = warning.Render(m.noticeStorageError)
+	if message := m.storageWarning(); message != "" {
+		foot = warning.Render(message)
 	}
 	if m.help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
+		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")

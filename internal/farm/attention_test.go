@@ -114,3 +114,31 @@ func TestAttentionRestoredReviewsAndRecurrence(t *testing.T) {
 		t.Fatal("resolved and recurring incident did not need attention again")
 	}
 }
+
+// TestAttentionCategoriesFollowVerifiedMetadata keeps filters independent of printer wording.
+func TestAttentionCategoriesFollowVerifiedMetadata(t *testing.T) {
+	cases := []struct{ name, payload, category string }{
+		{"runout", `{"gcode_state":"PAUSE","print_error":117473297,"hms":[{"attr":117448704,"code":131073}]}`, "filament"},
+		{"unknown pause", `{"gcode_state":"PAUSE","print_error":0,"hms":[]}`, "unknown_pauses"},
+		{"failed", `{"gcode_state":"FAILED","print_error":0,"hms":[]}`, "failed_prints"},
+		{"extrusion", `{"gcode_state":"RUNNING","print_error":0,"hms":[{"attr":50333952,"code":131073}]}`, "extrusion"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := New(10)
+			now := time.Now()
+			s.Cloud(true, "", now)
+			s.Discover([]Device{{ID: "TEST", Online: true}}, now)
+			report(t, s, tc.payload, now)
+			items := s.Attention()
+			if len(items) == 0 {
+				t.Fatal("expected classified alert")
+			}
+			for _, item := range items {
+				if len(item.Categories) != 1 || item.Categories[0] != tc.category {
+					t.Fatalf("wrong category: %+v", item)
+				}
+			}
+		})
+	}
+}

@@ -23,12 +23,12 @@ Download an archive and the checksums file from the [latest release](https://git
 | Linux with x86-64 processor | `linux_amd64.tar.gz` |
 | Linux with ARM64 processor | `linux_arm64.tar.gz` |
 
-For example, on an Apple silicon Mac with v0.0.8 downloaded:
+For example, on an Apple silicon Mac with v0.0.9 downloaded:
 
 ```sh
-shasum -a 256 bambu-tui_v0.0.8_darwin_arm64.tar.gz
-# Compare the output with the matching line in bambu-tui_v0.0.8_checksums.txt.
-tar -xzf bambu-tui_v0.0.8_darwin_arm64.tar.gz
+shasum -a 256 bambu-tui_v0.0.9_darwin_arm64.tar.gz
+# Compare the output with the matching line in bambu-tui_v0.0.9_checksums.txt.
+tar -xzf bambu-tui_v0.0.9_darwin_arm64.tar.gz
 ./bambu-tui --version
 ```
 
@@ -69,6 +69,7 @@ Use a terminal of at least **60 columns × 18 rows**; a wider window shows print
 | `Enter` | Inspect a selected notice |
 | `f` | Inspect the selected printer's first active fault |
 | `a` / `c` | Acknowledge / dismiss a notice locally |
+| `s` | View alert preferences; snooze or resume the selected printer |
 | `n` | Manage local notice decisions: restore, mark unreviewed, or reset |
 | `!` | Reopen unreviewed action-needed alerts |
 | `r` | Refresh printer status and firmware information |
@@ -78,6 +79,8 @@ Use a terminal of at least **60 columns × 18 rows**; a wider window shows print
 In the **AMS/filament browser**, use `Tab` or left/right to switch units and up/down to select a slot. Each material has a color chip; selected-slot details show its color, remaining estimate, and nozzle assignment. Press `m` or `Esc` to return to the dashboard.
 
 **Action-needed alerts** open for supported faults requiring intervention, failed prints, and some stopped-printer conditions. Acknowledging or dismissing a notice affects only the TUI; it does not clear the printer's fault or resume a print. These decisions survive restarts. Press `n` to inspect and reverse them, or reset all decisions for the current account and region after confirmation. Recent event history lasts only for the current session.
+
+Press `s` to snooze a printer for 15 minutes, 1 hour, or 4 hours, or resume alerts early. Global and per-printer [alert preferences](docs/alerts.md) control automatic interruptions while keeping printer state and notices visible. Snoozes survive restarts until their deadline.
 
 Filament quantities are printer estimates; **Unknown**, **Empty**, and **0%** mean different things. External spool quantities are unavailable. Firmware status reflects the printer's reported assessment and may be unknown or out of date. The [user guide](docs/usage.md) explains these fields, all keyboard controls, and notice behavior.
 
@@ -113,6 +116,7 @@ The executable is built at `bin/bambu-tui`. See the [development guide](docs/dev
 ## More information
 
 - [User guide](docs/usage.md): login, keyboard controls, saved notices, and telemetry details
+- [Alert preferences and snoozing](docs/alerts.md): per-printer interruption controls
 - [Roadmap](ROADMAP.md): upcoming work and tracked issues
 - [Changelog](CHANGELOG.md): release history
 - [Validation record](docs/validation.md): tested hardware and outstanding checks

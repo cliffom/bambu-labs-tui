@@ -70,6 +70,7 @@ func (m Model) detailText(w int) string {
 		field("Job Name", job),
 		field("Printer Status", stateLabel(p.State)),
 		field("Connection", p.Connection(m.now, m.Farm.Connected)),
+		field("Alerts", m.alertStatus(p.ID)),
 		field("Stage", stage),
 		"",
 		field("Progress", percent(p.Progress)),

@@ -184,9 +184,10 @@ func (m *Model) noticeText(w int) string {
 			historyHeader = true
 		}
 		style := muted
-		if item.Level == "error" {
+		switch item.Level {
+		case "error":
 			style = danger
-		} else if item.Level == "warning" {
+		case "warning":
 			style = warning
 		}
 		marker := "  "

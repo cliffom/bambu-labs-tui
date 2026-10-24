@@ -11,8 +11,8 @@ import (
 
 func TestBrokerMonitoringExchange(t *testing.T) {
 	local, broker := net.Pipe()
-	defer local.Close()
-	defer broker.Close()
+	defer func() { _ = local.Close() }()
+	defer func() { _ = broker.Close() }()
 	finished := make(chan error, 1)
 	go func() {
 		kind, body, err := readPacket(broker)
@@ -88,8 +88,12 @@ func TestBrokerMonitoringExchange(t *testing.T) {
 }
 func TestAuthRejection(t *testing.T) {
 	local, broker := net.Pipe()
-	defer local.Close()
-	go func() { defer broker.Close(); _, _, _ = readPacket(broker); _, _ = broker.Write([]byte{0x20, 2, 0, 5}) }()
+	defer func() { _ = local.Close() }()
+	go func() {
+		defer func() { _ = broker.Close() }()
+		_, _, _ = readPacket(broker)
+		_, _ = broker.Write([]byte{0x20, 2, 0, 5})
+	}()
 	_, err := handshake(local, "fixture", "user", "password")
 	if !errors.Is(err, ErrAuth) {
 		t.Fatal(err)
@@ -97,8 +101,8 @@ func TestAuthRejection(t *testing.T) {
 }
 func TestRejectedSubscription(t *testing.T) {
 	local, broker := net.Pipe()
-	defer local.Close()
-	go func() { defer broker.Close(); _, _ = broker.Write([]byte{0x90, 3, 0, 1, 0x80}) }()
+	defer func() { _ = local.Close() }()
+	go func() { defer func() { _ = broker.Close() }(); _, _ = broker.Write([]byte{0x90, 3, 0, 1, 0x80}) }()
 	c := &Client{conn: local}
 	if _, _, err := c.Read(); err == nil || !strings.Contains(err.Error(), "subscription") {
 		t.Fatal(err)
@@ -106,14 +110,14 @@ func TestRejectedSubscription(t *testing.T) {
 }
 func TestTopicIsolation(t *testing.T) {
 	local, broker := net.Pipe()
-	defer local.Close()
+	defer func() { _ = local.Close() }()
 	c := &Client{conn: local}
 	for _, id := range []string{"", "#", "TEST/request", "+", "test\x00"} {
 		if c.Subscribe([]string{id}) == nil || c.Refresh([]string{id}) == nil {
 			t.Fatalf("accepted topic injection %q", id)
 		}
 	}
-	broker.Close()
+	_ = broker.Close()
 }
 func TestPacketBoundsAndTruncation(t *testing.T) {
 	for _, b := range [][]byte{{}, {0x30}, {0x30, 0xff, 0xff, 0xff, 0x7f}, {0x30, 0x80, 0x80, 0x80, 0x80}, {0x30, 5, 1}} {

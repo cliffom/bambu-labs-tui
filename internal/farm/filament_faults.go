@@ -2,9 +2,9 @@ package farm
 
 import "fmt"
 
-// These finite code families were checked against the pinned Bambu Studio
-// catalogues in docs/protocol-sources.md. Do not extrapolate new units, slots,
-// or subcodes: unknown codes must retain the normal visible fallback.
+// addFilamentHMS adds the finite code families verified against the pinned Bambu
+// Studio catalogues in docs/protocol-sources.md. Do not extrapolate new units,
+// slots, or subcodes: unknown codes must retain the normal visible fallback.
 func addFilamentHMS(messages map[string]string) {
 	// The high word is the component (0x1000, 0x2000, ...); low words
 	// are the HMS severity and error identifier, exactly as printed in codes.
@@ -68,10 +68,12 @@ func addFilamentHMS(messages map[string]string) {
 	}
 }
 
+// hmsCode formats the wire attribute and code as four hexadecimal groups.
 func hmsCode(attr, code uint32) string {
 	return fmt.Sprintf("%04X_%04X_%04X_%04X", attr>>16, attr&65535, code>>16, code&65535)
 }
 
+// filamentUnit labels a catalogue unit using its AMS or AMS HT family prefix.
 func filamentUnit(prefix uint32, unit int) string {
 	if prefix == 0x18 {
 		return AMSLabel(128 + unit)
@@ -81,6 +83,7 @@ func filamentUnit(prefix uint32, unit int) string {
 
 var printErrors = buildPrintErrors()
 
+// buildPrintErrors builds descriptions for verified print-error code variants.
 func buildPrintErrors() map[string]string {
 	messages := map[string]string{
 		"03008013": "Print paused by user",

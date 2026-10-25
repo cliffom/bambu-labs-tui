@@ -236,11 +236,31 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 		}
 		model = model.WithSnoozePersistence(snoozes, snoozeStore.Save, snoozeErr)
 	}
-	result, err := tea.NewProgram(model, tea.WithContext(ctx), tea.WithAltScreen()).Run()
+	// The CLI context owns SIGINT/SIGTERM. A second handler can block sending
+	// a quit message after cancellation has stopped Bubble Tea's event loop.
+	result, err := runTerminalProgram(ctx, model, tea.WithAltScreen())
 	if final, ok := result.(ui.Model); ok && final.HasUnsavedPersistence() {
 		fmt.Fprintln(os.Stderr, "Notice or snooze changes were not confirmed saved before exit; changes may be lost.")
 	}
 	return finishDashboard(ctx, cancel, done, err)
+}
+
+// runTerminalProgram gives the CLI context sole ownership of termination
+// signals. Request a graceful quit on cancellation: Bubble Tea v1's hard-kill
+// path skips joining its input reader before closing cancelreader's descriptors.
+func runTerminalProgram(ctx context.Context, model tea.Model, options ...tea.ProgramOption) (tea.Model, error) {
+	program := tea.NewProgram(model, append(options, tea.WithoutSignalHandler())...)
+	quitSent := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() { program.Quit(); close(quitSent) })
+	result, err := program.Run()
+	if !stop() {
+		<-quitSent
+	}
+	if err == nil && ctx.Err() != nil {
+		// Preserve the cancellation result expected by dashboard/prompt callers.
+		err = fmt.Errorf("%w: %w", tea.ErrProgramKilled, ctx.Err())
+	}
+	return result, err
 }
 
 // Capture the program's cancellation cause before cleanup cancels the session.
@@ -298,7 +318,7 @@ func prompt(ctx context.Context, label string, secret bool) (string, error) {
 		input.EchoMode = textinput.EchoPassword
 		input.EchoCharacter = '•'
 	}
-	result, err := tea.NewProgram(promptModel{label: label, input: input}, tea.WithContext(ctx)).Run()
+	result, err := runTerminalProgram(ctx, promptModel{label: label, input: input})
 	if err != nil {
 		return "", errors.New("cannot read interactive input; use a terminal")
 	}

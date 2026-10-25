@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 — Operational validation (in progress)
+
+- Add a reproducible current-release live-validation worksheet for login/restart/logout, reconnect, review/snooze persistence, firmware/telemetry comparison, and terminal behavior.
+- Separate current automated build/check evidence from historical live results and pending hardware observations. Live acceptance for #38 remains incomplete until recorded observations support it.
+
 ## 0.1.6 — Exit handling and resize input
 
 - Preserve unexpected Bubble Tea failures during dashboard cleanup, including recovered panics, while retaining intentional cancellation and monitor shutdown behavior.

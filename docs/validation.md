@@ -1,5 +1,56 @@
 # Validation record
 
+## v0.1.7 — Current run: live validation pending
+
+Tracking: [#38](https://github.com/cliffom/bambu-tui/issues/38), following closed #6. Use the [live-validation worksheet](live-validation.md) to perform and report this run. v0.1.7 is a local candidate, not a published release. No new hardware or normal-terminal results have been established for this run; earlier observations below retain their original version and scope.
+
+### Environment and evidence
+
+| Field | Current evidence |
+| --- | --- |
+| Candidate version | 0.1.7 |
+| Source baseline | `2ff884cdb19cdcd622fdcf1e67fe18b75ca9b680` (v0.1.6), with pending version/documentation changes |
+| Automated check host | macOS 27.0.1, arm64; Go 1.27.3 |
+| Automated check date | 2026-10-25 UTC |
+| Live host OS and terminal/version | Not supplied for this run |
+| H2D installed/offered OTA firmware | Not supplied for this run |
+| X2D installed/offered OTA firmware | Not supplied for this run |
+| Live test date / observer | Not supplied for this run |
+
+### Current automated results
+
+Executed in the development workspace on the host/date above:
+
+| Check | Result |
+| --- | --- |
+| `make test` | Pass (race-enabled repository tests; cached results where applicable) |
+| `make check` | Pass (`go vet ./...`) |
+| `make fmt-check` | Pass |
+| `make build` | Pass |
+| Pinned golangci-lint v2.15.0 | Pass, zero issues |
+| `./bin/bambu-tui --version` | `bambu-tui 0.1.7 (commit 2ff884cdb19c, built 2026-10-25T04:36:07Z)` |
+
+These establish a candidate build and automated regression results. They do not establish credential-store, terminal, cloud reconnect, or printer behavior on the live setup.
+
+### Current live results
+
+| Check | Status | Observation |
+| --- | --- | --- |
+| Saved email-code login and restart without reauthentication | Not run | — |
+| Logout removes saved session | Not run | — |
+| Firmware/update assessment compared with Bambu software | Not run | — |
+| Telemetry/filament paths compared during a real print | Not run | — |
+| Reported pause, recovery, and completion | Not run | — |
+| Monitor connection interruption/recovery and fresh telemetry | Not run | — |
+| Acknowledgement/dismissal survives restart and routine reports | Not run | — |
+| Observed resolution and recurrence returns unreviewed | Not run | — |
+| Snooze deadline survives restart; early resume works | Not run | — |
+| Real deadline expiry and eligible alert re-arming | Not run | — |
+| Global/per-printer interruption preferences | Not run | — |
+| Keyboard, modal return/quit, resize, and continued telemetry | Not run | — |
+
+Update each row with the observed result, date, candidate build identifier, and printer alias/model where applicable. Use **Not observed** for a scenario unavailable during a real session, **Fail** for a reproduced mismatch, and **Pass** only for an executed check with an observation. Record models separately if results differ. Keep #38 open while required evidence is missing.
+
 ## v0.0.5 — User-reported live validation
 
 After the v0.0.5 release, the user confirmed that the **displayed telemetry** was validated on both their **H2D** and **X2D**. This extends the earlier H2D screenshot evidence to user-reported telemetry testing on both models.
@@ -26,7 +77,7 @@ The native credential probe in the implementation workspace failed with `securit
 
 ## Remaining live checks
 
-Unchecked items below remain unverified. Closing the tracking issue or publishing v0.1.0 does not count as passing these checks.
+Unchecked items below remain unverified. Closing a tracking issue or publishing any release does not count as passing these checks.
 
 - [ ] Validate global/per-printer alert preferences, snooze/resume, restart persistence, and expiry on H2D/X2D. v0.0.9 has synthetic/store/demo coverage; live interruption behavior remains unconfirmed.
 

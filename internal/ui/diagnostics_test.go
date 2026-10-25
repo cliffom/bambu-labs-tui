@@ -94,7 +94,7 @@ func TestDiagnosticFailureAndRemovedPrinter(t *testing.T) {
 	if strings.Contains(ansi.Strip(m.View()), "PRIVATE_") {
 		t.Fatal("raw error text was echoed")
 	}
-	next, _ = m.Update(monitor.Event{Kind: "devices", At: m.now})
+	next, _ = m.Update(monitor.Event{Kind: monitor.EventDevices, At: m.now})
 	m = next.(Model)
 	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if cmd != nil {

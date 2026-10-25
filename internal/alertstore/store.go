@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/cliffom/bambu-tui/internal/atomicfile"
 )
 
 // Store holds one account/region snapshot of printer snooze deadlines.
@@ -61,27 +63,8 @@ func (s Store) Save(snoozes map[string]time.Time) error {
 	if err != nil {
 		return fmt.Errorf("encode saved alert snoozes: %w", err)
 	}
-	dir := filepath.Dir(s.Path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("create alert directory: %w", err)
-	}
-	f, err := os.CreateTemp(dir, ".alerts-*")
-	if err != nil {
-		return fmt.Errorf("create saved alert file: %w", err)
-	}
-	defer func() { _ = os.Remove(f.Name()) }()
-	defer func() { _ = f.Close() }()
-	if _, err := f.Write(append(b, '\n')); err != nil {
-		return fmt.Errorf("write saved alert snoozes: %w", err)
-	}
-	if err := f.Sync(); err != nil {
-		return fmt.Errorf("sync saved alert snoozes: %w", err)
-	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("close saved alert snoozes: %w", err)
-	}
-	if err := os.Rename(f.Name(), s.Path); err != nil {
-		return fmt.Errorf("replace saved alert snoozes: %w", err)
+	if err := atomicfile.Replace(s.Path, ".alerts-*", append(b, '\n')); err != nil {
+		return fmt.Errorf("save alert snoozes: %w", err)
 	}
 	return nil
 }

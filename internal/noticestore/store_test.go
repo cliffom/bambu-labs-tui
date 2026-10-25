@@ -1,9 +1,11 @@
 package noticestore
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -71,5 +73,23 @@ func TestAccountAndRegionIsolation(t *testing.T) {
 	d, _ := New("global", "user-a")
 	if a.Path == b.Path || a.Path == c.Path || a.Path != d.Path {
 		t.Fatal("notice paths are not stable and isolated by region/account")
+	}
+}
+
+func TestAtomicReplacementFailureRetainsStoreContext(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "existing-directory")
+	if err := os.Mkdir(target, 0700); err != nil {
+		t.Fatal(err)
+	}
+	s := Store{Path: target}
+	err := s.Save(nil)
+	var cause *os.LinkError
+	if err == nil || !strings.HasPrefix(err.Error(), "save notices:") || !errors.As(err, &cause) {
+		t.Fatalf("store context or filesystem cause lost: %v", err)
+	}
+	files, err := os.ReadDir(dir)
+	if err != nil || len(files) != 1 {
+		t.Fatalf("store leaked a temporary file: %v, %v", files, err)
 	}
 }

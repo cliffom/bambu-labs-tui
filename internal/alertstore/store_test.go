@@ -1,8 +1,10 @@
 package alertstore
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -61,5 +63,23 @@ func TestSnoozeStoreRejectsInvalidData(t *testing.T) {
 	s.Path = filepath.Join(s.Path, "blocked.json")
 	if err := s.Save(nil); err == nil {
 		t.Fatal("write failure swallowed")
+	}
+}
+
+func TestAtomicReplacementFailureRetainsStoreContext(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "existing-directory")
+	if err := os.Mkdir(target, 0700); err != nil {
+		t.Fatal(err)
+	}
+	s := Store{Path: target}
+	err := s.Save(nil)
+	var cause *os.LinkError
+	if err == nil || !strings.HasPrefix(err.Error(), "save alert snoozes:") || !errors.As(err, &cause) {
+		t.Fatalf("store context or filesystem cause lost: %v", err)
+	}
+	files, err := os.ReadDir(dir)
+	if err != nil || len(files) != 1 {
+		t.Fatalf("store leaked a temporary file: %v, %v", files, err)
 	}
 }

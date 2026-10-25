@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5 — Internal API cleanup
+
+- Use a named monitor event-kind type and constants consistently across live/demo producers, UI dispatch, and tests.
+- Share private atomic snapshot replacement between the notice and snooze stores while preserving schemas, validation, account scoping, and asynchronous persistence behavior.
+- Return a concrete model from the private UI reducer while keeping the public Bubble Tea adapter unchanged.
+
 ## 0.1.4 — Responsive monitoring and reconnects
 
 - Reset reconnect backoff after two minutes of monitoring following successful subscription and initial refresh; retain exponential backoff and jitter for short failures.

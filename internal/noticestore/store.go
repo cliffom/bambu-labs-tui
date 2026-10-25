@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cliffom/bambu-tui/internal/atomicfile"
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
@@ -54,27 +55,8 @@ func (s Store) Save(reviews map[string]farm.Review) error {
 	if err != nil {
 		return fmt.Errorf("encode saved notices: %w", err)
 	}
-	dir := filepath.Dir(s.Path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("create notice directory: %w", err)
-	}
-	f, err := os.CreateTemp(dir, ".notices-*")
-	if err != nil {
-		return fmt.Errorf("create saved notice file: %w", err)
-	}
-	defer func() { _ = os.Remove(f.Name()) }()
-	defer func() { _ = f.Close() }()
-	if _, err := f.Write(append(b, '\n')); err != nil {
-		return fmt.Errorf("write saved notices: %w", err)
-	}
-	if err := f.Sync(); err != nil {
-		return fmt.Errorf("sync saved notices: %w", err)
-	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("close saved notices: %w", err)
-	}
-	if err := os.Rename(f.Name(), s.Path); err != nil {
-		return fmt.Errorf("replace saved notices: %w", err)
+	if err := atomicfile.Replace(s.Path, ".notices-*", append(b, '\n')); err != nil {
+		return fmt.Errorf("save notices: %w", err)
 	}
 	return nil
 }

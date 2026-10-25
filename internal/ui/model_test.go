@@ -87,19 +87,19 @@ func TestUntrustedPrinterTextCannotEscapeTerminal(t *testing.T) {
 }
 func TestEmptyAccountAndSelectionAfterDiscovery(t *testing.T) {
 	m := New(farm.New(10), make(chan monitor.Event), make(chan struct{}, 1), false)
-	next, _ := m.Update(monitor.Event{Kind: "connection", Connected: true, At: time.Now()})
+	next, _ := m.Update(monitor.Event{Kind: monitor.EventConnection, Connected: true, At: time.Now()})
 	m = next.(Model)
 	if !strings.Contains(ansi.Strip(m.View()), "Discovering account printers") {
 		t.Fatal("connection alone incorrectly completed discovery")
 	}
-	next, _ = m.Update(monitor.Event{Kind: "devices", At: time.Now()})
+	next, _ = m.Update(monitor.Event{Kind: monitor.EventDevices, At: time.Now()})
 	m = next.(Model)
 	if !strings.Contains(ansi.Strip(m.View()), "No printers found") {
 		t.Fatal("empty account state missing after discovery")
 	}
 	m = demoModel()
 	m = key(m, "j")
-	next, _ = m.Update(monitor.Event{Kind: "devices", Devices: []farm.Device{}, At: time.Now()})
+	next, _ = m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: []farm.Device{}, At: time.Now()})
 	m = next.(Model)
 	if m.current() != nil {
 		t.Fatal("stale selection")
@@ -135,7 +135,7 @@ func TestInspectAndAcknowledgeFault(t *testing.T) {
 	if !m.Farm.Active[item.ActiveKey].Acknowledged {
 		t.Fatal("acknowledge failed")
 	}
-	updated, _ := m.Update(monitor.Event{Kind: "report", ID: "H", Payload: []byte(`{"print":{"mc_percent":74}}`), At: m.now})
+	updated, _ := m.Update(monitor.Event{Kind: monitor.EventReport, ID: "H", Payload: []byte(`{"print":{"mc_percent":74}}`), At: m.now})
 	m = updated.(Model)
 	if m.inspected == nil || m.noticeKey != item.Key || !m.inspected.Acknowledged {
 		t.Fatal("telemetry moved selection or acknowledgement")
@@ -173,7 +173,7 @@ func TestClearFromListHidesNoticeAndUpdatesCounts(t *testing.T) {
 	if m.Farm.NoticeCount() != count-1 {
 		t.Fatal("clear did not reduce visible count")
 	}
-	updated, _ := m.Update(monitor.Event{Kind: "report", ID: "H", Payload: []byte(`{"print":{"mc_percent":75}}`), At: m.now})
+	updated, _ := m.Update(monitor.Event{Kind: monitor.EventReport, ID: "H", Payload: []byte(`{"print":{"mc_percent":75}}`), At: m.now})
 	m = updated.(Model)
 	for _, n := range m.noticeItems() {
 		if n.ActiveKey == item.ActiveKey {
@@ -189,7 +189,7 @@ func TestHistoricalSelectionSurvivesNewEvents(t *testing.T) {
 	if item.EventID == 0 {
 		t.Fatal("no historical event selected")
 	}
-	updated, _ := m.Update(monitor.Event{Kind: "connection", At: m.now, Problem: "Disconnected"})
+	updated, _ := m.Update(monitor.Event{Kind: monitor.EventConnection, At: m.now, Problem: "Disconnected"})
 	m = updated.(Model)
 	if m.noticeKey != item.Key {
 		t.Fatal("new notice moved selection")
@@ -238,7 +238,7 @@ func TestFaultShortcutAndResolvedDetail(t *testing.T) {
 	if m.inspected == nil || m.focus != 2 {
 		t.Fatal("fault shortcut")
 	}
-	updated, _ := m.Update(monitor.Event{Kind: "report", ID: "H", Payload: []byte(`{"print":{"hms":[],"print_error":0}}`), At: m.now})
+	updated, _ := m.Update(monitor.Event{Kind: monitor.EventReport, ID: "H", Payload: []byte(`{"print":{"hms":[],"print_error":0}}`), At: m.now})
 	m = updated.(Model)
 	if m.inspected.Active || !strings.Contains(ansi.Strip(m.View()), "Resolved by printer") {
 		t.Fatal("open detail did not reflect resolution")

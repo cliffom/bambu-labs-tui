@@ -104,8 +104,7 @@ func (m Model) wait() tea.Cmd {
 }
 func (m Model) Init() tea.Cmd { return tea.Batch(m.wait(), tick()) }
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	next, cmd := m.update(msg)
-	result := next.(Model)
+	result, cmd := m.update(msg)
 	result.pruneSnoozes()
 	result.syncDialogs()
 	cmd = tea.Batch(cmd, result.persist())
@@ -119,7 +118,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return result, cmd
 }
 
-func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch v := msg.(type) {
 	case persistenceResultMsg:
@@ -150,12 +149,12 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case monitor.Event:
 		m.now = time.Now()
 		switch v.Kind {
-		case "devices":
+		case monitor.EventDevices:
 			m.Farm.Discover(v.Devices, v.At)
 			m.printersDiscovered = true
-		case "connection":
+		case monitor.EventConnection:
 			m.Farm.Cloud(v.Connected, v.Problem, v.At)
-		case "report":
+		case monitor.EventReport:
 			if m.Farm.Printers[v.ID] != nil {
 				m.diagnostics.Record(v.ID, v.Payload)
 			}
@@ -163,7 +162,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.toast = "Ignored malformed printer status"
 				m.toastAt = m.now
 			}
-		case "problem":
+		case monitor.EventProblem:
 			m.toast = v.Problem
 			m.toastAt = m.now
 		}

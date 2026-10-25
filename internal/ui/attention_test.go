@@ -16,7 +16,7 @@ const runoutReport = `{"print":{"gcode_state":"PAUSE","stg_cur":6,"print_error":
 // attentionReport sends telemetry through the real UI update and persistence path.
 func attentionReport(t *testing.T, m Model, id, payload string) Model {
 	t.Helper()
-	return persistenceUpdate(m, monitor.Event{Kind: "report", ID: id, Payload: []byte(payload), At: m.now})
+	return persistenceUpdate(m, monitor.Event{Kind: monitor.EventReport, ID: id, Payload: []byte(payload), At: m.now})
 }
 
 // attentionTick advances the batching window without sleeping.

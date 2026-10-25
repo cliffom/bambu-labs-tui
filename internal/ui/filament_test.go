@@ -117,7 +117,7 @@ func TestFilamentLiveIdentityAndRemoval(t *testing.T) {
 	if m.filament.printerID != "H" || !strings.Contains(filamentText(m), "H2D") {
 		t.Fatal("browser jumped to a different printer")
 	}
-	next, _ = m.Update(monitor.Event{Kind: "devices", Devices: []farm.Device{{ID: "X", Name: "X2D", Online: true}}, At: m.now})
+	next, _ = m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: []farm.Device{{ID: "X", Name: "X2D", Online: true}}, At: m.now})
 	m = next.(Model)
 	if !strings.Contains(filamentText(m), "no longer in the account") {
 		t.Fatal("removed printer left stale inventory or caused a crash")

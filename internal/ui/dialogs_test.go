@@ -138,7 +138,7 @@ func TestLateDiagnosticResultDoesNotChangeDialogOwner(t *testing.T) {
 func TestRemovedPrinterDoesNotChangeNestedOwner(t *testing.T) {
 	m := attentionTick(attentionReport(t, demoModel(), "H", runoutReport))
 	m = key(m, "s")
-	next, _ := m.Update(monitor.Event{Kind: "devices", Devices: []farm.Device{}, At: m.now})
+	next, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: []farm.Device{}, At: m.now})
 	m = next.(Model)
 	if m.dialog.active != dialogAlerts || !strings.Contains(m.alertDialog.view.View(), "Printer no longer") {
 		t.Fatal("removal lost alert owner")

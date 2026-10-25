@@ -13,13 +13,15 @@ import (
 	"github.com/cliffom/bambu-tui/internal/atomicfile"
 )
 
-// Store holds one account/region snapshot of printer snooze deadlines.
-type Store struct{ Path string }
+type (
+	// Store holds one account/region snapshot of printer snooze deadlines.
+	Store struct{ Path string }
 
-type document struct {
-	Version int                  `json:"version"`
-	Snoozes map[string]time.Time `json:"snoozes"`
-}
+	document struct {
+		Version int                  `json:"version"`
+		Snoozes map[string]time.Time `json:"snoozes"`
+	}
+)
 
 // New derives a stable account/region path without using identifiers as filenames.
 func New(region, username string) (Store, error) {

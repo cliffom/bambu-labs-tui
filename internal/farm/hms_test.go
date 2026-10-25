@@ -31,6 +31,7 @@ func TestHMSSeverityDescriptionAndInternalSuppression(t *testing.T) {
 		t.Fatal("maintenance description missing")
 	}
 }
+
 func TestHMSLevelFallback(t *testing.T) {
 	for _, tc := range []struct {
 		raw  int
@@ -41,6 +42,7 @@ func TestHMSLevelFallback(t *testing.T) {
 		}
 	}
 }
+
 func TestAMSLabelsPreserveWireIdentity(t *testing.T) {
 	for _, tc := range []struct {
 		id   int

@@ -25,54 +25,58 @@ var (
 	selected = lipgloss.NewStyle().Background(lipgloss.Color("#263B36")).Foreground(lipgloss.Color("#D9F5E4"))
 )
 
-type tickMsg time.Time
-type endMsg struct{}
-type Model struct {
-	Farm                            *farm.State
-	Events                          <-chan monitor.Event
-	Refresh                         chan<- struct{}
-	Demo                            bool
-	width, height, selection, focus int
-	now                             time.Time
-	ended                           bool
-	toast                           string
-	toastAt                         time.Time
-	details, notices                viewport.Model
-	noticeKey                       string
-	noticeIndex                     int
-	noticeFocused                   bool
-	noticeSpans                     [][2]int
-	inspected                       *noticeItem
-	inspection                      viewport.Model
-	dialog                          dialogState
-	saveReviews                     func(map[string]farm.Review) error
-	reviewWrites                    persistence
-	snoozeWrites                    persistence
-	snoozeRevision                  uint64
-	quitting                        bool
-	quitProblem                     bool
-	quitGeneration                  uint64
-	noticeStorageError              string
-	attention                       *attentionDialog
-	attentionSeen                   map[attentionOccurrence]bool
-	attentionPending                time.Time
-	filament                        *filamentDialog
-	decisions                       *decisionsDialog
-	alertDialog                     *alertDialog
-	alertPrefs                      config.AlertPreferences
-	snoozes                         map[string]time.Time
-	saveSnoozes                     func(map[string]time.Time) error
-	snoozesDirty                    bool
-	alertStorageError               string
-	printersDiscovered              bool
-	printerIDs                      []string
-	printerMetrics                  map[string]printerOverview
-	printerFilter                   printerFilter
-	printerSort                     printerSort
-	overview                        farmOverview
-	diagnostics                     diagnostics.Recorder
-	exportDialog                    *exportDialog
-}
+type (
+	tickMsg time.Time
+
+	endMsg struct{}
+
+	Model struct {
+		Farm                            *farm.State
+		Events                          <-chan monitor.Event
+		Refresh                         chan<- struct{}
+		Demo                            bool
+		width, height, selection, focus int
+		now                             time.Time
+		ended                           bool
+		toast                           string
+		toastAt                         time.Time
+		details, notices                viewport.Model
+		noticeKey                       string
+		noticeIndex                     int
+		noticeFocused                   bool
+		noticeSpans                     [][2]int
+		inspected                       *noticeItem
+		inspection                      viewport.Model
+		dialog                          dialogState
+		saveReviews                     func(map[string]farm.Review) error
+		reviewWrites                    persistence
+		snoozeWrites                    persistence
+		snoozeRevision                  uint64
+		quitting                        bool
+		quitProblem                     bool
+		quitGeneration                  uint64
+		noticeStorageError              string
+		attention                       *attentionDialog
+		attentionSeen                   map[attentionOccurrence]bool
+		attentionPending                time.Time
+		filament                        *filamentDialog
+		decisions                       *decisionsDialog
+		alertDialog                     *alertDialog
+		alertPrefs                      config.AlertPreferences
+		snoozes                         map[string]time.Time
+		saveSnoozes                     func(map[string]time.Time) error
+		snoozesDirty                    bool
+		alertStorageError               string
+		printersDiscovered              bool
+		printerIDs                      []string
+		printerMetrics                  map[string]printerOverview
+		printerFilter                   printerFilter
+		printerSort                     printerSort
+		overview                        farmOverview
+		diagnostics                     diagnostics.Recorder
+		exportDialog                    *exportDialog
+	}
+)
 
 // WithNoticePersistence enables asynchronous saves from the UI reducer. A failed
 // load disables writes for this session to preserve the original file.
@@ -92,7 +96,9 @@ func New(state *farm.State, events <-chan monitor.Event, refresh chan<- struct{}
 	m.syncPanels()
 	return m
 }
+
 func tick() tea.Cmd { return tea.Tick(time.Second, func(t time.Time) tea.Msg { return tickMsg(t) }) }
+
 func (m Model) wait() tea.Cmd {
 	return func() tea.Msg {
 		e, ok := <-m.Events
@@ -102,7 +108,9 @@ func (m Model) wait() tea.Cmd {
 		return e
 	}
 }
+
 func (m Model) Init() tea.Cmd { return tea.Batch(m.wait(), tick()) }
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	result, cmd := m.update(msg)
 	result.pruneSnoozes()
@@ -279,6 +287,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	m.syncPanels()
 	return m, cmd
 }
+
 func (m Model) current() *farm.Printer {
 	return m.Farm.Printers[m.selectedPrinterID()]
 }
@@ -301,22 +310,26 @@ func safe(s string) string {
 		return r
 	}, s)
 }
+
 func cell(s string, w int) string {
 	s = ansi.Truncate(safe(s), max(0, w), "…")
 	return s + strings.Repeat(" ", max(0, w-ansi.StringWidth(s)))
 }
+
 func integer(n *int) string {
 	if n == nil {
 		return "—"
 	}
 	return fmt.Sprint(*n)
 }
+
 func percent(n *int) string {
 	if n == nil {
 		return "Unknown"
 	}
 	return fmt.Sprintf("%d%%", *n)
 }
+
 func duration(n *int) string {
 	if n == nil {
 		return "Unknown"
@@ -326,6 +339,7 @@ func duration(n *int) string {
 	}
 	return fmt.Sprintf("%dm", *n)
 }
+
 func temp(t farm.Temperature) string {
 	if t.Current == nil {
 		return "Unknown"
@@ -335,6 +349,7 @@ func temp(t farm.Temperature) string {
 	}
 	return fmt.Sprintf("%d / %d°C", *t.Current, *t.Target)
 }
+
 func stateLabel(s string) string {
 	switch s {
 	case "RUNNING":
@@ -353,7 +368,9 @@ func stateLabel(s string) string {
 		return strings.ToLower(s)
 	}
 }
+
 func (m Model) tableRows() int { return min(max(1, len(m.printerIDs)), max(1, min(6, m.height/5))) }
+
 func (m Model) panelSizes() (int, int, int) {
 	available := max(4, m.height-m.tableRows()-11)
 	if m.width >= 105 {
@@ -362,6 +379,7 @@ func (m Model) panelSizes() (int, int, int) {
 	}
 	return m.width, m.width, max(1, available/2)
 }
+
 func (m *Model) syncPanels() {
 	m.syncPrinterList()
 	left, right, h := m.panelSizes()
@@ -447,6 +465,7 @@ func (m Model) dashboardView(help bool) string {
 	rows = append(rows, foot)
 	return fit(strings.Join(rows, "\n"), m.width, m.height)
 }
+
 func fit(s string, w, h int) string {
 	lines := strings.Split(s, "\n")
 	if len(lines) > max(0, h) {
@@ -457,6 +476,7 @@ func fit(s string, w, h int) string {
 	}
 	return strings.Join(lines, "\n")
 }
+
 func (m Model) section(title string, focused bool, w int) string {
 	style := muted
 	marker := "  "
@@ -467,6 +487,7 @@ func (m Model) section(title string, focused bool, w int) string {
 	text := marker + safe(title) + " "
 	return style.Render(text + strings.Repeat("─", max(0, w-ansi.StringWidth(text))))
 }
+
 func (m Model) tableHeader() string {
 	if m.width < 80 {
 		return muted.Render(cell("  PRINTER", 21) + cell("STATE", 12) + cell("PROGRESS", 12) + "LEFT")
@@ -476,6 +497,7 @@ func (m Model) tableHeader() string {
 	}
 	return muted.Render(cell("  PRINTER", 23) + cell("LINK", 10) + cell("STATE", 12) + cell("PROGRESS", 16) + cell("LEFT", 11) + cell("FINISH", 10) + cell("!", 4) + "JOB")
 }
+
 func (m Model) printerRow(i int) string {
 	p := m.Farm.Printers[m.printerIDs[i]]
 	marker := "  "
@@ -525,6 +547,7 @@ func (m Model) printerRow(i int) string {
 	}
 	return white.Render(row)
 }
+
 func wrapLines(lines []string, w int) string {
 	return ansi.Hardwrap(strings.Join(lines, "\n"), max(1, w), true)
 }

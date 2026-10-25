@@ -26,7 +26,7 @@ func TestRoundTripAndReplacement(t *testing.T) {
 		t.Fatalf("round trip: %v, %v", got, err)
 	}
 	info, err := os.Stat(s.Path)
-	if err != nil || info.Mode().Perm() != 0600 {
+	if err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatalf("file permissions: %v, %v", info, err)
 	}
 	if err := s.Save(map[string]farm.Review{}); err != nil {
@@ -45,7 +45,7 @@ func TestRoundTripAndReplacement(t *testing.T) {
 func TestInvalidFilesAndWriteFailure(t *testing.T) {
 	for _, body := range []string{`{`, `{"version":2,"reviews":{}}`} {
 		s := Store{Path: filepath.Join(t.TempDir(), "account.json")}
-		if err := os.WriteFile(s.Path, []byte(body), 0600); err != nil {
+		if err := os.WriteFile(s.Path, []byte(body), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := s.Load(); err == nil {
@@ -54,7 +54,7 @@ func TestInvalidFilesAndWriteFailure(t *testing.T) {
 	}
 	dir := t.TempDir()
 	blocker := filepath.Join(dir, "file")
-	if err := os.WriteFile(blocker, nil, 0600); err != nil {
+	if err := os.WriteFile(blocker, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	s := Store{Path: filepath.Join(blocker, "account.json")}
@@ -79,7 +79,7 @@ func TestAccountAndRegionIsolation(t *testing.T) {
 func TestAtomicReplacementFailureRetainsStoreContext(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "existing-directory")
-	if err := os.Mkdir(target, 0700); err != nil {
+	if err := os.Mkdir(target, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	s := Store{Path: target}

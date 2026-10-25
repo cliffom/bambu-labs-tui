@@ -33,7 +33,7 @@ func TestSnoozeStoreRoundTripAndIsolation(t *testing.T) {
 		t.Fatalf("deadline changed: %v, %v", got, err)
 	}
 	info, err := os.Stat(s.Path)
-	if err != nil || info.Mode().Perm() != 0600 {
+	if err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatal("snooze permissions not private")
 	}
 	if err := s.Save(nil); err != nil {
@@ -53,7 +53,7 @@ func TestSnoozeStoreRoundTripAndIsolation(t *testing.T) {
 func TestSnoozeStoreRejectsInvalidData(t *testing.T) {
 	s := Store{Path: filepath.Join(t.TempDir(), "account.json")}
 	for _, body := range []string{`{`, `{"version":2,"snoozes":{}}`, `{"version":1,"snoozes":{"H":"bad date"}}`, `{"version":1,"snoozes":{"H":"0001-01-01T00:00:00Z"}}`, `{"version":1,"snoozes":{"":"2030-01-01T00:00:00Z"}}`} {
-		if err := os.WriteFile(s.Path, []byte(body), 0600); err != nil {
+		if err := os.WriteFile(s.Path, []byte(body), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := s.Load(); err == nil {
@@ -69,7 +69,7 @@ func TestSnoozeStoreRejectsInvalidData(t *testing.T) {
 func TestAtomicReplacementFailureRetainsStoreContext(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "existing-directory")
-	if err := os.Mkdir(target, 0700); err != nil {
+	if err := os.Mkdir(target, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	s := Store{Path: target}

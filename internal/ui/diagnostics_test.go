@@ -74,7 +74,7 @@ func TestDiagnosticFailureAndRemovedPrinter(t *testing.T) {
 	m := demoModel()
 	m = key(m, "D")
 	path := filepath.Join(t.TempDir(), "existing.json")
-	if err := os.WriteFile(path, []byte("keep existing"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("keep existing"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	m.exportDialog.destination = path

@@ -11,7 +11,22 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
-type printerFilter int
+type (
+	printerFilter int
+
+	printerSort int
+
+	printerOverview struct {
+		attention, unavailable bool
+		notices                int
+		eta                    time.Time
+		liveETA                bool
+	}
+
+	farmOverview struct {
+		printing, stopped, attention, unavailable, idle int
+	}
+)
 
 const (
 	filterAll printerFilter = iota
@@ -21,8 +36,6 @@ const (
 	filterCount
 )
 
-type printerSort int
-
 const (
 	sortName printerSort = iota
 	sortAttention
@@ -30,17 +43,6 @@ const (
 	sortFinish
 	sortCount
 )
-
-type printerOverview struct {
-	attention, unavailable bool
-	notices                int
-	eta                    time.Time
-	liveETA                bool
-}
-
-type farmOverview struct {
-	printing, stopped, attention, unavailable, idle int
-}
 
 // selectedPrinterID stays usable even when discovery removes the selected printer.
 func (m Model) selectedPrinterID() string {

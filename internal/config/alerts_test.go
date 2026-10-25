@@ -18,7 +18,7 @@ automatic_modals = true
 extrusion = false
 [alerts.printers."X"]
 filament = true
-`), 0600); err != nil {
+`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	c, err := Load(path)
@@ -35,7 +35,7 @@ filament = true
 	if h.Allows([]string{"filament", "extrusion"}) || !h.Allows([]string{"filament", "failed_prints"}) || x.Allows([]string{"filament"}) || h.Allows([]string{"unknown"}) {
 		t.Fatal("category/automatic-modal policy was not applied")
 	}
-	if err := os.WriteFile(path, []byte("region = \"china\"\n"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("region = \"china\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	c, err = Load(path)
@@ -51,7 +51,7 @@ func TestInvalidAlertSettings(t *testing.T) {
 		"[alerts]\nsound = true", "[alerts]\nfilament = 'off'", "[alerts]\nunknown = false",
 		"[alerts.printers.H]\nextrusion = 2", "[alerts.printers.H]\nsounds = true", "[alerts.printers.\"\"]\nfilament = false",
 	} {
-		if err := os.WriteFile(path, []byte(text), 0600); err != nil {
+		if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := Load(path); err == nil {

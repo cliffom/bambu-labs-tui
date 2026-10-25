@@ -14,7 +14,7 @@ import (
 // failure. Callers own encoding, validation, and store-specific error context.
 func Replace(path, pattern string, data []byte) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create directory: %w", err)
 	}
 	file, err := os.CreateTemp(dir, pattern)

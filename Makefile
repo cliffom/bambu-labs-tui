@@ -1,6 +1,7 @@
 .PHONY: build auth run demo test check fmt fmt-check lint lint-actions lint-make audit-faults cross release
 
 GOLANGCI_LINT ?= golangci-lint
+GOFUMPT ?= go run mvdan.cc/gofumpt@$(shell cat .gofumpt-version)
 ACTIONLINT ?= actionlint
 CHECKMAKE ?= checkmake
 AUTH_ARGS ?= --email-code
@@ -32,10 +33,10 @@ check:
 	go vet ./...
 
 fmt:
-	gofmt -w cmd internal
+	$(GOFUMPT) -w cmd internal
 
 fmt-check:
-	@set -e; files="$$(gofmt -l cmd internal)"; \
+	@set -e; files="$$($(GOFUMPT) -l cmd internal)"; \
 	if [ -n "$$files" ]; then \
 		printf 'Go files need formatting:\n%s\nRun make fmt to fix them.\n' "$$files"; \
 		exit 1; \

@@ -7,33 +7,40 @@ import (
 	"strconv"
 )
 
-type rule struct {
-	kind     string
-	min, max float64
-	enum     []string
-	pattern  *regexp.Regexp
-	fields   map[string]*rule
-	item     *rule
-	limit    int
-}
+type (
+	rule struct {
+		kind     string
+		min, max float64
+		enum     []string
+		pattern  *regexp.Regexp
+		fields   map[string]*rule
+		item     *rule
+		limit    int
+	}
 
-// Shape describes only classified field names and types; omitted names/values never escape.
-type Shape struct {
-	Type     string           `json:"type"`
-	Accepted bool             `json:"accepted"`
-	Fields   map[string]Shape `json:"fields,omitempty"`
-	Items    []Shape          `json:"items,omitempty"`
-	Omitted  int              `json:"omitted,omitempty"`
-}
+	// Shape describes only classified field names and types; omitted names/values never escape.
+	Shape struct {
+		Type     string           `json:"type"`
+		Accepted bool             `json:"accepted"`
+		Fields   map[string]Shape `json:"fields,omitempty"`
+		Items    []Shape          `json:"items,omitempty"`
+		Omitted  int              `json:"omitted,omitempty"`
+	}
+)
 
-var decimal = regexp.MustCompile(`^-?[0-9]{1,10}(\.[0-9]{1,3})?$`)
-var colorPattern = regexp.MustCompile(`^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$`)
-var firmwarePattern = regexp.MustCompile(`^[0-9]{1,4}(\.[0-9]{1,4}){3}$`)
+var (
+	decimal         = regexp.MustCompile(`^-?[0-9]{1,10}(\.[0-9]{1,3})?$`)
+	colorPattern    = regexp.MustCompile(`^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$`)
+	firmwarePattern = regexp.MustCompile(`^[0-9]{1,4}(\.[0-9]{1,4}){3}$`)
+)
 
-func numeric(min, max float64) *rule       { return &rule{kind: "number", min: min, max: max} }
-func enumeration(values ...string) *rule   { return &rule{kind: "enum", enum: values} }
+func numeric(min, max float64) *rule { return &rule{kind: "number", min: min, max: max} }
+
+func enumeration(values ...string) *rule { return &rule{kind: "enum", enum: values} }
+
 func object(fields map[string]*rule) *rule { return &rule{kind: "object", fields: fields} }
-func array(item *rule, limit int) *rule    { return &rule{kind: "array", item: item, limit: limit} }
+
+func array(item *rule, limit int) *rule { return &rule{kind: "array", item: item, limit: limit} }
 
 // telemetrySchema is an allowlist; unknown keys, messages, paths, URLs and identifiers are absent.
 func telemetrySchema() *rule {

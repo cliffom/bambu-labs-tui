@@ -184,11 +184,11 @@ func TestWriteIsPrivateAndExclusive(t *testing.T) {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0600 {
+	if err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatal("artifact permissions not private")
 	}
 	info, err = os.Stat(filepath.Dir(path))
-	if err != nil || info.Mode().Perm() != 0700 {
+	if err != nil || info.Mode().Perm() != 0o700 {
 		t.Fatal("new diagnostic directory not private")
 	}
 	before, err := os.ReadFile(path)

@@ -30,6 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 }
+
 func run(args []string) error {
 	command := "monitor"
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
@@ -130,6 +131,7 @@ func run(args []string) error {
 	}
 	return dashboard(ctx, cfg, api, session, false)
 }
+
 func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode bool) (cloud.Session, error) {
 	var token string
 	if importToken {
@@ -199,6 +201,7 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 	// Validate the token and resolve the actual account identity before saving.
 	return api.Session(ctx, token)
 }
+
 func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, session cloud.Session, demo bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -282,6 +285,7 @@ type promptModel struct {
 }
 
 func (m promptModel) Init() tea.Cmd { return textinput.Blink }
+
 func (m promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.String() {
@@ -300,6 +304,7 @@ func (m promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd
 }
+
 func (m promptModel) View() string {
 	if m.done {
 		if m.cancelled {
@@ -309,6 +314,7 @@ func (m promptModel) View() string {
 	}
 	return m.label + ": " + m.input.View() + "\n"
 }
+
 func prompt(ctx context.Context, label string, secret bool) (string, error) {
 	input := textinput.New()
 	input.Focus()

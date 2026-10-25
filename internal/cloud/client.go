@@ -22,19 +22,23 @@ var (
 	ErrRateLimited = errors.New("rate limited by Bambu Cloud; retry later")
 )
 
-type Client struct {
-	HTTP                          *http.Client
-	BaseURL, SiteURL, MQTTAddress string
-}
-type Session struct {
-	Token    string `json:"token"`
-	Username string `json:"username"`
-}
-type LoginResult struct {
-	AccessToken string `json:"accessToken"`
-	LoginType   string `json:"loginType"`
-	TFAKey      string `json:"tfaKey"`
-}
+type (
+	Client struct {
+		HTTP                          *http.Client
+		BaseURL, SiteURL, MQTTAddress string
+	}
+
+	Session struct {
+		Token    string `json:"token"`
+		Username string `json:"username"`
+	}
+
+	LoginResult struct {
+		AccessToken string `json:"accessToken"`
+		LoginType   string `json:"loginType"`
+		TFAKey      string `json:"tfaKey"`
+	}
+)
 
 func New(region string) *Client {
 	jar, _ := cookiejar.New(nil)
@@ -141,6 +145,7 @@ func (c *Client) Login(ctx context.Context, email, password, code string) (Login
 	}
 	return r, nil
 }
+
 func (c *Client) SendCode(ctx context.Context, email string) error {
 	data, _, err := c.request(ctx, "POST", c.BaseURL+"/v1/user-service/user/sendemail/code", "", map[string]string{"email": email, "type": "codeLogin"}, nil)
 	if err != nil {
@@ -152,6 +157,7 @@ func (c *Client) SendCode(ctx context.Context, email string) error {
 	var r map[string]any
 	return decode(data, &r)
 }
+
 func (c *Client) TwoFactor(ctx context.Context, key, code string) (string, error) {
 	_, resp, err := c.request(ctx, "GET", c.SiteURL+"/api/csrf", "", nil, nil)
 	if err != nil {
@@ -184,6 +190,7 @@ func (c *Client) TwoFactor(ctx context.Context, key, code string) (string, error
 	}
 	return r.AccessToken, nil
 }
+
 func (c *Client) Session(ctx context.Context, token string) (Session, error) {
 	data, _, err := c.request(ctx, "GET", c.BaseURL+"/v1/design-user-service/my/preference", token, nil, nil)
 	if err != nil {
@@ -206,6 +213,7 @@ func (c *Client) Session(ctx context.Context, token string) (Session, error) {
 	}
 	return Session{token, "u_" + uid}, nil
 }
+
 func (c *Client) Devices(ctx context.Context, token string) ([]farm.Device, error) {
 	data, _, err := c.request(ctx, "GET", c.BaseURL+"/v1/iot-service/api/user/bind", token, nil, nil)
 	if err != nil {

@@ -8,16 +8,18 @@ import (
 	"github.com/cliffom/bambu-tui/internal/diagnostics"
 )
 
-type exportDialog struct {
-	printerID, destination, problem string
-	writing, saved                  bool
-	view                            viewport.Model
-}
+type (
+	exportDialog struct {
+		printerID, destination, problem string
+		writing, saved                  bool
+		view                            viewport.Model
+	}
 
-type exportResultMsg struct {
-	destination string
-	err         error
-}
+	exportResultMsg struct {
+		destination string
+		err         error
+	}
+)
 
 // openExport previews scope and a local destination without writing anything.
 func (m *Model) openExport() {
@@ -96,9 +98,11 @@ func (m *Model) syncExport() {
 	if p := m.Farm.Printers[d.printerID]; p != nil {
 		name = p.Name
 	}
-	lines := []string{"Export diagnostics for one printer?", detailField("Printer", safe(name), d.view.Width, white), "", detailField("Destination", safe(d.destination), d.view.Width, white), "", diagnostics.Included(), "",
+	lines := []string{
+		"Export diagnostics for one printer?", detailField("Printer", safe(name), d.view.Width, white), "", detailField("Destination", safe(d.destination), d.view.Width, white), "", diagnostics.Included(), "",
 		"Unknown values are omitted, not generically redacted. Only allowlisted operational values and structural types are included.",
-		"This is a troubleshooting snapshot, not a complete raw telemetry capture."}
+		"This is a troubleshooting snapshot, not a complete raw telemetry capture.",
+	}
 	status := "Enter creates this local JSON file. Esc cancels."
 	if d.writing {
 		status = "Writing local diagnostic file…"

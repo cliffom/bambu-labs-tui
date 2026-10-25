@@ -1,30 +1,32 @@
 package config
 
-// AlertRules controls automatic modals without filtering underlying notices.
-type AlertRules struct {
-	AutomaticModals bool `toml:"automatic_modals"`
-	Filament        bool `toml:"filament"`
-	Extrusion       bool `toml:"extrusion"`
-	PrinterFaults   bool `toml:"printer_faults"`
-	FailedPrints    bool `toml:"failed_prints"`
-	UnknownPauses   bool `toml:"unknown_pauses"`
-}
+type (
+	// AlertRules controls automatic modals without filtering underlying notices.
+	AlertRules struct {
+		AutomaticModals bool `toml:"automatic_modals"`
+		Filament        bool `toml:"filament"`
+		Extrusion       bool `toml:"extrusion"`
+		PrinterFaults   bool `toml:"printer_faults"`
+		FailedPrints    bool `toml:"failed_prints"`
+		UnknownPauses   bool `toml:"unknown_pauses"`
+	}
 
-// AlertOverride inherits each unspecified field from the global defaults.
-type AlertOverride struct {
-	AutomaticModals *bool `toml:"automatic_modals"`
-	Filament        *bool `toml:"filament"`
-	Extrusion       *bool `toml:"extrusion"`
-	PrinterFaults   *bool `toml:"printer_faults"`
-	FailedPrints    *bool `toml:"failed_prints"`
-	UnknownPauses   *bool `toml:"unknown_pauses"`
-}
+	// AlertOverride inherits each unspecified field from the global defaults.
+	AlertOverride struct {
+		AutomaticModals *bool `toml:"automatic_modals"`
+		Filament        *bool `toml:"filament"`
+		Extrusion       *bool `toml:"extrusion"`
+		PrinterFaults   *bool `toml:"printer_faults"`
+		FailedPrints    *bool `toml:"failed_prints"`
+		UnknownPauses   *bool `toml:"unknown_pauses"`
+	}
 
-// AlertPreferences contains non-secret global defaults and stable printer-ID overrides.
-type AlertPreferences struct {
-	AlertRules
-	Printers map[string]AlertOverride `toml:"printers"`
-}
+	// AlertPreferences contains non-secret global defaults and stable printer-ID overrides.
+	AlertPreferences struct {
+		AlertRules
+		Printers map[string]AlertOverride `toml:"printers"`
+	}
+)
 
 // DefaultAlerts preserves the existing automatic intervention-alert behavior.
 func DefaultAlerts() AlertPreferences {

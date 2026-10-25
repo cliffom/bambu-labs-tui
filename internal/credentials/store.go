@@ -18,17 +18,24 @@ import (
 	"github.com/cliffom/bambu-tui/internal/cloud"
 )
 
-var ErrUnavailable = errors.New("OS credential store unavailable")
-var ErrNotFound = errors.New("no saved account session")
-var ErrInvalid = errors.New("saved account session is invalid; run bambu-tui login")
+var (
+	ErrUnavailable = errors.New("OS credential store unavailable")
+	ErrNotFound    = errors.New("no saved account session")
+	ErrInvalid     = errors.New("saved account session is invalid; run bambu-tui login")
+)
 
-type command func(input, name string, args ...string) ([]byte, error)
-type Store struct {
-	Region      string
-	platform    string
-	execute     command
-	serviceName string
-}
+type (
+	command func(input, name string, args ...string) ([]byte, error)
+
+	Store struct {
+		Region      string
+		platform    string
+		execute     command
+		serviceName string
+	}
+
+	commandError struct{ code int }
+)
 
 func (s Store) service() string {
 	if s.serviceName != "" {
@@ -36,12 +43,14 @@ func (s Store) service() string {
 	}
 	return "com.github.cliffom.bambu-tui." + s.Region
 }
+
 func (s Store) os() string {
 	if s.platform != "" {
 		return s.platform
 	}
 	return runtime.GOOS
 }
+
 func (s Store) run(input, name string, args ...string) ([]byte, error) {
 	if s.execute != nil {
 		return s.execute(input, name, args...)
@@ -49,11 +58,10 @@ func (s Store) run(input, name string, args ...string) ([]byte, error) {
 	return run(input, name, args...)
 }
 
-type commandError struct{ code int }
-
 func (e commandError) Error() string {
 	return fmt.Sprintf("credential command exited with status %d", e.code)
 }
+
 func run(input, name string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -71,6 +79,7 @@ func run(input, name string, args ...string) ([]byte, error) {
 	}
 	return stdout.Bytes(), nil
 }
+
 func failure(operation string, err error) error {
 	var exit commandError
 	if errors.As(err, &exit) {
@@ -78,6 +87,7 @@ func failure(operation string, err error) error {
 	}
 	return fmt.Errorf("%w: %s", ErrUnavailable, operation)
 }
+
 func (s Store) Load() (cloud.Session, error) {
 	var data []byte
 	var err error
@@ -105,9 +115,11 @@ func (s Store) Load() (cloud.Session, error) {
 	}
 	return session, nil
 }
+
 func quote(s string) string {
 	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\r", `\r`).Replace(s) + `"`
 }
+
 func (s Store) Save(session cloud.Session) error {
 	if session.Token == "" || session.Username == "" {
 		return ErrInvalid
@@ -142,6 +154,7 @@ func (s Store) Save(session cloud.Session) error {
 	}
 	return nil
 }
+
 func (s Store) Delete() error {
 	if _, err := s.Load(); errors.Is(err, ErrNotFound) {
 		return nil
@@ -172,6 +185,7 @@ func Probe(region string) error {
 	s := Store{Region: region, serviceName: "com.github.cliffom.bambu-tui.probe." + hex.EncodeToString(id)}
 	return probe(s)
 }
+
 func probe(s Store) (err error) {
 	defer func() {
 		cleanup := s.Delete()

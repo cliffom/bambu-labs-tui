@@ -22,6 +22,7 @@ func setup(t *testing.T, fixture string) (*State, *Printer, time.Time) {
 	}
 	return s, s.Printers["TEST"], now
 }
+
 func report(t *testing.T, s *State, body string, at time.Time) {
 	t.Helper()
 	if err := s.Report("TEST", []byte(`{"print":`+body+`}`), at); err != nil {
@@ -75,6 +76,7 @@ func TestDualNozzleFixtures(t *testing.T) {
 		}
 	})
 }
+
 func TestPartialReportsPreserveIdentityAndETA(t *testing.T) {
 	s, p, now := setup(t, "h2d")
 	eta, _ := p.ETA()
@@ -90,6 +92,7 @@ func TestPartialReportsPreserveIdentityAndETA(t *testing.T) {
 		t.Fatal("unrelated updates drifted ETA")
 	}
 }
+
 func TestSpoolRemovalAndReplacement(t *testing.T) {
 	s, p, now := setup(t, "h2d")
 	report(t, s, `{"ams":{"ams":[{"id":"0","tray":[{"id":"0","tray_uuid":"replacement"}]}]}}`, now)
@@ -107,6 +110,7 @@ func TestSpoolRemovalAndReplacement(t *testing.T) {
 		t.Fatal("explicit empty collection did not clear AMS")
 	}
 }
+
 func TestFaultClearAndNoticeDedup(t *testing.T) {
 	s, p, now := setup(t, "x2d")
 	count := len(s.Events)
@@ -121,6 +125,7 @@ func TestFaultClearAndNoticeDedup(t *testing.T) {
 		t.Fatalf("conditions did not resolve: %+v", s.Active)
 	}
 }
+
 func TestStaleAndCloudOfflineAreDistinct(t *testing.T) {
 	s, p, now := setup(t, "h2d")
 	later := now.Add(121 * time.Second)
@@ -141,6 +146,7 @@ func TestStaleAndCloudOfflineAreDistinct(t *testing.T) {
 		t.Fatal("time inferred completion")
 	}
 }
+
 func TestNewJobClearsOldETA(t *testing.T) {
 	s, p, now := setup(t, "h2d")
 	report(t, s, `{"task_id":"new-job","gcode_state":"RUNNING"}`, now)
@@ -166,6 +172,7 @@ func TestLegacyEmptySlotAndExternalPath(t *testing.T) {
 		t.Fatal("legacy external spool assignment")
 	}
 }
+
 func TestRingBufferAndMalformedReports(t *testing.T) {
 	s, p, now := setup(t, "h2d")
 	for i := range 600 {
@@ -185,6 +192,7 @@ func TestRingBufferAndMalformedReports(t *testing.T) {
 		t.Fatal("unknown unsigned error code lost")
 	}
 }
+
 func FuzzReport(f *testing.F) {
 	f.Add([]byte(`{"print":{"mc_percent":20}}`))
 	f.Add([]byte(`{"print":{"ams":{"ams":[null,{"id":"0","tray":[{},null]}]}}}`))

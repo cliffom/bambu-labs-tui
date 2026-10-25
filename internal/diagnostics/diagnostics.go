@@ -19,23 +19,58 @@ import (
 
 var exportSchema = telemetrySchema()
 
-const recentLimit = 16
-const maxPayload = 1024 * 1024
+const (
+	recentLimit = 16
+	maxPayload  = 1024 * 1024
+)
 
-// Report retains a fixture-ready allowlisted envelope and its classified structure.
-type Report struct {
-	Status    string         `json:"status"`
-	Values    map[string]any `json:"values,omitempty"`
-	Structure Shape          `json:"structure"`
-}
+type (
+	// Report retains a fixture-ready allowlisted envelope and its classified structure.
+	Report struct {
+		Status    string         `json:"status"`
+		Values    map[string]any `json:"values,omitempty"`
+		Structure Shape          `json:"structure"`
+	}
 
-type sample struct {
-	id     string
-	report Report
-}
+	sample struct {
+		id     string
+		report Report
+	}
 
-// Recorder stores at most sixteen already-sanitized reports across the farm in memory.
-type Recorder struct{ recent []sample }
+	// Recorder stores at most sixteen already-sanitized reports across the farm in memory.
+	Recorder struct{ recent []sample }
+
+	// App contains build/platform metadata without hostname, username, environment, or local paths.
+	App struct {
+		Version string `json:"version"`
+		Commit  string `json:"commit"`
+		OS      string `json:"os"`
+		Arch    string `json:"arch"`
+	}
+
+	// Printer contains only a per-export alias, classified metadata, link state, and fault codes.
+	Printer struct {
+		Alias             string   `json:"alias"`
+		Model             string   `json:"model"`
+		Firmware          string   `json:"firmware,omitempty"`
+		AvailableFirmware string   `json:"available_firmware,omitempty"`
+		UpdateAvailable   *bool    `json:"update_available,omitempty"`
+		Connection        string   `json:"connection"`
+		ReportAgeSeconds  *int64   `json:"report_age_seconds,omitempty"`
+		FaultCodes        []string `json:"fault_codes"`
+	}
+
+	// Document is versioned and deliberately excludes credentials, identifiers, names, and free text.
+	Document struct {
+		SchemaVersion  int            `json:"schema_version"`
+		App            App            `json:"app"`
+		CloudConnected bool           `json:"cloud_connected"`
+		Printer        Printer        `json:"printer"`
+		Snapshot       Report         `json:"merged_snapshot"`
+		Normalized     map[string]any `json:"normalized_print"`
+		Recent         []Report       `json:"recent_reports"`
+	}
+)
 
 // Record discards malformed bodies and sanitizes valid JSON immediately without writing files.
 func (r *Recorder) Record(id string, payload []byte) {
@@ -67,40 +102,11 @@ func sanitizeReport(value any) Report {
 	return report
 }
 
-// App contains build/platform metadata without hostname, username, environment, or local paths.
-type App struct {
-	Version string `json:"version"`
-	Commit  string `json:"commit"`
-	OS      string `json:"os"`
-	Arch    string `json:"arch"`
-}
-
-// Printer contains only a per-export alias, classified metadata, link state, and fault codes.
-type Printer struct {
-	Alias             string   `json:"alias"`
-	Model             string   `json:"model"`
-	Firmware          string   `json:"firmware,omitempty"`
-	AvailableFirmware string   `json:"available_firmware,omitempty"`
-	UpdateAvailable   *bool    `json:"update_available,omitempty"`
-	Connection        string   `json:"connection"`
-	ReportAgeSeconds  *int64   `json:"report_age_seconds,omitempty"`
-	FaultCodes        []string `json:"fault_codes"`
-}
-
-// Document is versioned and deliberately excludes credentials, identifiers, names, and free text.
-type Document struct {
-	SchemaVersion  int            `json:"schema_version"`
-	App            App            `json:"app"`
-	CloudConnected bool           `json:"cloud_connected"`
-	Printer        Printer        `json:"printer"`
-	Snapshot       Report         `json:"merged_snapshot"`
-	Normalized     map[string]any `json:"normalized_print"`
-	Recent         []Report       `json:"recent_reports"`
-}
-
-var appVersionPattern = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(-(dev|rc[0-9]{1,3}|beta[0-9]{1,3}|alpha[0-9]{1,3}))?$`)
-var commitPattern = regexp.MustCompile(`^[a-fA-F0-9]{7,64}$`)
-var faultPattern = regexp.MustCompile(`^[0-9A-F]{4}(_[0-9A-F]{4}){1,3}$`)
+var (
+	appVersionPattern = regexp.MustCompile(`^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(-(dev|rc[0-9]{1,3}|beta[0-9]{1,3}|alpha[0-9]{1,3}))?$`)
+	commitPattern     = regexp.MustCompile(`^[a-fA-F0-9]{7,64}$`)
+	faultPattern      = regexp.MustCompile(`^[0-9A-F]{4}(_[0-9A-F]{4}){1,3}$`)
+)
 
 // Build snapshots one printer; callers must explicitly request Write to create an artifact.
 func (r *Recorder) Build(state *farm.State, id string, now time.Time) (Document, error) {
@@ -178,8 +184,10 @@ func normalizedPrint(p *farm.Printer) map[string]any {
 	for _, unit := range p.AMS {
 		units = append(units, map[string]any{"id": unit.ID, "humidity": unit.Humidity, "temperature": unit.Temperature, "slots": normalizedSlots(unit.Slots)})
 	}
-	return map[string]any{"state": safeState(p.State), "progress": p.Progress, "remaining_minutes": p.Remaining, "layer": p.Layer, "total_layers": p.TotalLayers,
-		"bed": normalizedTemperature(p.Bed), "chamber": normalizedTemperature(p.Chamber), "nozzles": nozzles, "ams": units, "external": normalizedSlots(p.External)}
+	return map[string]any{
+		"state": safeState(p.State), "progress": p.Progress, "remaining_minutes": p.Remaining, "layer": p.Layer, "total_layers": p.TotalLayers,
+		"bed": normalizedTemperature(p.Bed), "chamber": normalizedTemperature(p.Chamber), "nozzles": nozzles, "ams": units, "external": normalizedSlots(p.External),
+	}
 }
 
 // normalizedTemperature emits only classified current and target values.
@@ -221,10 +229,10 @@ func Write(destination string, doc Document) (err error) {
 	if err != nil {
 		return errors.New("encode diagnostics")
 	}
-	if err = os.MkdirAll(filepath.Dir(destination), 0700); err != nil {
+	if err = os.MkdirAll(filepath.Dir(destination), 0o700); err != nil {
 		return errors.New("create diagnostic directory")
 	}
-	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return errors.New("create diagnostic file")
 	}

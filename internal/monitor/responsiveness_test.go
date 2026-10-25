@@ -15,28 +15,37 @@ import (
 	"github.com/cliffom/bambu-tui/internal/mqtt"
 )
 
-type apiFunc func(context.Context, string) ([]farm.Device, error)
+type (
+	apiFunc func(context.Context, string) ([]farm.Device, error)
+
+	operation struct {
+		name string
+		ids  []string
+	}
+
+	controlledTransport struct {
+		closed             chan struct{}
+		once               sync.Once
+		reports            chan report
+		operations         chan operation
+		onRefresh          func([]string) error
+		active, concurrent atomic.Int32
+	}
+
+	sessionResult struct {
+		monitored time.Duration
+		err       error
+	}
+)
 
 func (f apiFunc) Devices(ctx context.Context, token string) ([]farm.Device, error) {
 	return f(ctx, token)
 }
 
-type operation struct {
-	name string
-	ids  []string
-}
-type controlledTransport struct {
-	closed             chan struct{}
-	once               sync.Once
-	reports            chan report
-	operations         chan operation
-	onRefresh          func([]string) error
-	active, concurrent atomic.Int32
-}
-
 func newControlledTransport() *controlledTransport {
 	return &controlledTransport{closed: make(chan struct{}), reports: make(chan report, 8), operations: make(chan operation, 32)}
 }
+
 func (f *controlledTransport) record(name string, ids []string, run func() error) error {
 	if f.active.Add(1) != 1 {
 		f.concurrent.Store(1)
@@ -48,7 +57,9 @@ func (f *controlledTransport) record(name string, ids []string, run func() error
 	}
 	return nil
 }
+
 func (f *controlledTransport) Subscribe(ids []string) error { return f.record("subscribe", ids, nil) }
+
 func (f *controlledTransport) Refresh(ids []string) error {
 	return f.record("refresh", ids, func() error {
 		if f.onRefresh != nil {
@@ -57,7 +68,9 @@ func (f *controlledTransport) Refresh(ids []string) error {
 		return nil
 	})
 }
+
 func (f *controlledTransport) Ping() error { return f.record("ping", nil, nil) }
+
 func (f *controlledTransport) Read() (string, []byte, error) {
 	select {
 	case r := <-f.reports:
@@ -66,6 +79,7 @@ func (f *controlledTransport) Read() (string, []byte, error) {
 		return "", nil, io.EOF
 	}
 }
+
 func (f *controlledTransport) Close() error { f.once.Do(func() { close(f.closed) }); return nil }
 
 func awaitSignal(t *testing.T, ch <-chan struct{}) {
@@ -76,6 +90,7 @@ func awaitSignal(t *testing.T, ch <-chan struct{}) {
 		t.Fatal("operation did not respond within one second")
 	}
 }
+
 func nextOperation(t *testing.T, f *controlledTransport, name string) operation {
 	t.Helper()
 	select {
@@ -88,11 +103,6 @@ func nextOperation(t *testing.T, f *controlledTransport, name string) operation 
 		t.Fatalf("missing %s within one second", name)
 	}
 	return operation{}
-}
-
-type sessionResult struct {
-	monitored time.Duration
-	err       error
 }
 
 func startWatch(t *testing.T, r *Runner, f *controlledTransport) (context.CancelFunc, chan Event, chan struct{}, <-chan sessionResult) {
@@ -121,6 +131,7 @@ func startWatch(t *testing.T, r *Runner, f *controlledTransport) (context.Cancel
 	nextOperation(t, f, "refresh")
 	return cancel, events, refresh, done
 }
+
 func finishWatch(t *testing.T, done <-chan sessionResult) sessionResult {
 	t.Helper()
 	select {
@@ -137,7 +148,8 @@ func TestHealthySessionsResetBackoffButShortFailuresDoNot(t *testing.T) {
 	var delays []time.Duration
 	durations := []time.Duration{time.Second, 2 * time.Minute, time.Second}
 	base := time.Date(2026, 10, 24, 12, 0, 0, 0, time.UTC)
-	r := Runner{API: fakeAPI{}, RetryMin: time.Second, RetryMax: 8 * time.Second,
+	r := Runner{
+		API: fakeAPI{}, RetryMin: time.Second, RetryMax: 8 * time.Second,
 		now: func() time.Time {
 			call := clockCalls
 			clockCalls++
@@ -345,6 +357,7 @@ func sendTick(t *testing.T, ticks chan<- time.Time) {
 		t.Fatal("monitor did not accept tick")
 	}
 }
+
 func requestRefresh(t *testing.T, refresh chan<- struct{}) {
 	t.Helper()
 	select {
@@ -370,7 +383,8 @@ func TestFailedBootstrapRetainsCappedBackoff(t *testing.T) {
 	clock := time.Date(2026, 10, 24, 12, 0, 0, 0, time.UTC)
 	var delays []time.Duration
 	attempts := 0
-	r := Runner{API: fakeAPI{}, RetryMin: time.Second, RetryMax: 4 * time.Second,
+	r := Runner{
+		API: fakeAPI{}, RetryMin: time.Second, RetryMax: 4 * time.Second,
 		now:  func() time.Time { return clock },
 		wait: func(_ context.Context, delay time.Duration) bool { delays = append(delays, delay); return true },
 		Dial: func(context.Context) (Transport, error) {

@@ -12,17 +12,19 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// noticeItem identities stay stable as reports arrive and historical events are
-// prepended or evicted. Active conditions and historical events are distinct.
-type noticeItem struct {
-	Key, ActiveKey             string
-	EventID                    uint64
-	Printer, Level, Text, Code string
-	At                         time.Time
-	Active, Acknowledged       bool
-}
+type (
+	// noticeItem identities stay stable as reports arrive and historical events are
+	// prepended or evicted. Active conditions and historical events are distinct.
+	noticeItem struct {
+		Key, ActiveKey             string
+		EventID                    uint64
+		Printer, Level, Text, Code string
+		At                         time.Time
+		Active, Acknowledged       bool
+	}
 
-type browserResultMsg struct{ err error }
+	browserResultMsg struct{ err error }
+)
 
 func openTroubleshooting(url string) tea.Cmd {
 	return func() tea.Msg {
@@ -56,6 +58,7 @@ func (m Model) noticeItems() []noticeItem {
 	}
 	return items
 }
+
 func (m *Model) syncNoticeSelection(items []noticeItem) {
 	if len(items) == 0 {
 		m.noticeKey = ""
@@ -71,6 +74,7 @@ func (m *Model) syncNoticeSelection(items []noticeItem) {
 	m.noticeIndex = min(m.noticeIndex, len(items)-1)
 	m.noticeKey = items[m.noticeIndex].Key
 }
+
 func (m Model) selectedNotice() (noticeItem, bool) {
 	for _, item := range m.noticeItems() {
 		if item.Key == m.noticeKey {
@@ -79,6 +83,7 @@ func (m Model) selectedNotice() (noticeItem, bool) {
 	}
 	return noticeItem{}, false
 }
+
 func (m *Model) moveNotice(delta int, absolute bool) {
 	items := m.noticeItems()
 	if len(items) == 0 {
@@ -91,6 +96,7 @@ func (m *Model) moveNotice(delta int, absolute bool) {
 	m.noticeIndex = max(0, min(len(items)-1, index))
 	m.noticeKey = items[m.noticeIndex].Key
 }
+
 func (m *Model) openNotice() {
 	if item, ok := m.selectedNotice(); ok {
 		m.openDialog(dialogInspector)
@@ -99,6 +105,7 @@ func (m *Model) openNotice() {
 		m.syncInspector()
 	}
 }
+
 func (m *Model) focusFault() {
 	p := m.current()
 	if p == nil {
@@ -116,6 +123,7 @@ func (m *Model) focusFault() {
 	m.toast = "No visible faults for " + p.Name
 	m.toastAt = m.now
 }
+
 func (m *Model) acknowledge(item noticeItem, toggle bool) {
 	if item.ActiveKey == "" || !item.Active {
 		m.toast = "This is a historical event; press c to remove it"
@@ -133,6 +141,7 @@ func (m *Model) acknowledge(item noticeItem, toggle bool) {
 	}
 	m.toastAt = m.now
 }
+
 func (m *Model) clearNotice(item noticeItem) {
 	if item.Active {
 		m.Farm.Dismiss(item.ActiveKey)
@@ -150,6 +159,7 @@ func (m *Model) clearNotice(item noticeItem) {
 	m.toastAt = m.now
 	m.dismissDialog(dialogInspector)
 }
+
 func (m *Model) inspectorKey(key string, msg tea.Msg) tea.Cmd {
 	switch key {
 	case "esc", "enter":
@@ -217,6 +227,7 @@ func (m *Model) noticeText(w int) string {
 	}
 	return strings.Join(lines, "\n")
 }
+
 func (m *Model) keepNoticeVisible() {
 	if m.focus != 2 || m.noticeIndex >= len(m.noticeSpans) {
 		return
@@ -249,6 +260,7 @@ func hmsURL(code string) string {
 	}
 	return "https://wiki.bambulab.com/en/x1/troubleshooting/hmscode/" + strings.ToLower(code)
 }
+
 func (m *Model) syncInspector() {
 	if m.inspected == nil {
 		return
@@ -298,6 +310,7 @@ func (m *Model) syncInspector() {
 	m.inspection.Height = max(1, m.height-6)
 	m.inspection.SetContent(wrapLines(lines, m.inspection.Width))
 }
+
 func (m Model) inspectorView() string {
 	lines := []string{accent.Bold(true).Render("NOTICE / FAULT DETAILS"), muted.Render("↑/↓ or PgUp/PgDown scroll · Esc/Enter back"), "", m.inspection.View()}
 	footer := "a acknowledge  c clear locally  Esc back"
@@ -306,6 +319,7 @@ func (m Model) inspectorView() string {
 	}
 	return m.fullView(lines, footer)
 }
+
 func (m Model) fullView(lines []string, footer string) string {
 	if message := m.storageWarning(); message != "" {
 		footer = message
@@ -323,6 +337,7 @@ func (m Model) fullView(lines []string, footer string) string {
 	rows = append(rows, muted.Render(footer))
 	return fit(strings.Join(rows, "\n"), m.width, m.height)
 }
+
 func (m Model) clearHistoryView() string {
 	return m.fullView([]string{warning.Bold(true).Render("CLEAR RECENT EVENTS?"), "", fmt.Sprintf("Remove %d events from this session's history?", len(m.Farm.Events)), "", "Active notices and printer faults remain visible.", "", "y: clear history     n / Esc: keep history"}, "n / Esc back")
 }

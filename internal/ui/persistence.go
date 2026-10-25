@@ -6,20 +6,23 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// persistence is owned by the reducer. A command owns only an immutable snapshot.
-// attempted advances when queued, saved only on success, and failed on error.
-// Keeping one command in flight per store also serializes delayed completions.
-type persistence struct {
-	attempted, saved, failed uint64
-	inFlight                 bool
-}
+type (
+	// persistence is owned by the reducer. A command owns only an immutable snapshot.
+	// attempted advances when queued, saved only on success, and failed on error.
+	// Keeping one command in flight per store also serializes delayed completions.
+	persistence struct {
+		attempted, saved, failed uint64
+		inFlight                 bool
+	}
 
-type persistenceResultMsg struct {
-	snoozes  bool
-	revision uint64
-	err      error
-}
-type shutdownTimeoutMsg uint64
+	persistenceResultMsg struct {
+		snoozes  bool
+		revision uint64
+		err      error
+	}
+
+	shutdownTimeoutMsg uint64
+)
 
 func (p *persistence) start(revision uint64, save func() error, snoozes bool) tea.Cmd {
 	if p.inFlight || p.attempted == revision {

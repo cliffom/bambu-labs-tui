@@ -93,6 +93,19 @@ func (m *Model) dismissDialog(kind dialogKind) {
 
 func (m Model) hasOpenDialog() bool { return m.dialog.active != dialogNone }
 
+// acceptsKey keeps actions behind an undersized resize screen inactive. Esc
+// still follows the owner's normal close/return path. Dashboard quit and compact
+// shutdown controls stay available without making hidden confirmations actionable.
+func (m Model) acceptsKey(key string) bool {
+	if m.terminalFits() || routeFor(m.dialog.active).compact {
+		return true
+	}
+	if key == "esc" {
+		return true
+	}
+	return !m.hasOpenDialog() && (key == "q" || key == "ctrl+c")
+}
+
 // syncDialogs collects pending attention, then refreshes the owner and its
 // explicitly suspended parent during telemetry, resizing, and async completion.
 func (m *Model) syncDialogs() {

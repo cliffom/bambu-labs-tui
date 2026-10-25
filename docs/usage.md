@@ -151,3 +151,5 @@ Monitoring requests only: the MQTT client can subscribe to reports and request f
 
 Printer details also show the installed printer **Firmware** and **FW Status**. Status is the printer's reported assessment: **Current (printer reported)**, **Update available** with the offered OTA version, or **Unknown (not confirmed)**. Component-only updates do not imply a printer firmware update. Old assessments or disconnected/stale printers show **Last known**; press `r` to request fresh status and firmware metadata. This is not a live comparison against a public release catalogue, and no firmware installation is performed.
 
+
+When the terminal is smaller than 60 columns × 18 rows, the resize screen blocks hidden navigation, review/snooze actions, exports, and confirmations. `Esc` still closes the current dialog or returns to its parent; `q` / `Ctrl+C` still quit from the dashboard. Telemetry and asynchronous saves/results continue. Resize back to resume the same dialog and any pending confirmation. The compact persistence shutdown screen retains its exit/cancel controls.

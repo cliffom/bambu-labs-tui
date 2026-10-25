@@ -21,6 +21,8 @@ The [validation record](docs/validation.md) retains the unperformed live checks;
 
 Record evidence for the supported setup as checks are performed. Leave unperformed checks and unsupported combinations explicit.
 
+- [Longer telemetry stale threshold for idle/finished printers (#45)](https://github.com/cliffom/bambu-tui/issues/45): **target v0.1.8** — allow ten minutes for reported `IDLE`/`FINISH` states while retaining two minutes for all other states. Connection labels, unavailable filtering, and stale notices share the policy; offline/cloud-disconnected warnings remain independent. The [validation record](docs/validation.md) documents the screenshot evidence, provisional threshold rationale, and remaining live cadence checks.
+
 ### v0.1.0 — Daily farm usability
 
 - [View and restore persisted dismissed notices (#7)](https://github.com/cliffom/bambu-tui/issues/7): **released v0.0.8** — inspect hidden active conditions, reverse individual decisions, and explicitly reset saved reviews from the TUI.

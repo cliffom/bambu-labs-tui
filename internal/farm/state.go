@@ -165,7 +165,11 @@ func (s *State) Report(id string, payload []byte, now time.Time) error {
 }
 
 func (p *Printer) Stale(now time.Time) bool {
-	return p.LastReport.IsZero() || now.Sub(p.LastReport) > 120*time.Second
+	threshold := 2 * time.Minute
+	if p.State == "IDLE" || p.State == "FINISH" {
+		threshold = 10 * time.Minute
+	}
+	return p.LastReport.IsZero() || now.Sub(p.LastReport) > threshold
 }
 
 func (p *Printer) Connection(now time.Time, cloud bool) string {

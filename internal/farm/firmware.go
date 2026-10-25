@@ -62,7 +62,7 @@ func (p *Printer) setFirmwareVersion(version string, now time.Time) {
 
 // versionReport selects only the printer OTA module, never controller/AMS versions.
 func (p *Printer) versionReport(info map[string]any, now time.Time) {
-	if str(info[fieldCommand]) != versionCommand {
+	if str(info[fieldCommand]) != commandVersion {
 		return
 	}
 	if result := str(info[fieldResult]); result != "" && !strings.EqualFold(result, versionSuccess) {

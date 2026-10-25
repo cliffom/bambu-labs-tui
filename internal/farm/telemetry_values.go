@@ -19,8 +19,8 @@ const (
 	temperatureMask       = 0xffff
 	maxAMSTemperature     = 100
 	emptyMaterial         = "Empty"
-	statusCommand         = "push_status"
-	versionCommand        = "get_version"
+	commandStatus         = "push_status"
+	commandVersion        = "get_version"
 	otaModule             = "ota"
 	upgradeAvailable      = "1"
 	upgradeCurrent        = "2"

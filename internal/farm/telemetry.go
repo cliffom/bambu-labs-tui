@@ -20,7 +20,7 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	if cmd := str(delta[fieldCommand]); cmd != "" && cmd != statusCommand {
+	if cmd := str(delta[fieldCommand]); cmd != "" && cmd != commandStatus {
 		return false, nil
 	}
 	previous := p.State

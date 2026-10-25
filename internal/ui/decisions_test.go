@@ -189,9 +189,9 @@ func TestDecisionResetAndRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, event := range []monitor.Event{
-		{Kind: "connection", Connected: true, At: m.now},
-		{Kind: "devices", Devices: []farm.Device{{ID: "H", Name: "H2D", Online: true}}, At: m.now},
-		{Kind: "report", ID: "H", Payload: payload, At: m.now},
+		{Kind: monitor.EventConnection, Connected: true, At: m.now},
+		{Kind: monitor.EventDevices, Devices: []farm.Device{{ID: "H", Name: "H2D", Online: true}}, At: m.now},
+		{Kind: monitor.EventReport, ID: "H", Payload: payload, At: m.now},
 	} {
 		updated, _ := replayed.Update(event)
 		replayed = updated.(Model)

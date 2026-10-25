@@ -11,10 +11,10 @@ import (
 func Demo(ctx context.Context, out chan<- Event, refresh <-chan struct{}) {
 	defer close(out)
 	devices := []farm.Device{{ID: "DEMOH2D", Name: "H2D · Workshop", Model: "H2D", Online: true}, {ID: "DEMOX2D", Name: "X2D · Studio", Model: "X2D", Online: true}}
-	if !emit(ctx, out, Event{Kind: "devices", Devices: devices}) {
+	if !emit(ctx, out, Event{Kind: EventDevices, Devices: devices}) {
 		return
 	}
-	if !emit(ctx, out, Event{Kind: "connection", Connected: true}) {
+	if !emit(ctx, out, Event{Kind: EventConnection, Connected: true}) {
 		return
 	}
 	ticker := time.NewTicker(3 * time.Second)
@@ -41,7 +41,7 @@ func Demo(ctx context.Context, out chan<- Event, refresh <-chan struct{}) {
 				addDemoRunout(payload["print"].(map[string]any))
 			}
 			b, _ := json.Marshal(payload)
-			if !emit(ctx, out, Event{Kind: "report", ID: d.ID, Payload: b}) {
+			if !emit(ctx, out, Event{Kind: EventReport, ID: d.ID, Payload: b}) {
 				return
 			}
 		}

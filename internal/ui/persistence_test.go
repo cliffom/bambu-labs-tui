@@ -45,9 +45,9 @@ func TestNoticeDecisionsSavedBeforeQuitAndRestored(t *testing.T) {
 	state.RestoreReviews(saved)
 	next := New(state, make(chan monitor.Event), make(chan struct{}, 1), false).WithNoticePersistence(store.Save, nil)
 	for _, event := range []monitor.Event{
-		{Kind: "connection", Connected: true},
-		{Kind: "devices", Devices: []farm.Device{{ID: "H", Name: "H2D", Online: true}}},
-		{Kind: "report", ID: "H", Payload: []byte(`{"print":{"mc_percent":75}}`)},
+		{Kind: monitor.EventConnection, Connected: true},
+		{Kind: monitor.EventDevices, Devices: []farm.Device{{ID: "H", Name: "H2D", Online: true}}},
+		{Kind: monitor.EventReport, ID: "H", Payload: []byte(`{"print":{"mc_percent":75}}`)},
 	} {
 		event.At = time.Now()
 		updated, _ := next.Update(event)
@@ -58,7 +58,7 @@ func TestNoticeDecisionsSavedBeforeQuitAndRestored(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	updated, _ := next.Update(monitor.Event{Kind: "report", ID: "H", Payload: payload, At: time.Now()})
+	updated, _ := next.Update(monitor.Event{Kind: monitor.EventReport, ID: "H", Payload: payload, At: time.Now()})
 	next = updated.(Model)
 	if !next.Farm.Active[item.ActiveKey].Dismissed {
 		t.Fatal("fresh model did not restore dismissal")
@@ -187,7 +187,7 @@ func TestBlockedPersistenceCoalescesBothStoresWithoutBlockingReducer(t *testing.
 	go func() {
 		updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("tab")})
 		model := updated.(Model)
-		updated, _ = model.Update(monitor.Event{Kind: "problem", Problem: "telemetry handled", At: model.now})
+		updated, _ = model.Update(monitor.Event{Kind: monitor.EventProblem, Problem: "telemetry handled", At: model.now})
 		responsive <- updated.(Model)
 	}()
 	select {

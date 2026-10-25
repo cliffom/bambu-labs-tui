@@ -113,7 +113,7 @@ func startWatch(t *testing.T, r *Runner, f *controlledTransport) (context.Cancel
 			t.Error("transport was not closed")
 		}
 	})
-	connection := receive(t, events, "connection")
+	connection := receive(t, events, EventConnection)
 	if !connection.Connected {
 		t.Fatal("session did not connect")
 	}
@@ -189,7 +189,7 @@ func TestBlockedDiscoveryDoesNotStarveReportsOrKeepalives(t *testing.T) {
 	awaitSignal(t, entered)
 	for _, body := range []string{"first", "second"} {
 		f.reports <- report{id: "TEST", body: []byte(body)}
-		if got := receive(t, events, "report"); string(got.Payload) != body {
+		if got := receive(t, events, EventReport); string(got.Payload) != body {
 			t.Fatal("report order changed during discovery")
 		}
 	}
@@ -230,7 +230,7 @@ func TestBlockedRefreshKeepsReportsLiveAndPrioritizesPing(t *testing.T) {
 	nextOperation(t, f, "refresh")
 	awaitSignal(t, entered)
 	sendTick(t, poll)
-	if got := receive(t, events, "devices"); !reflect.DeepEqual(got.Devices, latest) {
+	if got := receive(t, events, EventDevices); !reflect.DeepEqual(got.Devices, latest) {
 		t.Fatal("discovery blocked behind refresh")
 	}
 	sendTick(t, ping)
@@ -239,7 +239,7 @@ func TestBlockedRefreshKeepsReportsLiveAndPrioritizesPing(t *testing.T) {
 	}
 	for _, body := range []string{"one", "two"} {
 		f.reports <- report{id: "TEST", body: []byte(body)}
-		if got := receive(t, events, "report"); string(got.Payload) != body {
+		if got := receive(t, events, EventReport); string(got.Payload) != body {
 			t.Fatal("report lost or reordered during refresh")
 		}
 	}
@@ -282,7 +282,7 @@ func TestStalledRefreshIsBoundedAndCancellationJoinsWorkers(t *testing.T) {
 			awaitSignal(t, entered)
 			sendTick(t, ping)
 			f.reports <- report{id: "TEST", body: []byte("live")}
-			if got := receive(t, events, "report"); string(got.Payload) != "live" {
+			if got := receive(t, events, EventReport); string(got.Payload) != "live" {
 				t.Fatal("blocked write starved report delivery")
 			}
 			if !timeout {
@@ -324,13 +324,13 @@ func TestDiscoveryErrorPoliciesAndRecovery(t *testing.T) {
 				}
 				return
 			}
-			receive(t, events, "problem")
+			receive(t, events, EventProblem)
 			f.reports <- report{id: "TEST", body: []byte("still live")}
-			receive(t, events, "report")
+			receive(t, events, EventReport)
 			sendTick(t, ping)
 			nextOperation(t, f, "ping")
 			sendTick(t, poll)
-			receive(t, events, "devices")
+			receive(t, events, EventDevices)
 			cancel()
 			finishWatch(t, done)
 		})

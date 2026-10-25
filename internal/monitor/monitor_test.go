@@ -61,7 +61,7 @@ func (f *fakeTransport) Read() (string, []byte, error) {
 	return "", nil, io.EOF
 }
 func (f *fakeTransport) Close() error { f.once.Do(func() { close(f.done) }); return nil }
-func receive(t *testing.T, events <-chan Event, kind string) Event {
+func receive(t *testing.T, events <-chan Event, kind EventKind) Event {
 	t.Helper()
 	timeout := time.After(2 * time.Second)
 	for {
@@ -74,7 +74,7 @@ func receive(t *testing.T, events <-chan Event, kind string) Event {
 				return e
 			}
 		case <-timeout:
-			t.Fatal("timed out waiting for " + kind)
+			t.Fatal("timed out waiting for " + string(kind))
 		}
 	}
 }
@@ -130,7 +130,7 @@ func TestAuthFailureStopsRetries(t *testing.T) {
 			}
 			done := make(chan struct{})
 			go func() { r.Run(ctx, events, make(chan struct{})); close(done) }()
-			e := receive(t, events, "connection")
+			e := receive(t, events, EventConnection)
 			if e.Connected || e.Problem == "" {
 				t.Fatal(e)
 			}
@@ -151,7 +151,7 @@ func TestCancellationDuringBackoff(t *testing.T) {
 	r := Runner{API: fakeAPI{errors.New("unreachable")}, RetryMin: time.Hour}
 	done := make(chan struct{})
 	go func() { r.Run(ctx, events, make(chan struct{})); close(done) }()
-	receive(t, events, "connection")
+	receive(t, events, EventConnection)
 	cancel()
 	select {
 	case <-done:
@@ -164,14 +164,14 @@ func TestDemoProducesBothModels(t *testing.T) {
 	defer cancel()
 	events := make(chan Event, 8)
 	go Demo(ctx, events, make(chan struct{}))
-	e := receive(t, events, "devices")
+	e := receive(t, events, EventDevices)
 	if len(e.Devices) != 2 || e.Devices[0].Model != "H2D" || e.Devices[1].Model != "X2D" {
 		t.Fatal(e)
 	}
 	s := farm.New(10)
 	s.Discover(e.Devices, time.Now())
 	for range 2 {
-		e = receive(t, events, "report")
+		e = receive(t, events, EventReport)
 		if err := s.Report(e.ID, e.Payload, e.At); err != nil {
 			t.Fatal(err)
 		}

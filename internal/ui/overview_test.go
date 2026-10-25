@@ -19,7 +19,7 @@ func overviewModel(t *testing.T) Model {
 	t.Helper()
 	m := demoModel()
 	devices := []farm.Device{{ID: "H", Name: "Alpha", Online: true}, {ID: "X", Name: "Beta", Online: true}, {ID: "I", Name: "Idle", Online: true}, {ID: "D", Name: "Done", Online: true}, {ID: "O", Name: "Offline"}, {ID: "T", Name: "Stale", Online: true}, {ID: "W", Name: "Waiting", Online: true}}
-	updated, _ := m.Update(monitor.Event{Kind: "devices", Devices: devices, At: m.now})
+	updated, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: devices, At: m.now})
 	m = updated.(Model)
 	m = attentionReport(t, m, "H", `{"print":{"gcode_state":"RUNNING","mc_remaining_time":20,"mc_percent":40}}`)
 	m = attentionReport(t, m, "X", runoutReport)
@@ -108,13 +108,13 @@ func TestLiveSortingPreservesIdentityAndScroll(t *testing.T) {
 	m.printerSort = sortName
 	m.syncPanels()
 	devices := []farm.Device{{ID: "H", Name: "Zulu", Online: true}, {ID: "X", Name: "Beta", Online: true}, {ID: "I", Name: "Idle", Online: true}}
-	updated, _ := m.Update(monitor.Event{Kind: "devices", Devices: devices, At: m.now})
+	updated, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: devices, At: m.now})
 	m = updated.(Model)
 	if m.current().ID != "H" || m.selection != 2 || m.details.YOffset != 4 {
 		t.Fatal("renaming/discovery moved selection to a different printer")
 	}
 	devices = devices[1:]
-	updated, _ = m.Update(monitor.Event{Kind: "devices", Devices: devices, At: m.now})
+	updated, _ = m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: devices, At: m.now})
 	m = updated.(Model)
 	if m.current() == nil || m.current().ID == "H" || m.details.YOffset != 0 || m.focus != 1 {
 		t.Fatal("removed selection did not fall back safely")
@@ -199,7 +199,7 @@ func TestOverviewBoundsAndSettingsVisibility(t *testing.T) {
 	for i := range devices {
 		devices[i] = farm.Device{ID: fmt.Sprintf("P%02d", i), Name: fmt.Sprintf("Printer %02d", i), Online: true}
 	}
-	updated, _ := m.Update(monitor.Event{Kind: "devices", Devices: devices, At: m.now})
+	updated, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: devices, At: m.now})
 	m = updated.(Model)
 	for _, size := range [][2]int{{120, 35}, {80, 24}, {60, 18}, {40, 10}, {0, 0}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
@@ -247,7 +247,7 @@ func TestUnavailableFilterTracksCloudConnection(t *testing.T) {
 	m.syncPanels()
 	m.selectPrinter("T")
 	for _, connected := range []bool{false, true} {
-		updated, _ := m.Update(monitor.Event{Kind: "connection", Connected: connected, At: m.now})
+		updated, _ := m.Update(monitor.Event{Kind: monitor.EventConnection, Connected: connected, At: m.now})
 		m = updated.(Model)
 		want := 7
 		if connected {

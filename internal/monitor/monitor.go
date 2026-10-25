@@ -14,8 +14,18 @@ import (
 	"github.com/cliffom/bambu-tui/internal/mqtt"
 )
 
+// EventKind identifies the monitor messages consumed by the UI reducer.
+type EventKind string
+
+const (
+	EventDevices    EventKind = "devices"
+	EventConnection EventKind = "connection"
+	EventReport     EventKind = "report"
+	EventProblem    EventKind = "problem"
+)
+
 type Event struct {
-	Kind      string
+	Kind      EventKind
 	At        time.Time
 	Devices   []farm.Device
 	ID        string
@@ -85,7 +95,7 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 	for ctx.Err() == nil {
 		devices, err := r.API.Devices(ctx, r.Token)
 		if err == nil {
-			if !emit(ctx, out, Event{Kind: "devices", Devices: devices}) {
+			if !emit(ctx, out, Event{Kind: EventDevices, Devices: devices}) {
 				return
 			}
 			var conn Transport
@@ -102,14 +112,14 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 			return
 		}
 		if errors.Is(err, cloud.ErrAuth) || errors.Is(err, mqtt.ErrAuth) {
-			emit(ctx, out, Event{Kind: "connection", Problem: "Session expired or rejected — quit and run bambu-tui login"})
+			emit(ctx, out, Event{Kind: EventConnection, Problem: "Session expired or rejected — quit and run bambu-tui login"})
 			return
 		}
 		problem := "Cloud disconnected; reconnecting"
 		if errors.Is(err, cloud.ErrBlocked) || errors.Is(err, cloud.ErrRateLimited) {
 			problem = err.Error()
 		}
-		if !emit(ctx, out, Event{Kind: "connection", Problem: problem}) {
+		if !emit(ctx, out, Event{Kind: EventConnection, Problem: problem}) {
 			return
 		}
 		wait := delay + time.Duration(rand.Float64()*float64(delay)/4)
@@ -217,7 +227,7 @@ func (r *Runner) watch(ctx context.Context, conn Transport, devices []farm.Devic
 	if err := r.write(ctx, conn, writeRequest{subscribe: ids, refresh: ids}); err != nil {
 		return 0, err
 	}
-	if !emit(ctx, out, Event{Kind: "connection", Connected: true}) {
+	if !emit(ctx, out, Event{Kind: EventConnection, Connected: true}) {
 		return 0, ctx.Err()
 	}
 	connectedAt = r.clock()
@@ -326,7 +336,7 @@ func (r *Runner) watch(ctx context.Context, conn Transport, devices []farm.Devic
 			if report.err != nil {
 				return 0, report.err
 			}
-			if !emit(ctx, out, Event{Kind: "report", ID: report.id, Payload: report.body}) {
+			if !emit(ctx, out, Event{Kind: EventReport, ID: report.id, Payload: report.body}) {
 				return 0, ctx.Err()
 			}
 		case _, open := <-refresh:
@@ -355,13 +365,13 @@ func (r *Runner) watch(ctx context.Context, conn Transport, devices []farm.Devic
 				return 0, result.err
 			}
 			if result.err != nil {
-				if !emit(ctx, out, Event{Kind: "problem", Problem: "Device availability refresh failed; telemetry connection is still active"}) {
+				if !emit(ctx, out, Event{Kind: EventProblem, Problem: "Device availability refresh failed; telemetry connection is still active"}) {
 					return 0, ctx.Err()
 				}
 				continue
 			}
 			// Publish discovery before subscribing so new reports follow their device event.
-			if !emit(ctx, out, Event{Kind: "devices", Devices: result.devices}) {
+			if !emit(ctx, out, Event{Kind: EventDevices, Devices: result.devices}) {
 				return 0, ctx.Err()
 			}
 			ids = ids[:0]

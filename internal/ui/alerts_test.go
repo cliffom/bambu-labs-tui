@@ -109,12 +109,12 @@ func TestSnoozeRestartExpiryAndRecurrence(t *testing.T) {
 	}
 	state := farm.New(10)
 	next := New(state, nil, nil, false).WithSnoozePersistence(saved, store.Save, nil)
-	updated, _ := next.Update(monitor.Event{Kind: "connection", Connected: true, At: m.now})
+	updated, _ := next.Update(monitor.Event{Kind: monitor.EventConnection, Connected: true, At: m.now})
 	next = updated.(Model)
 	if !next.snoozed("H") {
 		t.Fatal("startup discarded snooze before discovery")
 	}
-	updated, _ = next.Update(monitor.Event{Kind: "devices", Devices: []farm.Device{{ID: "H", Name: "H2D", Online: true}}, At: m.now})
+	updated, _ = next.Update(monitor.Event{Kind: monitor.EventDevices, Devices: []farm.Device{{ID: "H", Name: "H2D", Online: true}}, At: m.now})
 	next = updated.(Model)
 	next = attentionTick(attentionReport(t, next, "H", runoutReport))
 	if next.attention != nil || !next.snoozed("H") {
@@ -157,7 +157,7 @@ func TestSnoozeExpiryHonorsPersistedReviews(t *testing.T) {
 			state.RestoreReviews(reviews)
 			until := m.now.Add(time.Hour)
 			next := New(state, nil, nil, false).WithSnoozePersistence(map[string]time.Time{"H": until}, nil, nil)
-			for _, event := range []monitor.Event{{Kind: "connection", Connected: true, At: m.now}, {Kind: "devices", Devices: []farm.Device{{ID: "H", Online: true}}, At: m.now}} {
+			for _, event := range []monitor.Event{{Kind: monitor.EventConnection, Connected: true, At: m.now}, {Kind: monitor.EventDevices, Devices: []farm.Device{{ID: "H", Online: true}}, At: m.now}} {
 				updated, _ := next.Update(event)
 				next = updated.(Model)
 			}
@@ -187,7 +187,7 @@ func TestResumeAndRemovedPrinterCleanup(t *testing.T) {
 	if len(m.snoozes) != 2 {
 		t.Fatal("pending printer was pruned before discovery")
 	}
-	m = persistenceUpdate(m, monitor.Event{Kind: "devices", Devices: []farm.Device{{ID: "H", Online: true}}, At: m.now})
+	m = persistenceUpdate(m, monitor.Event{Kind: monitor.EventDevices, Devices: []farm.Device{{ID: "H", Online: true}}, At: m.now})
 	if len(m.snoozes) != 1 || saves != 1 {
 		t.Fatal("confirmed removed printer's snooze was not pruned/saved")
 	}
@@ -250,7 +250,7 @@ func TestSnoozeDialogBoundsAndLiveRemoval(t *testing.T) {
 			}
 		}
 	}
-	next, _ := m.Update(monitor.Event{Kind: "devices", At: m.now})
+	next, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, At: m.now})
 	m = next.(Model)
 	m = key(m, "1")
 	if len(m.snoozes) != 0 {

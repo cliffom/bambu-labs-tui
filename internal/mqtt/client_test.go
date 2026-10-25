@@ -7,6 +7,7 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestBrokerMonitoringExchange(t *testing.T) {
@@ -149,4 +150,99 @@ func FuzzReadPacket(f *testing.F) {
 		_, _, err := readPacket(bytes.NewReader(b))
 		_ = errors.Is(err, io.EOF)
 	})
+}
+
+// fragmentConn forces writeLocked's partial-write loop to run so concurrent
+// keepalives, requests, subscriptions, and QoS acknowledgements can interleave
+// only between complete packets.
+type fragmentConn struct{ net.Conn }
+
+func (c fragmentConn) Write(body []byte) (int, error) {
+	if len(body) > 3 {
+		body = body[:3]
+	}
+	return c.Conn.Write(body)
+}
+
+func TestConcurrentRequestsAndAcknowledgementsPreservePacketBoundaries(t *testing.T) {
+	local, broker := net.Pipe()
+	defer func() { _ = local.Close(); _ = broker.Close() }()
+	c := &Client{conn: fragmentConn{local}}
+	brokerDone := make(chan error, 1)
+	go func() {
+		counts := map[byte]int{}
+		for range 5 {
+			kind, body, err := readPacket(broker)
+			if err != nil {
+				brokerDone <- err
+				return
+			}
+			counts[kind]++
+			switch kind {
+			case 0x82:
+				if !bytes.Contains(body, field("device/TEST/report")) {
+					brokerDone <- errors.New("corrupt subscription")
+					return
+				}
+			case 0x30:
+				if !bytes.HasPrefix(body, field("device/TEST/request")) {
+					brokerDone <- errors.New("corrupt refresh")
+					return
+				}
+			case 0xc0:
+				if len(body) != 0 {
+					brokerDone <- errors.New("corrupt keepalive")
+					return
+				}
+			case 0x40:
+				if !bytes.Equal(body, []byte{0, 7}) {
+					brokerDone <- errors.New("corrupt acknowledgement")
+					return
+				}
+			default:
+				brokerDone <- errors.New("interleaved packet")
+				return
+			}
+		}
+		if counts[0x82] != 1 || counts[0x30] != 2 || counts[0xc0] != 1 || counts[0x40] != 1 {
+			brokerDone <- errors.New("missing packet")
+			return
+		}
+		brokerDone <- nil
+	}()
+	// Sending and receiving are full duplex, as on a real broker connection.
+	sent := make(chan error, 1)
+	go func() {
+		body := append(field("device/TEST/report"), 0, 7)
+		body = append(body, []byte(`{"print":{"mc_percent":42}}`)...)
+		_, err := broker.Write(append([]byte{0x32, byte(len(body))}, body...))
+		sent <- err
+	}()
+	writes := make(chan error, 4)
+	go func() { writes <- c.Subscribe([]string{"TEST"}) }()
+	go func() { writes <- c.Refresh([]string{"TEST"}) }()
+	go func() { writes <- c.Ping() }()
+	go func() {
+		id, body, err := c.Read()
+		if err == nil && (id != "TEST" || !bytes.Contains(body, []byte("42"))) {
+			err = errors.New("corrupt report")
+		}
+		writes <- err
+	}()
+	for range 4 {
+		select {
+		case err := <-writes:
+			if err != nil {
+				t.Fatal(err)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("concurrent packet operation blocked")
+		}
+	}
+	if err := <-sent; err != nil {
+		t.Fatal(err)
+	}
+	if err := <-brokerDone; err != nil {
+		t.Fatal(err)
+	}
 }

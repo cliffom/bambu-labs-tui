@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add `X` in the Notices panel to clear all notices across the farm after confirmation, saving local dismissals and clearing captured history while preserving newly arriving occurrences and events.
+
 ## 0.1.8 — Quieter idle telemetry notices
 
 - Allow ten minutes between print telemetry reports for idle and finished printers before marking them stale; retain two minutes for printing and all other states. Connection labels, unavailable filtering, and stale notices share the same policy; offline and cloud-disconnected warnings remain immediate.

@@ -69,6 +69,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `a` | Toggle local acknowledgement of the selected active notice |
 | `c` | Dismiss an active notice from the TUI, or delete a historical event |
 | `C` | Clear recent event history after confirmation |
+| `X` | Clear all notices across the farm after confirmation (Notices panel) |
 | `o` | Open the HMS troubleshooting page from notice details |
 | `r` | Request a full status snapshot |
 | `?` | Toggle help |
@@ -115,7 +116,7 @@ Acknowledgements and dismissals are queued for saving as soon as they change and
 
 Saved decisions survive discovery and partial startup telemetry until the relevant status arrives. Confirmed resolution removes the saved decision. If a condition resolves and recurs entirely while the TUI is closed, the app cannot identify that as a new occurrence without a printer-provided identifier; the matching decision is retained until resolution is observed. Recent event history remains session-only, and `--demo` neither reads nor writes saved notice decisions. If storage fails, a persistent warning reports that decisions may apply only to the current session; an unreadable or unsupported file is preserved without overwriting it.
 
-For historical events, `c` deletes the selected event; `C` clears all recent events after confirmation. Clearing history leaves active conditions intact. Local dismissal preserves printer telemetry and does not send printer-side fault-clear commands; resolve or dismiss those through the printer or Bambu's own applications.
+For historical events, `c` deletes the selected event; `C` clears all recent events after confirmation. Clearing history leaves active conditions intact. In the Notices panel, `X` opens **Clear all notices**: confirm with `y` to dismiss visible active notices locally and remove recent session events across the entire account farm, regardless of printer selection or filter. The confirmation shows counts captured when it opens; new events and new or recurring notice occurrences are preserved while telemetry continues. `n` or `Esc` cancels. An empty panel shows a message. Bulk dismissals follow the same persistence, restore, and resolution/recurrence rules as individual dismissals. Local dismissal preserves printer telemetry and does not send printer-side fault-clear commands; resolve or dismiss those through the printer or Bambu's own applications.
 
 When quitting from the dashboard, the app waits up to five seconds for pending notice and snooze saves. If a save fails or takes longer, it shows a warning: press `q` / `Ctrl+C` to exit anyway, or `Esc` to continue using the app. `Esc` while waiting cancels quitting; background saves continue. Failed saves stay visible and retry only after a new change. External cancellation can interrupt saving; if changes were not confirmed saved, a warning is printed after the terminal is restored. Abrupt process termination can lose pending changes.
 

@@ -26,6 +26,7 @@ const (
 	dialogHelp
 	dialogInspector
 	dialogClearHistory
+	dialogClearNotices
 	dialogAttention
 	dialogFilament
 	dialogDecisions
@@ -44,6 +45,8 @@ func routeFor(kind dialogKind) dialogRoute {
 		return dialogRoute{key: (*Model).inspectorKey, view: Model.inspectorView, sync: (*Model).syncInspector, clear: func(m *Model) { m.inspected = nil }}
 	case dialogClearHistory:
 		return dialogRoute{key: (*Model).clearHistoryKey, view: Model.clearHistoryView}
+	case dialogClearNotices:
+		return dialogRoute{key: (*Model).clearNoticesKey, view: Model.clearNoticesView, clear: func(m *Model) { m.clearNotices = nil }}
 	case dialogAttention:
 		return dialogRoute{key: (*Model).attentionKey, view: Model.attentionView, sync: (*Model).syncAttentionView, clear: func(m *Model) { m.attention = nil }}
 	case dialogFilament:

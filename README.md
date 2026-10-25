@@ -73,6 +73,7 @@ The dashboard header reads `BAMBU TUI vX.Y.Z / CLOUD CONNECTED / FARM`, reflecti
 | `a` / `c` | Acknowledge / dismiss a notice locally |
 | `s` | View alert preferences; snooze or resume the selected printer |
 | `n` | Manage local notice decisions: restore, mark unreviewed, or reset |
+| `X` | Clear all notices locally after confirmation (Notices panel) |
 | `!` | Reopen unreviewed action-needed alerts |
 | `r` | Refresh printer status and firmware information |
 | `Esc` | Close a dialog |

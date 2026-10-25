@@ -1,5 +1,16 @@
 # Validation record
 
+## v0.1.8 — Live job transitions and connection recovery
+
+The user's 2026-10-25 screenshot and report show real session events during a job start and network disconnects on v0.1.8. The user subsequently confirmed that they restarted their routers, providing the network-interruption context for this recovery evidence:
+
+- Printzilla (H2D, firmware `01.03.00.00`) transitioned from finished → prepare at 09:56:18, then prepare → printing at 09:56:29. At capture time (11:11:06), it showed Printing, 11% progress, layer 74 / 896, and a last report at 11:11:05.
+- A cloud-disconnected/reconnecting event at 09:51:40 resolved at 09:51:41.
+- Another cloud-disconnected/reconnecting event at 10:46:18 resolved at 10:48:17. Printer-offline events for Printy and Printzilla appeared at 10:48:17 and resolved at 10:48:28 and 10:48:31 respectively.
+- At capture time, the dashboard showed Cloud Connected, all three printer links Live, zero unavailable printers, and zero active notices. Resolved conditions remained visible in session history.
+
+This confirms observed live job-state transitions and reconnection with fresh H2D telemetry following a user-reported router restart. The report does not map individual router restarts to the two disconnect intervals or isolate monitor connectivity from printer connectivity; the offline events alone do not establish that either printer physically lost connectivity. Automatic action-needed modals, desktop/sound delivery, saved review behavior, and pause/completion remain unverified by this screenshot.
+
 ## v0.1.8 — Idle telemetry grace period
 
 The user's 2026-10-25 screenshot of an overnight v0.1.6 cloud session showed all three printers currently idle or finished and repeated stale/resolved events. For Printzilla, the displayed last-report and resolution times were 03:09:02 → 03:18:33 (9m31s), 02:57:12 → 03:01:51 (4m39s), and 03:18:35 → 03:21:27 (2m52s). These are apparent gaps inferred from event text, not a captured report-cadence trace: resolution can also reflect connection/availability changes, and the printer's state during each gap was not recorded.
@@ -44,7 +55,7 @@ Unchecked items below remain unverified. Closing the tracking issue or publishin
 - [ ] Run `login --email-code`, confirm the saved-session message, quit, and start `bambu-tui` without logging in again.
 - [ ] Compare H2D and X2D progress, remaining time, temperatures, and active filament paths against Bambu Studio during a real print.
 - [ ] Observe pause/resume and completion; verify completion is reported from telemetry rather than inferred from elapsed time.
-- [ ] Interrupt the monitor's network connection, restore it, and verify reconnection and fresh telemetry. Do not interrupt printer power or a running job.
+- [x] Verify reconnection and fresh telemetry after a network interruption. On 2026-10-25, the user reported restarting their routers; the v0.1.8 screenshot shows resolved disconnect/offline notices and subsequent fresh H2D printing telemetry. This was a router restart rather than an isolated monitor-only interruption; see the evidence above.
 - [ ] Dismiss a notice and verify routine reports do not restore it; resolve/recur a condition through normal printer use and verify it returns.
 - [ ] Run `logout`; verify the next startup requests login.
 

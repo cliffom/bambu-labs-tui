@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.9 — Clear all notices
+
 - Add `X` in the Notices panel to clear all notices across the farm after confirmation, saving local dismissals and clearing captured history while preserving newly arriving occurrences and events.
 
 ## 0.1.8 — Quieter idle telemetry notices

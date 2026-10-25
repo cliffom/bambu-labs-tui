@@ -75,6 +75,7 @@ type (
 		overview                        farmOverview
 		diagnostics                     diagnostics.Recorder
 		exportDialog                    *exportDialog
+		clearNotices                    *clearNoticesDialog
 	}
 )
 
@@ -235,6 +236,10 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		case "C":
 			if m.focus == 2 && len(m.Farm.Events) > 0 {
 				m.openDialog(dialogClearHistory)
+			}
+		case "X":
+			if m.focus == 2 {
+				m.openClearNotices()
 			}
 		case "r":
 			if m.ended {
@@ -440,7 +445,7 @@ func (m Model) dashboardView(help bool) string {
 		foot = muted.Render("↑/↓ scroll  m filament  n decisions  s alerts  q quit")
 	}
 	if m.focus == 2 {
-		foot = muted.Render("j/k select  enter view  a ack  c clear  n decisions  s alerts")
+		foot = muted.Render("j/k select  enter view  a ack  c clear  X clear all  n decisions  s alerts")
 	}
 	if m.width < 80 {
 		foot = muted.Render("j/k move  tab  m AMS  n reviews  s alerts  D diag  ?  q quit")
@@ -452,7 +457,7 @@ func (m Model) dashboardView(help bool) string {
 		foot = warning.Render(message)
 	}
 	if help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
+		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "X              Clear all notices across the farm (confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")

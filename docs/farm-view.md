@@ -12,7 +12,7 @@ The dashboard summary always describes the **whole account farm**. Filtering cha
 | Paused/failed | Printers whose last reported state is `PAUSE` or `FAILED` |
 | Idle/done | Printers whose last reported state is `IDLE` or `FINISH`; completion is reported, never inferred from progress or time |
 | Attention | Printers with at least one visible, unacknowledged actionable notice under the existing verified intervention/failed/ambiguous-pause classifier |
-| Unavailable | Printers whose cloud connection is disconnected, whose device is offline, or whose print telemetry is missing or older than 120 seconds |
+| Unavailable | Printers whose cloud connection is disconnected, whose device is offline, or whose print telemetry is missing or stale (older than ten minutes for reported `IDLE`/`FINISH`, two minutes for all other states) |
 | Notices / unreviewed | The existing visible active-notice and unacknowledged-notice counts; these count notices rather than printers |
 
 State counts use the last reported state even when the link is unavailable. Availability and attention can overlap the state groups, so summary counts are not intended to add up. Printers with unknown/other states remain in the total but are not called idle or finished. Very large counts use compact labels (`stopped` for paused/failed, `attn`, `unavail`, and `unrev`) to keep the summary readable. Snoozed/muted printer counts appear when space permits; each printer's alert status is always available in details or via `s`.

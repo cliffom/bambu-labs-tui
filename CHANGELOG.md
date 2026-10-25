@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.8 — Quieter idle telemetry notices
+
+- Allow ten minutes between print telemetry reports for idle and finished printers before marking them stale; retain two minutes for printing and all other states. Connection labels, unavailable filtering, and stale notices share the same policy; offline and cloud-disconnected warnings remain immediate.
+
 ## 0.1.7 — Accurate idle stages and terminal shutdown
 
 - Show Idle, Finished, or Failed stages from the overall job state instead of stale printing stages or negative stage codes; clear the previous stage when a new job starts.

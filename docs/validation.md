@@ -1,5 +1,13 @@
 # Validation record
 
+## v0.1.8 — Idle telemetry grace period
+
+The user's 2026-10-25 screenshot of an overnight v0.1.6 cloud session showed all three printers currently idle or finished and repeated stale/resolved events. For Printzilla, the displayed last-report and resolution times were 03:09:02 → 03:18:33 (9m31s), 02:57:12 → 03:01:51 (4m39s), and 03:18:35 → 03:21:27 (2m52s). These are apparent gaps inferred from event text, not a captured report-cadence trace: resolution can also reflect connection/availability changes, and the printer's state during each gap was not recorded.
+
+The ten-minute idle/finished threshold is a provisional policy choice covering the longest apparent gap in that evidence, rather than a verified protocol guarantee. Printing and all other states retain two minutes. Synthetic regressions cover threshold boundaries, fresh partial-report recovery, state transitions, missing telemetry, offline/cloud handling, and unavailable filtering.
+
+- [ ] Observe idle/finished report intervals on H2D/X2D, record model/firmware and actual timestamps, and confirm or adjust the ten-minute threshold. Verify stale/recovery behavior and transition to printing during normal use. The screenshot alone does not complete this check.
+
 ## v0.0.5 — User-reported live validation
 
 After the v0.0.5 release, the user confirmed that the **displayed telemetry** was validated on both their **H2D** and **X2D**. This extends the earlier H2D screenshot evidence to user-reported telemetry testing on both models.

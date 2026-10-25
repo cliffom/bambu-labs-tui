@@ -31,6 +31,34 @@ func overviewModel(t *testing.T) Model {
 	return m
 }
 
+func TestIdleFreshnessMatchesUnavailableFilterAndNotices(t *testing.T) {
+	for _, state := range []string{"IDLE", "FINISH"} {
+		t.Run(state, func(t *testing.T) {
+			m := demoModel()
+			m.Farm = farm.New(10)
+			m.Farm.Cloud(true, "", m.now)
+			m.Farm.Discover([]farm.Device{{ID: "I", Name: "Idle", Online: true}}, m.now)
+			if err := m.Farm.Report("I", []byte(fmt.Sprintf(`{"print":{"gcode_state":%q}}`, state)), m.now); err != nil {
+				t.Fatal(err)
+			}
+			at := m.now
+			m.printerFilter = filterUnavailable
+			for _, age := range []time.Duration{3 * time.Minute, 10 * time.Minute, 10*time.Minute + time.Second} {
+				m = alertTickAt(m, at.Add(age))
+				_, notice := m.Farm.Active["I/stale"]
+				unavailable := age > 10*time.Minute
+				wantCount := 0
+				if unavailable {
+					wantCount = 1
+				}
+				if notice != unavailable || m.overview.unavailable != wantCount || len(m.printerIDs) != wantCount || m.printerTelemetryCurrent(m.Farm.Printers["I"]) == unavailable {
+					t.Fatalf("age %v: notice=%v overview=%+v ids=%v", age, notice, m.overview, m.printerIDs)
+				}
+			}
+		})
+	}
+}
+
 // TestFarmSummaryAndFilters counts printers independently from visible rows and interruption policy.
 func TestFarmSummaryAndFilters(t *testing.T) {
 	m := overviewModel(t)

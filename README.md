@@ -23,12 +23,12 @@ Download an archive and the checksums file from the [latest release](https://git
 | Linux with x86-64 processor | `linux_amd64.tar.gz` |
 | Linux with ARM64 processor | `linux_arm64.tar.gz` |
 
-For example, on an Apple silicon Mac with v0.1.9 downloaded:
+For example, on an Apple silicon Mac with v0.1.10 downloaded:
 
 ```sh
-shasum -a 256 bambu-tui_v0.1.9_darwin_arm64.tar.gz
-# Compare the output with the matching line in bambu-tui_v0.1.9_checksums.txt.
-tar -xzf bambu-tui_v0.1.9_darwin_arm64.tar.gz
+shasum -a 256 bambu-tui_v0.1.10_darwin_arm64.tar.gz
+# Compare the output with the matching line in bambu-tui_v0.1.10_checksums.txt.
+tar -xzf bambu-tui_v0.1.10_darwin_arm64.tar.gz
 ./bambu-tui --version
 ```
 

@@ -34,7 +34,7 @@ func TestDecisionNavigationAndRestore(t *testing.T) {
 			break
 		}
 	}
-	m.focus = 1
+	m.focus = panelDetails
 	m.details.SetYOffset(2)
 	offset := m.details.YOffset
 	m = key(m, "n")
@@ -83,7 +83,7 @@ func TestDecisionNavigationAndRestore(t *testing.T) {
 		t.Fatal("local edits changed telemetry/history or requested printer work")
 	}
 	m = key(m, "esc")
-	if m.decisions != nil || m.focus != 1 || m.details.YOffset != offset {
+	if m.decisions != nil || m.focus != panelDetails || m.details.YOffset != offset {
 		t.Fatal("close changed dashboard focus/scroll")
 	}
 }

@@ -35,7 +35,7 @@ func attentionText(m Model) string {
 // TestAttentionBatchCloseAndRecurrence checks modal presentation and session suppression.
 func TestAttentionBatchCloseAndRecurrence(t *testing.T) {
 	m := demoModel()
-	m.focus, m.selection = 1, 1
+	m.focus, m.selection = panelDetails, 1
 	m = attentionReport(t, m, "H", runoutReport)
 	if m.attention != nil {
 		t.Fatal("modal opened before related reports could be batched")
@@ -51,7 +51,7 @@ func TestAttentionBatchCloseAndRecurrence(t *testing.T) {
 		}
 	}
 	m = key(m, "esc")
-	if m.attention != nil || m.focus != 1 || m.selection != 1 {
+	if m.attention != nil || m.focus != panelDetails || m.selection != 1 {
 		t.Fatal("close changed focus or failed to close")
 	}
 	for _, c := range m.Farm.Active {
@@ -225,7 +225,7 @@ func TestAttentionNavigationBounds(t *testing.T) {
 	}
 	m = attentionTick(attentionReport(t, demoModel(), "H", runoutReport))
 	m = key(m, "p")
-	if m.attention != nil || m.focus != 1 || m.current().ID != "H" {
+	if m.attention != nil || m.focus != panelDetails || m.current().ID != "H" {
 		t.Fatal("printer navigation failed")
 	}
 }

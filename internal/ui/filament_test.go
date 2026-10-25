@@ -46,7 +46,7 @@ func TestFilamentSummaryAndNavigation(t *testing.T) {
 	if strings.Contains(detail, "Slot 1:") || !strings.Contains(detail, "2 AMS · 1 AMS HT · 2 external") || !strings.Contains(detail, "1 low (≤10%) · 4 unknown") {
 		t.Fatalf("dashboard inventory is expanded or counts are incorrect: %s", detail)
 	}
-	m.focus = 1
+	m.focus = panelDetails
 	m.details.SetYOffset(4)
 	m = key(m, "m")
 	if m.filament == nil || m.filament.unitKey != "ams:0" || m.filament.slotID != 0 {
@@ -82,7 +82,7 @@ func TestFilamentSummaryAndNavigation(t *testing.T) {
 		t.Fatal("second external spool unreachable")
 	}
 	m = key(m, "esc")
-	if m.filament != nil || m.focus != 1 || m.selection != 0 || m.details.YOffset != 4 {
+	if m.filament != nil || m.focus != panelDetails || m.selection != 0 || m.details.YOffset != 4 {
 		t.Fatal("closing the browser changed dashboard focus/scroll")
 	}
 }

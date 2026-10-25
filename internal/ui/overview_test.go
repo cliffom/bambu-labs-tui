@@ -123,10 +123,10 @@ func TestAttentionHonorsReviewsAndNeverUsesSeverity(t *testing.T) {
 func TestLiveSortingPreservesIdentityAndScroll(t *testing.T) {
 	m := overviewModel(t)
 	m.selectPrinter("H")
-	m.focus = 1
+	m.focus = panelDetails
 	m.details.SetYOffset(4)
 	m = key(m, "S") // Name -> Attention; Alpha moves below Beta.
-	if m.current().ID != "H" || m.selection == 0 || m.focus != 1 || m.details.YOffset != 4 {
+	if m.current().ID != "H" || m.selection == 0 || m.focus != panelDetails || m.details.YOffset != 4 {
 		t.Fatal("sort lost selected identity or details scroll")
 	}
 	m = attentionReport(t, m, "I", runoutReport)
@@ -144,7 +144,7 @@ func TestLiveSortingPreservesIdentityAndScroll(t *testing.T) {
 	devices = devices[1:]
 	updated, _ = m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: devices, At: m.now})
 	m = updated.(Model)
-	if m.current() == nil || m.current().ID == "H" || m.details.YOffset != 0 || m.focus != 1 {
+	if m.current() == nil || m.current().ID == "H" || m.details.YOffset != 0 || m.focus != panelDetails {
 		t.Fatal("removed selection did not fall back safely")
 	}
 }
@@ -167,7 +167,7 @@ func TestFinishSortRejectsOldMissingAndPausedEstimates(t *testing.T) {
 		}
 	}
 	m.selectPrinter("H")
-	m.focus = 1
+	m.focus = panelDetails
 	m.details.SetYOffset(3)
 	m = attentionReport(t, m, "H", `{"print":{"mc_remaining_time":1}}`)
 	if m.printerIDs[0] != "H" || m.current().ID != "H" || m.details.YOffset != 3 {
@@ -188,10 +188,10 @@ func TestFilteringOutSelectionFallsBackAndResetsDetails(t *testing.T) {
 	m.printerFilter = filterPrinting
 	m.syncPanels()
 	m.selectPrinter("H")
-	m.focus = 1
+	m.focus = panelDetails
 	m.details.SetYOffset(4)
 	m = attentionReport(t, m, "H", `{"print":{"gcode_state":"FINISH"}}`)
-	if m.current() == nil || m.current().ID != "T" || m.details.YOffset != 0 || m.focus != 1 {
+	if m.current() == nil || m.current().ID != "T" || m.details.YOffset != 0 || m.focus != panelDetails {
 		t.Fatal("filter exit did not choose a visible fallback")
 	}
 	m = attentionReport(t, m, "T", `{"print":{"gcode_state":"IDLE"}}`)
@@ -215,7 +215,7 @@ func TestAttentionNavigationRevealsHiddenPrinter(t *testing.T) {
 		t.Fatal("filter suppressed a printer's automatic alert")
 	}
 	m = key(m, "p")
-	if m.printerFilter != filterAll || m.current() == nil || m.current().ID != "X" || m.focus != 1 {
+	if m.printerFilter != filterAll || m.current() == nil || m.current().ID != "X" || m.focus != panelDetails {
 		t.Fatal("explicit printer jump remained hidden by the filter")
 	}
 }

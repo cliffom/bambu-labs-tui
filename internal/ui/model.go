@@ -31,51 +31,52 @@ type (
 	endMsg struct{}
 
 	Model struct {
-		Farm                            *farm.State
-		Events                          <-chan monitor.Event
-		Refresh                         chan<- struct{}
-		Demo                            bool
-		width, height, selection, focus int
-		now                             time.Time
-		ended                           bool
-		toast                           string
-		toastAt                         time.Time
-		details, notices                viewport.Model
-		noticeKey                       string
-		noticeIndex                     int
-		noticeFocused                   bool
-		noticeSpans                     [][2]int
-		inspected                       *noticeItem
-		inspection                      viewport.Model
-		dialog                          dialogState
-		saveReviews                     func(map[string]farm.Review) error
-		reviewWrites                    persistence
-		snoozeWrites                    persistence
-		snoozeRevision                  uint64
-		quitting                        bool
-		quitProblem                     bool
-		quitGeneration                  uint64
-		noticeStorageError              string
-		attention                       *attentionDialog
-		attentionSeen                   map[attentionOccurrence]bool
-		attentionPending                time.Time
-		filament                        *filamentDialog
-		decisions                       *decisionsDialog
-		alertDialog                     *alertDialog
-		alertPrefs                      config.AlertPreferences
-		snoozes                         map[string]time.Time
-		saveSnoozes                     func(map[string]time.Time) error
-		snoozesDirty                    bool
-		alertStorageError               string
-		printersDiscovered              bool
-		printerIDs                      []string
-		printerMetrics                  map[string]printerOverview
-		printerFilter                   printerFilter
-		printerSort                     printerSort
-		overview                        farmOverview
-		diagnostics                     diagnostics.Recorder
-		exportDialog                    *exportDialog
-		clearNotices                    *clearNoticesDialog
+		Farm                     *farm.State
+		Events                   <-chan monitor.Event
+		Refresh                  chan<- struct{}
+		Demo                     bool
+		width, height, selection int
+		focus                    dashboardPanel
+		now                      time.Time
+		ended                    bool
+		toast                    string
+		toastAt                  time.Time
+		details, notices         viewport.Model
+		noticeKey                string
+		noticeIndex              int
+		noticeFocused            bool
+		noticeSpans              [][2]int
+		inspected                *noticeItem
+		inspection               viewport.Model
+		dialog                   dialogState
+		saveReviews              func(map[string]farm.Review) error
+		reviewWrites             persistence
+		snoozeWrites             persistence
+		snoozeRevision           uint64
+		quitting                 bool
+		quitProblem              bool
+		quitGeneration           uint64
+		noticeStorageError       string
+		attention                *attentionDialog
+		attentionSeen            map[attentionOccurrence]bool
+		attentionPending         time.Time
+		filament                 *filamentDialog
+		decisions                *decisionsDialog
+		alertDialog              *alertDialog
+		alertPrefs               config.AlertPreferences
+		snoozes                  map[string]time.Time
+		saveSnoozes              func(map[string]time.Time) error
+		snoozesDirty             bool
+		alertStorageError        string
+		printersDiscovered       bool
+		printerIDs               []string
+		printerMetrics           map[string]printerOverview
+		printerFilter            printerFilter
+		printerSort              printerSort
+		overview                 farmOverview
+		diagnostics              diagnostics.Recorder
+		exportDialog             *exportDialog
+		clearNotices             *clearNoticesDialog
 	}
 )
 
@@ -196,11 +197,11 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			m.attentionSeen = nil
 			m.syncAttention(true)
 		case "esc":
-			m.focus = 0
+			m.focus = panelPrinters
 		case "tab":
-			m.focus = (m.focus + 1) % 3
+			m.focus = (m.focus + 1) % panelCount
 		case "shift+tab":
-			m.focus = (m.focus + 2) % 3
+			m.focus = (m.focus + panelCount - 1) % panelCount
 		case "D":
 			m.openExport()
 		case "F":
@@ -218,27 +219,27 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 				m.openAlerts(p.ID)
 			}
 		case "enter":
-			if m.focus == 2 {
+			if m.focus == panelNotices {
 				m.openNotice()
 			}
 		case "a":
-			if m.focus == 2 {
+			if m.focus == panelNotices {
 				if item, ok := m.selectedNotice(); ok {
 					m.acknowledge(item, true)
 				}
 			}
 		case "c":
-			if m.focus == 2 {
+			if m.focus == panelNotices {
 				if item, ok := m.selectedNotice(); ok {
 					m.clearNotice(item)
 				}
 			}
 		case "C":
-			if m.focus == 2 && len(m.Farm.Events) > 0 {
+			if m.focus == panelNotices && len(m.Farm.Events) > 0 {
 				m.openDialog(dialogClearHistory)
 			}
 		case "X":
-			if m.focus == 2 {
+			if m.focus == panelNotices {
 				m.openClearNotices()
 			}
 		case "r":
@@ -254,7 +255,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			m.toastAt = m.now
 		default:
 			switch m.focus {
-			case 0:
+			case panelPrinters:
 				old := m.selection
 				switch v.String() {
 				case "up", "k":
@@ -269,9 +270,9 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 				if old != m.selection {
 					m.details.GotoTop()
 				}
-			case 1:
+			case panelDetails:
 				m.details, cmd = m.details.Update(msg)
-			default:
+			case panelNotices:
 				switch key {
 				case "up", "k":
 					m.moveNotice(-1, false)
@@ -393,7 +394,7 @@ func (m *Model) syncPanels() {
 	m.notices.Width = right
 	m.notices.Height = h
 	m.details.SetContent(m.detailText(left))
-	if m.focus == 2 && !m.noticeFocused {
+	if m.focus == panelNotices && !m.noticeFocused {
 		m.noticeKey = ""
 		m.noticeIndex = 0
 		m.noticeFocused = true
@@ -421,7 +422,7 @@ func (m Model) dashboardView(help bool) string {
 	header := m.dashboardHeader()
 	lines := []string{header}
 	lines = append(lines, m.overviewLines()...)
-	lines = append(lines, "", m.section("01  PRINTERS", m.focus == 0, m.width), muted.Render(m.printerListStatus()), m.tableHeader())
+	lines = append(lines, "", m.section("01  PRINTERS", m.focus == panelPrinters, m.width), muted.Render(m.printerListStatus()), m.tableHeader())
 	if len(m.printerIDs) == 0 {
 		lines = append(lines, muted.Render(m.emptyPrinterList()))
 	} else {
@@ -434,17 +435,17 @@ func (m Model) dashboardView(help bool) string {
 	lines = append(lines, "")
 	left, right, _ := m.panelSizes()
 	if m.width >= 105 {
-		titles := lipgloss.JoinHorizontal(lipgloss.Top, m.section("02  PRINTER DETAILS", m.focus == 1, left), "   ", m.section("03  NOTICES", m.focus == 2, right))
+		titles := lipgloss.JoinHorizontal(lipgloss.Top, m.section("02  PRINTER DETAILS", m.focus == panelDetails, left), "   ", m.section("03  NOTICES", m.focus == panelNotices, right))
 		panels := lipgloss.JoinHorizontal(lipgloss.Top, m.details.View(), "   ", m.notices.View())
 		lines = append(lines, titles, panels)
 	} else {
-		lines = append(lines, m.section("02  PRINTER DETAILS", m.focus == 1, left), m.details.View(), m.section("03  NOTICES", m.focus == 2, right), m.notices.View())
+		lines = append(lines, m.section("02  PRINTER DETAILS", m.focus == panelDetails, left), m.details.View(), m.section("03  NOTICES", m.focus == panelNotices, right), m.notices.View())
 	}
 	foot := muted.Render("j/k select  tab panel  m AMS  n reviews  s alerts  D export  ? help  q quit")
-	if m.focus == 1 {
+	if m.focus == panelDetails {
 		foot = muted.Render("↑/↓ scroll  m filament  n decisions  s alerts  q quit")
 	}
-	if m.focus == 2 {
+	if m.focus == panelNotices {
 		foot = muted.Render("j/k select  enter view  a ack  c clear  X clear all  n decisions  s alerts")
 	}
 	if m.width < 80 {

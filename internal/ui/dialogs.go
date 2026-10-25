@@ -130,7 +130,7 @@ func (m *Model) helpKey(key string, _ tea.Msg) tea.Cmd {
 		m.closeDialog()
 	case "esc":
 		m.closeDialog()
-		m.focus = 0
+		m.focus = panelPrinters
 	}
 	return nil
 }

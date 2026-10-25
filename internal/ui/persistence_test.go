@@ -195,7 +195,7 @@ func TestBlockedPersistenceCoalescesBothStoresWithoutBlockingReducer(t *testing.
 	case <-time.After(time.Second):
 		t.Fatal("save blocked reducer")
 	}
-	if m.focus != 0 || m.toast != "telemetry handled" {
+	if m.focus != panelPrinters || m.toast != "telemetry handled" {
 		t.Fatal("input or telemetry was not handled")
 	}
 	for i := 0; i < 8; i++ {

@@ -19,7 +19,7 @@ type Review struct {
 }
 
 func reviewText(key string, c Condition) string {
-	if key == "cloud" || strings.HasSuffix(key, "/state") {
+	if key == ConditionCloud || strings.HasSuffix(key, "/"+ConditionState) {
 		return c.Text
 	}
 	return ""
@@ -74,7 +74,7 @@ func (s *State) ReviewRevision() uint64 { return s.reviewRevision }
 
 // reviewKnown distinguishes a confirmed absence from data not received yet.
 func (s *State) reviewKnown(key string) bool {
-	if key == "cloud" {
+	if key == ConditionCloud {
 		return s.cloudObserved
 	}
 	id, family, _ := strings.Cut(key, "/")
@@ -83,20 +83,20 @@ func (s *State) reviewKnown(key string) bool {
 		return s.discovered
 	}
 	switch {
-	case family == "offline":
+	case family == ConditionOffline:
 		return true // Discovery supplies online status.
-	case family == "stale":
+	case family == ConditionStale:
 		return !p.LastReport.IsZero()
-	case family == "state":
+	case family == ConditionState:
 		return p.knowledge.printState
-	case strings.HasPrefix(family, "fault/"):
-		if strings.Count(strings.TrimPrefix(family, "fault/"), "_") == 3 {
+	case strings.HasPrefix(family, ConditionFaultPrefix):
+		if strings.Count(strings.TrimPrefix(family, ConditionFaultPrefix), "_") == HMSCodeParts-1 {
 			return p.knowledge.hmsFaults
 		}
 		return p.knowledge.printerFaults
-	case strings.HasPrefix(family, "low/"):
+	case strings.HasPrefix(family, ConditionLowPrefix):
 		var amsID, slotID int
-		if _, err := fmt.Sscanf(family, "low/%d/%d", &amsID, &slotID); err != nil {
+		if _, err := fmt.Sscanf(family, lowFilamentFamilyFormat, &amsID, &slotID); err != nil {
 			return true
 		}
 		return p.knowledge.lowFilamentKnown(amsID, slotID)

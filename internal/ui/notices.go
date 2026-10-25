@@ -10,9 +10,13 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
 type (
+	// noticeSpan records inclusive rendered line bounds for one notice.
+	noticeSpan struct{ start, end int }
+
 	// noticeItem identities stay stable as reports arrive and historical events are
 	// prepended or evicted. Active conditions and historical events are distinct.
 	noticeItem struct {
@@ -28,7 +32,7 @@ type (
 
 func openTroubleshooting(url string) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), browserTimeout)
 		defer cancel()
 		program := "xdg-open"
 		if runtime.GOOS == "darwin" {
@@ -50,11 +54,11 @@ func (m Model) noticeItems() []noticeItem {
 		if c.Dismissed {
 			continue
 		}
-		items = append(items, noticeItem{Key: "active:" + k, ActiveKey: k, Printer: c.Printer, Level: c.Level, Text: c.Text, Code: c.Code, At: c.Since, Active: true, Acknowledged: c.Acknowledged})
+		items = append(items, noticeItem{Key: activeNoticePrefix + k, ActiveKey: k, Printer: c.Printer, Level: c.Level, Text: c.Text, Code: c.Code, At: c.Since, Active: true, Acknowledged: c.Acknowledged})
 	}
 	for i := len(m.Farm.Events) - 1; i >= 0; i-- {
 		e := m.Farm.Events[i]
-		items = append(items, noticeItem{Key: fmt.Sprintf("event:%d", e.ID), EventID: e.ID, Printer: e.Printer, Level: e.Level, Text: e.Text, Code: e.Code, At: e.At})
+		items = append(items, noticeItem{Key: fmt.Sprintf(eventNoticeKeyFormat, e.ID), EventID: e.ID, Printer: e.Printer, Level: e.Level, Text: e.Text, Code: e.Code, At: e.At})
 	}
 	return items
 }
@@ -112,7 +116,7 @@ func (m *Model) focusFault() {
 		return
 	}
 	for _, item := range m.noticeItems() {
-		if strings.HasPrefix(item.ActiveKey, p.ID+"/fault/") {
+		if strings.HasPrefix(item.ActiveKey, p.ID+"/"+farm.ConditionFaultPrefix) {
 			m.focus = panelNotices
 			m.noticeFocused = true
 			m.noticeKey = item.Key
@@ -162,13 +166,13 @@ func (m *Model) clearNotice(item noticeItem) {
 
 func (m *Model) inspectorKey(key string, msg tea.Msg) tea.Cmd {
 	switch key {
-	case "esc", "enter":
+	case keyEscape, keyEnter:
 		m.dismissDialog(dialogInspector)
-	case "a":
+	case keyAcknowledge:
 		m.acknowledge(*m.inspected, true)
-	case "c":
+	case keyClear:
 		m.clearNotice(*m.inspected)
-	case "o":
+	case keyOpenURL:
 		if url := hmsURL(m.inspected.Code); url != "" {
 			return openTroubleshooting(url)
 		}
@@ -197,9 +201,9 @@ func (m *Model) noticeText(w int) string {
 		}
 		style := muted
 		switch item.Level {
-		case "error":
+		case farm.LevelError:
 			style = danger
-		case "warning":
+		case farm.LevelWarning:
 			style = warning
 		}
 		marker := "  "
@@ -214,13 +218,13 @@ func (m *Model) noticeText(w int) string {
 				style = muted
 			}
 		} else {
-			title = item.At.Local().Format("15:04:05") + "  " + title
+			title = item.At.Local().Format(time.TimeOnly) + "  " + title
 		}
 		start := len(lines)
 		text := wrapLines([]string{style.Render(marker + safe(title)), "  " + safe(item.Text), ""}, w)
 		wrapped := strings.Split(text, "\n")
 		lines = append(lines, wrapped...)
-		m.noticeSpans = append(m.noticeSpans, [2]int{start, len(lines) - 1})
+		m.noticeSpans = append(m.noticeSpans, noticeSpan{start: start, end: len(lines) - 1})
 	}
 	if !historyHeader {
 		lines = append(lines, "", muted.Render("RECENT EVENTS · THIS SESSION"), muted.Render("No recent events"))
@@ -234,26 +238,26 @@ func (m *Model) keepNoticeVisible() {
 	}
 	span := m.noticeSpans[m.noticeIndex]
 	offset := m.notices.YOffset
-	if span[1] >= offset+m.notices.Height {
-		offset = span[1] - m.notices.Height + 1
+	if span.end >= offset+m.notices.Height {
+		offset = span.end - m.notices.Height + 1
 	}
-	if span[0] < offset {
-		offset = span[0]
+	if span.start < offset {
+		offset = span.start
 	}
 	m.notices.SetYOffset(offset)
 }
 
 func hmsURL(code string) string {
 	parts := strings.Split(code, "_")
-	if len(parts) != 4 {
+	if len(parts) != farm.HMSCodeParts {
 		return ""
 	}
 	for _, p := range parts {
-		if len(p) != 4 {
+		if len(p) != farm.HMSPartHexDigits {
 			return ""
 		}
 		for _, r := range strings.ToUpper(p) {
-			if !strings.ContainsRune("0123456789ABCDEF", r) {
+			if !strings.ContainsRune(hexDigits, r) {
 				return ""
 			}
 		}
@@ -290,7 +294,7 @@ func (m *Model) syncInspector() {
 	if item.ActiveKey != "" {
 		when = "First seen"
 	}
-	lines := []string{accent.Bold(true).Render(safe(item.Printer)), "", safe(item.Text), "", "Status    " + status, "Severity  " + safe(item.Level), when + "  " + item.At.Local().Format("2006-01-02 15:04:05 MST")}
+	lines := []string{accent.Bold(true).Render(safe(item.Printer)), "", safe(item.Text), "", "Status    " + status, "Severity  " + safe(item.Level), when + "  " + item.At.Local().Format(noticeTimestampLayout)}
 	if item.Code != "" {
 		lines = append(lines, "Code      "+safe(item.Code))
 	}
@@ -306,7 +310,7 @@ func (m *Model) syncInspector() {
 	} else if item.EventID != 0 {
 		lines = append(lines, "", "c: remove this event from the current session's history")
 	}
-	m.inspection.Width = max(1, m.width-4)
+	m.inspection.Width = max(1, m.width-dialogBorderInset)
 	m.inspection.Height = max(1, m.height-6)
 	m.inspection.SetContent(wrapLines(lines, m.inspection.Width))
 }

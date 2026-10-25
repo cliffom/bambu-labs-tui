@@ -20,12 +20,12 @@ func firmwareVersion(v any) string {
 		return ""
 	}
 	parts := strings.Split(s, ".")
-	if len(parts) != 4 {
+	if len(parts) != firmwarePartCount {
 		return ""
 	}
 	nonzero := false
 	for _, part := range parts {
-		if part == "" || len(part) > 4 {
+		if part == "" || len(part) > maxFirmwarePartDigits {
 			return ""
 		}
 		for _, c := range part {
@@ -62,16 +62,16 @@ func (p *Printer) setFirmwareVersion(version string, now time.Time) {
 
 // versionReport selects only the printer OTA module, never controller/AMS versions.
 func (p *Printer) versionReport(info map[string]any, now time.Time) {
-	if str(info["command"]) != "get_version" {
+	if str(info[fieldCommand]) != versionCommand {
 		return
 	}
-	if result := str(info["result"]); result != "" && !strings.EqualFold(result, "success") {
+	if result := str(info[fieldResult]); result != "" && !strings.EqualFold(result, versionSuccess) {
 		return
 	}
-	for _, entry := range array(info["module"]) {
+	for _, entry := range array(info[fieldModule]) {
 		module := object(entry)
-		if str(module["name"]) == "ota" {
-			p.setFirmwareVersion(firmwareVersion(module["sw_ver"]), now)
+		if str(module[fieldName]) == otaModule {
+			p.setFirmwareVersion(firmwareVersion(module[fieldSwVer]), now)
 			return
 		}
 	}
@@ -79,7 +79,7 @@ func (p *Printer) versionReport(info map[string]any, now time.Time) {
 
 // firmwareReport consumes explicit upgrade metadata and preserves omitted fields.
 func (p *Printer) firmwareReport(delta map[string]any, now time.Time) {
-	value, present := delta["upgrade_state"]
+	value, present := delta[fieldUpgradeState]
 	if !present {
 		return
 	}
@@ -89,12 +89,12 @@ func (p *Printer) firmwareReport(delta map[string]any, now time.Time) {
 		p.Firmware.StatusReported = time.Time{}
 		return
 	}
-	_, hasState := update["new_version_state"]
-	_, hasList := update["new_ver_list"]
-	_, hasLegacy := update["ota_new_version_number"]
-	_, hasStatus := update["status"]
+	_, hasState := update[fieldNewVersionState]
+	_, hasList := update[fieldNewVerList]
+	_, hasLegacy := update[fieldOTANewVersionNumber]
+	_, hasStatus := update[fieldStatus]
 	if !hasState && !hasList && !hasLegacy {
-		if status := str(update["status"]); hasStatus && status != "" && status != "IDLE" {
+		if status := str(update[fieldStatus]); hasStatus && status != "" && status != firmwareUpgradeIdle {
 			p.Firmware.UpdateAvailable, p.Firmware.Available = nil, ""
 			p.Firmware.StatusReported = now
 		}
@@ -102,39 +102,39 @@ func (p *Printer) firmwareReport(delta map[string]any, now time.Time) {
 	}
 	// Use merged metadata for partial reports, but only a newly reported OTA
 	// entry can override an installed version from a later get_version response.
-	for _, entry := range array(update["new_ver_list"]) {
+	for _, entry := range array(update[fieldNewVerList]) {
 		module := object(entry)
-		if str(module["name"]) == "ota" {
-			p.setFirmwareVersion(firmwareVersion(module["cur_ver"]), now)
+		if str(module[fieldName]) == otaModule {
+			p.setFirmwareVersion(firmwareVersion(module[fieldCurVer]), now)
 		}
 	}
-	state := object(p.Raw["upgrade_state"])
+	state := object(p.Raw[fieldUpgradeState])
 	available := p.Firmware.Available
 	p.Firmware.UpdateAvailable, p.Firmware.Available = nil, ""
 	p.Firmware.StatusReported = now
-	if status := str(state["status"]); status != "" && status != "IDLE" {
+	if status := str(state[fieldStatus]); status != "" && status != firmwareUpgradeIdle {
 		return // An in-progress/failed/finished upgrade needs a fresh assessment.
 	}
-	flag := str(state["new_version_state"])
-	if flag == "2" {
+	flag := str(state[fieldNewVersionState])
+	if flag == upgradeCurrent {
 		p.Firmware.UpdateAvailable = boolean(false)
 		return
 	}
-	if flag != "1" {
+	if flag != upgradeAvailable {
 		return
 	}
 	if hasList {
 		available = ""
-		for _, entry := range array(update["new_ver_list"]) {
+		for _, entry := range array(update[fieldNewVerList]) {
 			module := object(entry)
-			if str(module["name"]) == "ota" {
-				available = firmwareVersion(module["new_ver"])
+			if str(module[fieldName]) == otaModule {
+				available = firmwareVersion(module[fieldNewVer])
 				break
 			}
 		}
 	}
 	if hasLegacy && (!hasList || available == "") {
-		available = firmwareVersion(update["ota_new_version_number"])
+		available = firmwareVersion(update[fieldOTANewVersionNumber])
 	}
 	p.Firmware.Available = available
 	if available != "" && p.Firmware.Version != "" {
@@ -145,7 +145,7 @@ func (p *Printer) firmwareReport(delta map[string]any, now time.Time) {
 // sameFirmwareVersion compares numeric components without assuming fixed padding.
 func sameFirmwareVersion(a, b string) bool {
 	left, right := strings.Split(a, "."), strings.Split(b, ".")
-	if len(left) != 4 || len(right) != 4 {
+	if len(left) != firmwarePartCount || len(right) != firmwarePartCount {
 		return false
 	}
 	for i := range left {

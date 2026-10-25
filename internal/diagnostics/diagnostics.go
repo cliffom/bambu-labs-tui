@@ -74,9 +74,9 @@ type (
 
 // Record discards malformed bodies and sanitizes valid JSON immediately without writing files.
 func (r *Recorder) Record(id string, payload []byte) {
-	report := Report{Status: "invalid_json", Structure: Shape{Type: "unavailable"}}
+	report := Report{Status: statusInvalidJSON, Structure: Shape{Type: typeUnavailable}}
 	if len(payload) > maxPayload {
-		report.Status = "too_large"
+		report.Status = statusTooLarge
 	} else {
 		var value any
 		if json.Unmarshal(payload, &value) == nil {
@@ -91,11 +91,11 @@ func (r *Recorder) Record(id string, payload []byte) {
 
 // sanitizeReport applies the schema with a fixed node budget to bound diagnostic memory.
 func sanitizeReport(value any) Report {
-	budget := 512
+	budget := sanitizeNodeBudget
 	clean, structure, ok := sanitize(value, exportSchema, &budget)
-	report := Report{Status: "sanitized", Structure: structure}
+	report := Report{Status: statusSanitized, Structure: structure}
 	if !ok {
-		report.Status = "unsupported_envelope"
+		report.Status = statusUnsupportedEnvelope
 		return report
 	}
 	report.Values, _ = clean.(map[string]any)
@@ -165,7 +165,7 @@ func (r *Recorder) Build(state *farm.State, id string, now time.Time) (Document,
 	}
 	n := fixture.Printers["TEST"]
 	normalized := normalizedPrint(n)
-	doc := Document{SchemaVersion: 1, App: app, CloudConnected: state.Connected, Printer: printer, Snapshot: snapshot, Normalized: normalized, Recent: []Report{}}
+	doc := Document{SchemaVersion: schemaVersion, App: app, CloudConnected: state.Connected, Printer: printer, Snapshot: snapshot, Normalized: normalized, Recent: []Report{}}
 	for _, entry := range r.recent {
 		if entry.id == id {
 			doc.Recent = append(doc.Recent, entry.report)
@@ -207,10 +207,10 @@ func normalizedSlots(slots []farm.Slot) []map[string]any {
 // safeState returns the same fixed state vocabulary permitted in report fixtures.
 func safeState(state string) string {
 	switch state {
-	case "RUNNING", "PAUSE", "FAILED", "FINISH", "IDLE", "PREPARE", "SLICING":
+	case farm.StateRunning, farm.StatePaused, farm.StateFailed, farm.StateFinished, farm.StateIdle, "PREPARE", "SLICING":
 		return state
 	default:
-		return "UNKNOWN"
+		return farm.StateUnknown
 	}
 }
 
@@ -229,10 +229,10 @@ func Write(destination string, doc Document) (err error) {
 	if err != nil {
 		return errors.New("encode diagnostics")
 	}
-	if err = os.MkdirAll(filepath.Dir(destination), 0o700); err != nil {
+	if err = os.MkdirAll(filepath.Dir(destination), privateDirectoryMode); err != nil {
 		return errors.New("create diagnostic directory")
 	}
-	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, privateFileMode)
 	if err != nil {
 		return errors.New("create diagnostic file")
 	}

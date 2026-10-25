@@ -42,7 +42,7 @@ const (
 func (s *State) Attention() []Attention {
 	var items []Attention
 	for id, p := range s.Printers {
-		stopped := p.State == "PAUSE" || p.State == "FAILED"
+		stopped := p.State == StatePaused || p.State == StateFailed
 		context := printerAttention{}
 		add := func(key, guidance string, categories ...string) bool {
 			c, ok := s.Active[key]
@@ -57,27 +57,27 @@ func (s *State) Attention() []Attention {
 			context.recovering = context.recovering || action.recovering
 			context.userPause = context.userPause || action.userPause
 			guidance := action.guidance
-			if !action.known && stopped && f.Level != "info" {
+			if !action.known && stopped && f.Level != LevelInfo {
 				guidance = reviewPrinter // Preserve an unknown fault without guessing its cause.
 			}
 			if guidance != "" {
 				context.intervention = true
 				category := faultAlertCategory(guidance)
-				if add(id+"/fault/"+f.Code, guidance, category) && !slices.Contains(context.categories, category) {
+				if add(id+"/"+ConditionFaultPrefix+f.Code, guidance, category) && !slices.Contains(context.categories, category) {
 					context.categories = append(context.categories, category)
 				}
 			}
 		}
 		// A reviewed fault must not re-prompt solely because its paused state was
 		// reported separately. A new failure remains independently actionable.
-		if p.State == "FAILED" || context.pauseNeedsReview(p) {
+		if p.State == StateFailed || context.pauseNeedsReview(p) {
 			categories := context.categories
-			if p.State == "FAILED" {
-				categories = []string{"failed_prints"}
+			if p.State == StateFailed {
+				categories = []string{AlertFailedPrints}
 			} else if len(categories) == 0 {
-				categories = []string{"unknown_pauses"}
+				categories = []string{AlertUnknownPauses}
 			}
-			add(id+"/state", reviewPrinter, categories...)
+			add(id+"/"+ConditionState, reviewPrinter, categories...)
 		}
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].Key < items[j].Key })
@@ -87,85 +87,59 @@ func (s *State) Attention() []Attention {
 // classifyFaultAction uses verified code metadata, never message-text matching.
 func classifyFaultAction(f Fault) faultAction {
 	code := strings.ReplaceAll(f.Code, "_", "")
-	if len(code) == 8 {
+	if len(code) == printCodeHexDigits {
 		if _, known := printErrors[code]; !known {
 			return faultAction{}
 		}
-		if code == "03008013" {
-			return faultAction{known: true, userPause: true}
+		if action, ok := printActions[code]; ok {
+			action.known = true
+			return action
 		}
 		raw, _ := strconv.ParseUint(code, 16, 32)
-		if strings.HasPrefix(code, "03") {
-			switch code {
-			case "03004006", "03008016", "0300801C", "0300801E":
-				return faultAction{known: true, guidance: checkExtrusion}
-			}
-			return faultAction{known: true}
+		prefix := raw >> faultPrefixShift
+		if prefix == amsFaultPrefix || prefix == amsHTFaultPrefix {
+			return faultAction{known: true, guidance: printFilamentGuidance[uint32(raw&faultWordMask)]}
 		}
-		if raw>>24 != 0x07 && raw>>24 != 0x18 {
-			return faultAction{known: true}
-		}
-		switch raw & 0xFFFF {
-		case 0x8011:
-			return faultAction{known: true, guidance: replaceFilament}
-		case 0x8007, 0x8013:
-			return faultAction{known: true, guidance: checkExtrusion}
-		case 0x8003, 0x8004, 0x8005, 0x8006, 0x8010:
-			return faultAction{known: true, guidance: checkFilamentPath}
-		default:
-			return faultAction{known: true}
-		}
+		return faultAction{known: true}
 	}
 	if _, known := hmsMessages[f.Code]; !known {
 		return faultAction{}
 	}
 	raw, _ := strconv.ParseUint(code, 16, 64)
-	prefix, part, detail := raw>>56, uint16(raw>>32), uint32(raw)
-	if prefix == 0x07 || prefix == 0x18 {
-		if part >= 0x2000 && part <= 0x2300 && (detail == 0x00030001 || detail == 0x00030002) {
+	prefix, part, detail := raw>>hmsPrefixShift, uint16(raw>>hmsPartShift), uint32(raw)
+	if prefix == amsFaultPrefix || prefix == amsHTFaultPrefix {
+		if part >= hmsSlotComponent && part <= hmsLastSlotComponent && (detail == hmsAutoPurge || detail == hmsBackupSwitch) {
 			return faultAction{known: true, recovering: true}
 		}
-		component := part & 0xFCFF // Remove the two slot-address bits only.
-		switch {
-		case component == 0x2000 && detail == 0x00020001, part == 0x7000 && detail == 0x00020007:
-			return faultAction{known: true, guidance: replaceFilament}
-		case component == 0x2000 && detail == 0x00020009, part == 0x7000 && (detail == 0x00020003 || detail == 0x00020006):
-			return faultAction{known: true, guidance: checkExtrusion}
-		case component == 0x1000 && detail == 0x00020002,
-			component == 0x6000 && detail == 0x00020001,
-			component == 0x7000 && (detail == 0x00020001 || detail == 0x00020002 || detail == 0x00020004 || detail == 0x00020005),
-			component == 0x2000 && (detail == 0x00020002 || detail == 0x00020003 || detail == 0x00020004 || detail == 0x00020005 || detail == 0x00020010 || detail == 0x00020011 || detail == 0x00020012 || detail == 0x00020024),
-			f.Code == "07FF_2000_0002_0008" || f.Code == "07FF_2000_0002_0009":
-			return faultAction{known: true, guidance: checkFilamentPath}
-		default:
-			return faultAction{known: true}
+		component := part & hmsComponentMask
+		for _, rule := range hmsActionRules {
+			candidate := component
+			if rule.exactPart {
+				candidate = part
+			}
+			if candidate == rule.component && slices.Contains(rule.details, detail) {
+				return faultAction{known: true, guidance: rule.guidance}
+			}
 		}
 	}
-	switch f.Code {
-	case "0300_0900_0002_0001", "0300_0900_0002_0002", "0300_0900_0002_0003", "0300_1A00_0002_0002":
-		return faultAction{known: true, guidance: checkExtrusion}
-	case "0300_0100_0001_0007", "0500_0600_0002_0032", "0500_0300_0001_0023", "0500_0300_0001_0025":
-		return faultAction{known: true, guidance: reviewPrinter}
-	default:
-		return faultAction{known: true} // Maintenance and other catalogue entries need no automatic modal.
-	}
+	return faultAction{known: true, guidance: hmsExactGuidance[f.Code]}
 }
 
 // faultAlertCategory derives categories from verified action metadata, never printer text.
 func faultAlertCategory(guidance string) string {
 	switch guidance {
 	case replaceFilament, checkFilamentPath:
-		return "filament"
+		return AlertFilament
 	case checkExtrusion:
-		return "extrusion"
+		return AlertExtrusion
 	default:
-		return "printer_faults"
+		return AlertPrinterFaults
 	}
 }
 
 // pauseNeedsReview waits for complete snapshots and excludes explained pauses.
 func (a printerAttention) pauseNeedsReview(p *Printer) bool {
-	if p.State != "PAUSE" {
+	if p.State != StatePaused {
 		return false
 	}
 	if len(a.categories) > 0 {
@@ -174,7 +148,7 @@ func (a printerAttention) pauseNeedsReview(p *Printer) bool {
 	if a.intervention || a.recovering || a.userPause {
 		return false
 	}
-	_, hmsReported := p.Raw["hms"]
-	_, printErrorReported := p.Raw["print_error"]
+	_, hmsReported := p.Raw[fieldHMS]
+	_, printErrorReported := p.Raw[fieldPrintError]
 	return hmsReported && printErrorReported
 }

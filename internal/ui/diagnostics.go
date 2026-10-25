@@ -42,11 +42,11 @@ func (m *Model) openExport() {
 func (m *Model) exportKey(key string, msg tea.Msg) tea.Cmd {
 	d := m.exportDialog
 	switch key {
-	case "esc":
+	case keyEscape:
 		m.closeDialog()
-	case "q", "ctrl+c":
+	case keyQuit, keyInterrupt:
 		return nil
-	case "enter":
+	case keyEnter:
 		if d.writing || d.saved || d.destination == "" {
 			return nil
 		}

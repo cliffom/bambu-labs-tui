@@ -55,7 +55,7 @@ func (m Model) detailText(w int) string {
 	finish := "—"
 	if eta, ok := p.ETA(); ok {
 		finish = eta.Local().Format("15:04")
-		if eta.Local().Format("2006-01-02") != m.now.Local().Format("2006-01-02") {
+		if eta.Local().Format(time.DateOnly) != m.now.Local().Format(time.DateOnly) {
 			finish = eta.Local().Format("Mon 02 Jan · 15:04")
 		}
 		if !m.finishTimeCurrent(p) {
@@ -94,13 +94,13 @@ func (m Model) detailText(w int) string {
 	}
 	lastReport := "Waiting for first status"
 	if !p.LastReport.IsZero() {
-		lastReport = p.LastReport.Local().Format("15:04:05")
+		lastReport = p.LastReport.Local().Format(time.TimeOnly)
 	}
 	lines = append(lines, detailField("Last Report", lastReport, w, muted), "", accent.Render("FILAMENT · m details"))
 	lines = append(lines, m.filamentSummary(p, w)...)
 	var visibleFaults []farm.Fault
 	for _, f := range p.Faults {
-		if c := m.Farm.Active[p.ID+"/fault/"+f.Code]; !c.Dismissed {
+		if c := m.Farm.Active[p.ID+"/"+farm.ConditionFaultPrefix+f.Code]; !c.Dismissed {
 			visibleFaults = append(visibleFaults, f)
 		}
 	}
@@ -109,9 +109,9 @@ func (m Model) detailText(w int) string {
 		for _, f := range visibleFaults {
 			style := muted
 			switch f.Level {
-			case "error":
+			case farm.LevelError:
 				style = danger
-			case "warning":
+			case farm.LevelWarning:
 				style = warning
 			}
 			lines = append(lines, detailField("Notice", safe(f.Text), w, style), detailField("Fault Code", safe(f.Code), w, muted))
@@ -147,6 +147,6 @@ func (m Model) firmwareStatus(p *farm.Printer) string {
 // firmwareAssessmentCurrent requires fresh OTA metadata as well as live printer telemetry.
 func (m Model) firmwareAssessmentCurrent(p *farm.Printer) bool {
 	return m.printerTelemetryCurrent(p) &&
-		m.now.Sub(p.Firmware.StatusReported) <= 120*time.Second &&
-		m.now.Sub(p.Firmware.VersionReported) <= 120*time.Second
+		m.now.Sub(p.Firmware.StatusReported) <= firmwareMaxAge &&
+		m.now.Sub(p.Firmware.VersionReported) <= firmwareMaxAge
 }

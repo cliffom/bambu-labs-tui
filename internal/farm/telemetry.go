@@ -15,27 +15,27 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		return false, fmt.Errorf("invalid status JSON")
 	}
-	p.versionReport(object(envelope["info"]), now)
-	delta, ok := envelope["print"].(map[string]any)
+	p.versionReport(object(envelope[fieldInfo]), now)
+	delta, ok := envelope[fieldPrint].(map[string]any)
 	if !ok {
 		return false, nil
 	}
-	if cmd := str(delta["command"]); cmd != "" && cmd != "push_status" {
+	if cmd := str(delta[fieldCommand]); cmd != "" && cmd != statusCommand {
 		return false, nil
 	}
 	previous := p.State
 	// A new job must not inherit the previous job's ETA/progress while its
 	// initial report is still arriving.
-	task := str(delta["task_id"])
-	newTask := task != "" && str(p.Raw["task_id"]) != "" && task != str(p.Raw["task_id"])
-	restart := str(delta["gcode_state"]) == "RUNNING" && (previous == "FINISH" || previous == "FAILED" || previous == "IDLE")
+	task := str(delta[fieldTaskID])
+	newTask := task != "" && str(p.Raw[fieldTaskID]) != "" && task != str(p.Raw[fieldTaskID])
+	restart := str(delta[fieldGcodeState]) == StateRunning && (previous == StateFinished || previous == StateFailed || previous == StateIdle)
 	if newTask || restart {
-		for _, k := range []string{"mc_remaining_time", "mc_percent", "layer_num", "total_layer_num", "subtask_name", "gcode_file", "stg_cur"} {
+		for _, k := range []string{fieldRemainingMinutes, fieldProgress, fieldLayerNum, fieldTotalLayerNum, fieldSubtaskName, fieldGcodeFile, fieldStage} {
 			delete(p.Raw, k)
 		}
 		p.RemainingReported = time.Time{}
 	}
-	if _, ok := delta["mc_remaining_time"]; ok {
+	if _, ok := delta[fieldRemainingMinutes]; ok {
 		p.RemainingReported = now
 	}
 	merge(p.Raw, delta)
@@ -58,38 +58,38 @@ func merge(dst, src map[string]any) {
 			dst[k] = old
 			continue
 		}
-		if a, ok := v.([]any); ok && len(a) > 0 && (k == "ams" || k == "tray" || k == "info" || k == "vir_slot") {
+		if a, ok := v.([]any); ok && len(a) > 0 && (k == fieldAMS || k == fieldTray || k == fieldInfo || k == fieldVirSlot) {
 			old, _ := dst[k].([]any)
 			for _, item := range a {
 				obj, ok := item.(map[string]any)
 				if !ok {
 					continue
 				}
-				id, hasID := obj["id"]
+				id, hasID := obj[fieldID]
 				if !hasID {
 					continue
 				}
 				// Legacy firmware reports an empty tray as just its identity.
-				if k == "tray" && len(obj) == 1 {
-					obj["state"] = float64(0)
+				if k == fieldTray && len(obj) == 1 {
+					obj[fieldState] = float64(0)
 				}
 				found := false
 				for _, existing := range old {
 					m, ok := existing.(map[string]any)
-					if ok && str(m["id"]) == str(id) {
-						if k == "tray" {
-							if state := number(obj["state"]); state != nil && *state&1 == 0 {
+					if ok && str(m[fieldID]) == str(id) {
+						if k == fieldTray {
+							if state := number(obj[fieldState]); state != nil && *state&spoolPresentMask == 0 {
 								for key := range m {
-									if key != "id" {
+									if key != fieldID {
 										delete(m, key)
 									}
 								}
 							}
 						}
 						// A replacement spool must not inherit the previous spool's estimate.
-						for _, identity := range []string{"tray_uuid", "tag_uid"} {
+						for _, identity := range []string{fieldTrayUUID, fieldTagUID} {
 							if v := str(obj[identity]); v != "" && v != str(m[identity]) {
-								delete(m, "remain")
+								delete(m, fieldRemain)
 							}
 						}
 						merge(m, obj)
@@ -156,5 +156,5 @@ func packed(v any) Temperature {
 	if n == nil {
 		return Temperature{}
 	}
-	return Temperature{ptr(*n & 0xffff), ptr((*n >> 16) & 0xffff)}
+	return Temperature{ptr(*n & temperatureMask), ptr((*n >> temperatureBits) & temperatureMask)}
 }

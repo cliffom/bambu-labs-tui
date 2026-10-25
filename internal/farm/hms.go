@@ -5,15 +5,15 @@ import "fmt"
 // hmsLevel maps Bambu Studio's DevHMS message level in the upper word of code:
 // 1=fatal, 2=serious, 3=common, 4=info. Unknown levels remain visible as warnings.
 func hmsLevel(code int) string {
-	switch uint32(code) >> 16 {
-	case 1, 2:
-		return "error"
-	case 3:
-		return "warning"
-	case 4:
-		return "info"
+	switch uint32(code) >> faultWordBits {
+	case hmsFatal, hmsSerious:
+		return LevelError
+	case hmsCommon:
+		return LevelWarning
+	case hmsInfo:
+		return LevelInfo
 	default:
-		return "warning"
+		return LevelWarning
 	}
 }
 
@@ -44,8 +44,8 @@ func buildHMSMessages() map[string]string {
 // AMSLabel labels conventional AMS units and AMS HT units (IDs 128..135).
 // Labels are separate from transport IDs so nozzle/slot assignments stay intact.
 func AMSLabel(id int) string {
-	if id >= 128 && id <= 135 {
-		return fmt.Sprintf("AMS HT %d", id-127)
+	if id >= AMSHTFirstID && id <= AMSHTLastID {
+		return fmt.Sprintf("AMS HT %d", id-AMSHTFirstID+1)
 	}
 	return fmt.Sprintf("AMS %d", id+1)
 }

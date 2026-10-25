@@ -13,6 +13,8 @@ import (
 	"github.com/cliffom/bambu-tui/internal/atomicfile"
 )
 
+const schemaVersion = 1
+
 type (
 	// Store holds one account/region snapshot of printer snooze deadlines.
 	Store struct{ Path string }
@@ -47,7 +49,7 @@ func (s Store) Load() (map[string]time.Time, error) {
 	if err := json.Unmarshal(b, &d); err != nil {
 		return nil, fmt.Errorf("decode saved alert snoozes: %w", err)
 	}
-	if d.Version != 1 {
+	if d.Version != schemaVersion {
 		return nil, fmt.Errorf("unsupported saved alert version %d", d.Version)
 	}
 	for id, until := range d.Snoozes {
@@ -61,7 +63,7 @@ func (s Store) Load() (map[string]time.Time, error) {
 // Save replaces the complete snapshot atomically so interruption cannot leave a
 // partially written document. Readers see either the old file or the new file.
 func (s Store) Save(snoozes map[string]time.Time) error {
-	b, err := json.MarshalIndent(document{Version: 1, Snoozes: snoozes}, "", "  ")
+	b, err := json.MarshalIndent(document{Version: schemaVersion, Snoozes: snoozes}, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode saved alert snoozes: %w", err)
 	}

@@ -8,61 +8,61 @@ import (
 func (p *Printer) normalize() {
 	r := p.Raw
 	p.knowledge = decodeConditionKnowledge(r)
-	p.State = str(r["gcode_state"])
+	p.State = str(r[fieldGcodeState])
 	if p.State == "" {
-		p.State = "UNKNOWN"
+		p.State = StateUnknown
 	}
-	p.Job = str(r["subtask_name"])
+	p.Job = str(r[fieldSubtaskName])
 	if p.Job == "" {
-		p.Job = str(r["gcode_file"])
+		p.Job = str(r[fieldGcodeFile])
 	}
-	p.Progress = bounded(r["mc_percent"], 0, 100)
-	p.Remaining = bounded(r["mc_remaining_time"], 0, 525600)
-	p.Layer = bounded(r["layer_num"], 0, 1000000)
-	p.TotalLayers = bounded(r["total_layer_num"], 0, 1000000)
+	p.Progress = bounded(r[fieldProgress], 0, MaxPercent)
+	p.Remaining = bounded(r[fieldRemainingMinutes], 0, MaxRemainingMinutes)
+	p.Layer = bounded(r[fieldLayerNum], 0, MaxLayers)
+	p.TotalLayers = bounded(r[fieldTotalLayerNum], 0, MaxLayers)
 	p.Stage = "Unknown"
 	// The print stage can linger after a job ends (including code 0,
 	// "Printing"). The overall job state takes precedence in terminal states.
 	switch p.State {
-	case "IDLE":
+	case StateIdle:
 		p.Stage = "Idle"
-	case "FINISH":
+	case StateFinished:
 		p.Stage = "Finished"
-	case "FAILED":
+	case StateFailed:
 		p.Stage = "Failed"
 	default:
-		if n := number(r["stg_cur"]); n != nil && *n >= 0 {
+		if n := number(r[fieldStage]); n != nil && *n >= 0 {
 			p.Stage = stage(*n)
 		}
 	}
-	p.Bed = Temperature{number(r["bed_temper"]), number(r["bed_target_temper"])}
-	p.Chamber = Temperature{number(r["chamber_temper"]), number(r["chamber_target_temper"])}
-	d := object(r["device"])
-	if v := object(object(d["bed"])["info"])["temp"]; v != nil {
+	p.Bed = Temperature{number(r[fieldBedTemper]), number(r[fieldBedTargetTemper])}
+	p.Chamber = Temperature{number(r[fieldChamberTemper]), number(r[fieldChamberTargetTemper])}
+	d := object(r[fieldDevice])
+	if v := object(object(d[fieldBed])[fieldInfo])[fieldTemp]; v != nil {
 		p.Bed = packed(v)
-	} else if v := d["bed_temp"]; v != nil {
+	} else if v := d[fieldBedTemp]; v != nil {
 		p.Bed = packed(v)
 	}
-	if v := object(object(d["ctc"])["info"])["temp"]; v != nil {
+	if v := object(object(d[fieldCtc])[fieldInfo])[fieldTemp]; v != nil {
 		p.Chamber = packed(v)
 	}
-	ex := object(d["extruder"])
+	ex := object(d[fieldExtruder])
 	active := -1
-	if n := number(ex["state"]); n != nil {
-		active = (*n >> 4) & 15
+	if n := number(ex[fieldState]); n != nil {
+		active = (*n >> activeNozzleShift) & nozzleIndexMask
 	}
 	p.Nozzles = nil
-	for _, item := range array(ex["info"]) {
+	for _, item := range array(ex[fieldInfo]) {
 		m := object(item)
-		id := number(m["id"])
-		if id == nil || *id < 0 || *id > 1 {
+		id := number(m[fieldID])
+		if id == nil || *id < 0 || *id > LeftNozzle {
 			continue
 		}
-		n := Nozzle{ID: *id, Temperature: packed(m["temp"]), Active: *id == active}
-		if snow := number(m["snow"]); snow != nil {
-			n.AMS = ptr(*snow >> 8)
-			n.Slot = ptr(*snow & 15)
-			if *n.Slot > 3 {
+		n := Nozzle{ID: *id, Temperature: packed(m[fieldTemp]), Active: *id == active}
+		if snow := number(m[fieldSnow]); snow != nil {
+			n.AMS = ptr(*snow >> unitIDShift)
+			n.Slot = ptr(*snow & slotIDMask)
+			if *n.Slot >= SlotsPerAMS {
 				n.AMS = nil
 				n.Slot = nil
 			}
@@ -70,36 +70,36 @@ func (p *Printer) normalize() {
 		p.Nozzles = append(p.Nozzles, n)
 	}
 	if len(p.Nozzles) == 0 {
-		n := Nozzle{ID: 0, Temperature: Temperature{number(r["nozzle_temper"]), number(r["nozzle_target_temper"])}, Active: true}
-		if t := number(object(r["ams"])["tray_now"]); t != nil {
+		n := Nozzle{ID: 0, Temperature: Temperature{number(r[fieldNozzleTemper]), number(r[fieldNozzleTargetTemper])}, Active: true}
+		if t := number(object(r[fieldAMS])[fieldTrayNow]); t != nil {
 			switch {
-			case *t == 254:
-				n.AMS = ptr(255)
+			case *t == legacyExternalTray:
+				n.AMS = ptr(LegacyExternalSpoolID)
 				n.Slot = ptr(0)
-			case *t == 255:
-			case *t >= 128:
+			case *t == legacyNoTray:
+			case *t >= AMSHTFirstID:
 				n.AMS = ptr(*t)
 				n.Slot = ptr(0)
 			default:
-				n.AMS = ptr(*t >> 2)
-				n.Slot = ptr(*t & 3)
+				n.AMS = ptr(*t >> legacySlotBits)
+				n.Slot = ptr(*t & legacySlotMask)
 			}
 		}
 		p.Nozzles = []Nozzle{n}
 	}
 	sort.Slice(p.Nozzles, func(i, j int) bool { return p.Nozzles[i].ID < p.Nozzles[j].ID })
 	p.AMS = nil
-	for _, item := range array(object(r["ams"])["ams"]) {
+	for _, item := range array(object(r[fieldAMS])[fieldAMS]) {
 		m := object(item)
-		id := number(m["id"])
+		id := number(m[fieldID])
 		if id == nil {
 			continue
 		}
-		a := AMS{ID: *id, Humidity: bounded(m["humidity_raw"], 0, 100), Temperature: bounded(m["temp"], 0, 100)}
-		for _, item := range array(m["tray"]) {
+		a := AMS{ID: *id, Humidity: bounded(m[fieldHumidityRaw], 0, MaxPercent), Temperature: bounded(m[fieldTemp], 0, maxAMSTemperature)}
+		for _, item := range array(m[fieldTray]) {
 			v := object(item)
 			slot := decodeSlot(v)
-			if number(v["id"]) == nil {
+			if number(v[fieldID]) == nil {
 				continue
 			}
 			for _, n := range p.Nozzles {
@@ -114,21 +114,21 @@ func (p *Printer) normalize() {
 	}
 	sort.Slice(p.AMS, func(i, j int) bool { return p.AMS[i].ID < p.AMS[j].ID })
 	p.External = nil
-	virtual := array(r["vir_slot"])
+	virtual := array(r[fieldVirSlot])
 	legacyExternal := false
-	if v := object(r["vt_tray"]); len(virtual) == 0 && v != nil {
+	if v := object(r[fieldVtTray]); len(virtual) == 0 && v != nil {
 		virtual = []any{v}
 		legacyExternal = true
 	}
 	for _, item := range virtual {
 		v := object(item)
-		id := number(v["id"])
+		id := number(v[fieldID])
 		if id == nil {
 			continue
 		}
 		slot := decodeSlot(v)
 		if legacyExternal {
-			slot.ID = 255
+			slot.ID = LegacyExternalSpoolID
 		}
 		slot.Remaining = nil
 		for _, n := range p.Nozzles {
@@ -139,22 +139,22 @@ func (p *Printer) normalize() {
 		p.External = append(p.External, slot)
 	}
 	p.Faults = nil
-	if n := number(r["print_error"]); n != nil && *n != 0 {
+	if n := number(r[fieldPrintError]); n != nil && *n != 0 {
 		code := fmt.Sprintf("%08X", uint32(*n))
 		text := "Printer error"
 		if t, ok := printErrors[code]; ok {
 			text = t
 		}
-		p.Faults = append(p.Faults, Fault{Code: code[:4] + "_" + code[4:], Text: text, Level: "error"})
+		p.Faults = append(p.Faults, Fault{Code: code[:faultWordHexDigits] + "_" + code[faultWordHexDigits:], Text: text, Level: LevelError})
 	}
-	for _, item := range array(r["hms"]) {
+	for _, item := range array(r[fieldHMS]) {
 		m := object(item)
-		a, c := number(m["attr"]), number(m["code"])
+		a, c := number(m[fieldAttr]), number(m[fieldCode])
 		if a == nil || c == nil {
 			continue
 		}
 		code := hmsCode(uint32(*a), uint32(*c))
-		text := str(m["message"])
+		text := str(m[fieldMessage])
 		if text == "" {
 			var known bool
 			text, known = hmsMessages[code]
@@ -170,22 +170,22 @@ func (p *Printer) normalize() {
 }
 
 func decodeSlot(m map[string]any) Slot {
-	id := number(m["id"])
-	s := Slot{Material: str(m["tray_type"]), Color: str(m["tray_color"]), Remaining: bounded(m["remain"], 0, 100)}
+	id := number(m[fieldID])
+	s := Slot{Material: str(m[fieldTrayType]), Color: str(m[fieldTrayColor]), Remaining: bounded(m[fieldRemain], 0, MaxPercent)}
 	if id != nil {
 		s.ID = *id
 	}
-	if n := number(m["state"]); n != nil {
+	if n := number(m[fieldState]); n != nil {
 		// Presence is physical spool presence. Reading/scanning states can
 		// contain a spool without trustworthy metadata or remaining quantity.
-		s.Present = boolean(*n&1 != 0)
-		if *n != 3 && *n&8 == 0 {
+		s.Present = boolean(*n&spoolPresentMask != 0)
+		if *n != spoolReadyState && *n&spoolMetadataMask == 0 {
 			s.Material = ""
 			s.Color = ""
 			s.Remaining = nil
 		}
 	} else if s.Material != "" {
-		s.Present = boolean(s.Material != "Empty")
+		s.Present = boolean(s.Material != emptyMaterial)
 	}
 	if s.Present != nil && !*s.Present {
 		s.Material = ""

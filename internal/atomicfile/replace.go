@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 )
 
+const privateDirectoryMode = 0o700
+
 // Replace writes data to a private temporary file in the destination directory,
 // syncs and closes it, then renames it over path. Readers see the old or complete
 // new file. Newly created directories use 0700 and files use 0600; existing
@@ -14,7 +16,7 @@ import (
 // failure. Callers own encoding, validation, and store-specific error context.
 func Replace(path, pattern string, data []byte) error {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err := os.MkdirAll(dir, privateDirectoryMode); err != nil {
 		return fmt.Errorf("create directory: %w", err)
 	}
 	file, err := os.CreateTemp(dir, pattern)

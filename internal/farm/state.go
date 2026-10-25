@@ -111,7 +111,7 @@ func (s *State) Discover(devices []Device, now time.Time) {
 		}
 		p := s.Printers[d.ID]
 		if p == nil {
-			p = &Printer{Raw: map[string]any{}, State: "UNKNOWN"}
+			p = &Printer{Raw: map[string]any{}, State: StateUnknown}
 			s.Printers[d.ID] = p
 		}
 		p.Device = d
@@ -153,10 +153,10 @@ func (s *State) Report(id string, payload []byte, now time.Time) error {
 	if err != nil || !applied {
 		return err
 	}
-	if previous != p.State && previous != "UNKNOWN" {
-		level := "info"
-		if p.State == "FAILED" || p.State == "PAUSE" {
-			level = "warning"
+	if previous != p.State && previous != StateUnknown {
+		level := LevelInfo
+		if p.State == StateFailed || p.State == StatePaused {
+			level = LevelWarning
 		}
 		s.add(Event{At: now, Printer: p.Name, Level: level, Text: "Print state: " + label(previous) + " → " + label(p.State)})
 	}
@@ -165,31 +165,31 @@ func (s *State) Report(id string, payload []byte, now time.Time) error {
 }
 
 func (p *Printer) Stale(now time.Time) bool {
-	threshold := 2 * time.Minute
-	if p.State == "IDLE" || p.State == "FINISH" {
-		threshold = 10 * time.Minute
+	threshold := activeTelemetryMaxAge
+	if p.State == StateIdle || p.State == StateFinished {
+		threshold = idleTelemetryMaxAge
 	}
 	return p.LastReport.IsZero() || now.Sub(p.LastReport) > threshold
 }
 
 func (p *Printer) Connection(now time.Time, cloud bool) string {
 	if !cloud {
-		return "Cloud disconnected"
+		return ConnectionCloudDisconnected
 	}
 	if !p.Online {
-		return "Offline"
+		return ConnectionOffline
 	}
 	if p.LastReport.IsZero() {
-		return "Waiting for data"
+		return ConnectionWaiting
 	}
 	if p.Stale(now) {
-		return "Stale"
+		return ConnectionStale
 	}
-	return "Live"
+	return ConnectionLive
 }
 
 func (p *Printer) ETA() (time.Time, bool) {
-	if p.State != "RUNNING" || p.Remaining == nil || p.RemainingReported.IsZero() {
+	if p.State != StateRunning || p.Remaining == nil || p.RemainingReported.IsZero() {
 		return time.Time{}, false
 	}
 	return p.RemainingReported.Add(time.Duration(*p.Remaining) * time.Minute), true
@@ -199,8 +199,8 @@ func (s *State) add(e Event) {
 	s.nextEventID++
 	e.ID = s.nextEventID
 	s.Events = append(s.Events, e)
-	if len(s.Events) > 500 {
-		s.Events = append([]Event(nil), s.Events[len(s.Events)-500:]...)
+	if len(s.Events) > MaxEventHistory {
+		s.Events = append([]Event(nil), s.Events[len(s.Events)-MaxEventHistory:]...)
 	}
 }
 

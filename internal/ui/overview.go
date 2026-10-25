@@ -12,6 +12,8 @@ import (
 )
 
 type (
+	attentionPriority uint8
+
 	printerFilter int
 
 	printerSort int
@@ -26,6 +28,14 @@ type (
 	farmOverview struct {
 		printing, stopped, attention, unavailable, idle int
 	}
+)
+
+const (
+	priorityAction attentionPriority = iota
+	priorityStopped
+	priorityUnavailable
+	priorityPrinting
+	priorityOther
 )
 
 const (
@@ -55,7 +65,7 @@ func (m Model) selectedPrinterID() string {
 // finishTimeCurrent excludes unavailable printers and old remaining-time estimates.
 func (m Model) finishTimeCurrent(p *farm.Printer) bool {
 	_, reported := p.ETA()
-	return reported && m.printerTelemetryCurrent(p) && m.now.Sub(p.RemainingReported) <= 120*time.Second
+	return reported && m.printerTelemetryCurrent(p) && m.now.Sub(p.RemainingReported) <= etaMaxAge
 }
 
 // syncPrinterList builds a view without changing farm discovery order or alert eligibility.
@@ -86,11 +96,11 @@ func (m *Model) syncPrinterList() {
 			m.overview.unavailable++
 		}
 		switch p.State {
-		case "RUNNING":
+		case farm.StateRunning:
 			m.overview.printing++
-		case "PAUSE", "FAILED":
+		case farm.StatePaused, farm.StateFailed:
 			m.overview.stopped++
-		case "IDLE", "FINISH":
+		case farm.StateIdle, farm.StateFinished:
 			m.overview.idle++
 		}
 		if m.matchesFilter(p, metric) {
@@ -114,7 +124,7 @@ func (m Model) matchesFilter(p *farm.Printer, metric printerOverview) bool {
 	case filterAttention:
 		return metric.attention
 	case filterPrinting:
-		return p.State == "RUNNING"
+		return p.State == farm.StateRunning
 	case filterUnavailable:
 		return metric.unavailable
 	default:
@@ -123,19 +133,19 @@ func (m Model) matchesFilter(p *farm.Printer, metric printerOverview) bool {
 }
 
 // attentionRank puts unreviewed actionable printers ahead of stopped or unavailable ones.
-func (m Model) attentionRank(id string) int {
+func (m Model) attentionRank(id string) attentionPriority {
 	p, metric := m.Farm.Printers[id], m.printerMetrics[id]
 	switch {
 	case metric.attention:
-		return 0
-	case p.State == "PAUSE" || p.State == "FAILED":
-		return 1
+		return priorityAction
+	case p.State == farm.StatePaused || p.State == farm.StateFailed:
+		return priorityStopped
 	case metric.unavailable:
-		return 2
-	case p.State == "RUNNING":
-		return 3
+		return priorityUnavailable
+	case p.State == farm.StateRunning:
+		return priorityPrinting
 	default:
-		return 4
+		return priorityOther
 	}
 }
 
@@ -185,8 +195,8 @@ func (m *Model) selectPrinter(id string) bool {
 
 // printerListStatus keeps active settings, counts, and shortcuts visible at minimum width.
 func (m Model) printerListStatus() string {
-	filters := []string{"All", "Attention", "Printing", "Unavailable"}
-	sorts := []string{"Name", "Attention", "State", "Finish"}
+	filters := [filterCount]string{filterAll: "All", filterAttention: "Attention", filterPrinting: "Printing", filterUnavailable: "Unavailable"}
+	sorts := [sortCount]string{sortName: "Name", sortAttention: "Attention", sortState: "State", sortFinish: "Finish"}
 	return fmt.Sprintf("Filter: %s (%d/%d) F · Sort: %s S", filters[m.printerFilter], len(m.printerIDs), len(m.Farm.Printers), sorts[m.printerSort])
 }
 

@@ -142,3 +142,29 @@ func TestAttentionCategoriesFollowVerifiedMetadata(t *testing.T) {
 		})
 	}
 }
+
+// Operation-level rules must not expand into slot variants or unknown codes.
+func TestFaultActionCatalogueBoundaries(t *testing.T) {
+	for _, tc := range []struct {
+		code, guidance          string
+		known, recovery, manual bool
+	}{
+		{code: "0700_7000_0002_0007", guidance: replaceFilament, known: true},
+		{code: "0700_7100_0002_0007"},
+		{code: "1807_7000_0002_0006", guidance: checkExtrusion, known: true},
+		{code: "1807_7300_0002_0006"},
+		{code: "1807_2300_0002_0009", guidance: checkExtrusion, known: true},
+		{code: "0700_2300_0003_0002", known: true, recovery: true},
+		{code: "07FF_2000_0002_0008", guidance: checkFilamentPath, known: true},
+		{code: "0300_8013", known: true, manual: true},
+		{code: "FFFFFFFF"},
+		{code: "0700_2000_0002_FFFF"},
+	} {
+		t.Run(tc.code, func(t *testing.T) {
+			got := classifyFaultAction(Fault{Code: tc.code})
+			if got.known != tc.known || got.guidance != tc.guidance || got.recovering != tc.recovery || got.userPause != tc.manual {
+				t.Fatalf("action = %+v; want guidance %q, known %v, recovery %v, manual %v", got, tc.guidance, tc.known, tc.recovery, tc.manual)
+			}
+		})
+	}
+}

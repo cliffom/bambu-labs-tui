@@ -104,14 +104,14 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 	defer close(out)
 	minimum, maximum := r.RetryMin, r.RetryMax
 	if minimum == 0 {
-		minimum = time.Second
+		minimum = defaultRetryMin
 	}
 	if maximum == 0 {
-		maximum = 60 * time.Second
+		maximum = defaultRetryMax
 	}
 	healthyAfter := r.HealthyAfter
 	if healthyAfter == 0 {
-		healthyAfter = 2 * time.Minute
+		healthyAfter = defaultHealthyAfter
 	}
 	delay := minimum
 	for ctx.Err() == nil {
@@ -144,7 +144,7 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 		if !emit(ctx, out, Event{Kind: EventConnection, Problem: problem}) {
 			return
 		}
-		wait := delay + time.Duration(rand.Float64()*float64(delay)/4)
+		wait := delay + time.Duration(rand.Float64()*float64(delay)/retryJitterDivisor)
 		pause := r.wait
 		if pause == nil {
 			pause = waitRetry
@@ -152,7 +152,7 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 		if !pause(ctx, wait) {
 			return
 		}
-		delay = min(delay*2, maximum)
+		delay = min(delay*retryMultiplier, maximum)
 	}
 }
 
@@ -180,7 +180,7 @@ func (r *Runner) clock() time.Time {
 func (r *Runner) write(ctx context.Context, conn Transport, request writeRequest) error {
 	timeout := r.WriteTimeout
 	if timeout == 0 {
-		timeout = 10 * time.Second
+		timeout = defaultWriteTimeout
 	}
 	operation, cancel := context.WithTimeout(ctx, timeout)
 	closed := make(chan struct{})
@@ -243,10 +243,10 @@ func (r *Runner) watch(ctx context.Context, conn Transport, devices []farm.Devic
 
 	pollEvery, pingEvery := r.PollInterval, r.PingInterval
 	if pollEvery == 0 {
-		pollEvery = 60 * time.Second
+		pollEvery = defaultPollInterval
 	}
 	if pingEvery == 0 {
-		pingEvery = 25 * time.Second
+		pingEvery = defaultPingInterval
 	}
 	pollTicks, pingTicks := r.pollTicks, r.pingTicks
 	if pollTicks == nil {

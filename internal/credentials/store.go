@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/cliffom/bambu-tui/internal/cloud"
 )
@@ -41,7 +40,7 @@ func (s Store) service() string {
 	if s.serviceName != "" {
 		return s.serviceName
 	}
-	return "com.github.cliffom.bambu-tui." + s.Region
+	return servicePrefix + s.Region
 }
 
 func (s Store) os() string {
@@ -63,7 +62,7 @@ func (e commandError) Error() string {
 }
 
 func run(input, name string, args ...string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), nativeCommandTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdin = strings.NewReader(input)
@@ -101,7 +100,7 @@ func (s Store) Load() (cloud.Session, error) {
 	}
 	if err != nil {
 		var exit commandError
-		if errors.As(err, &exit) && ((s.os() == "darwin" && exit.code == 44) || (s.os() == "linux" && exit.code == 1)) {
+		if errors.As(err, &exit) && ((s.os() == "darwin" && exit.code == keychainNotFoundExit) || (s.os() == "linux" && exit.code == secretToolNotFoundExit)) {
 			return cloud.Session{}, ErrNotFound
 		}
 		return cloud.Session{}, failure("cannot read saved session", err)
@@ -133,7 +132,7 @@ func (s Store) Save(session cloud.Session) error {
 		input := "add-generic-password -U -s " + quote(s.service()) + " -a session -w " + quote(string(b)) + "\n"
 		// Apple's security -i has a 4096-byte line buffer. EOF preserves the
 		// add command's exit code; a trailing quit would erase its failure.
-		if len(input) > 4095 {
+		if len(input) > keychainMaxInputBytes {
 			return fmt.Errorf("%w: session exceeds macOS security input limit; use --session", ErrUnavailable)
 		}
 		_, err = s.run(input, "/usr/bin/security", "-i")
@@ -178,7 +177,7 @@ func (s Store) Delete() error {
 
 // Probe uses a disposable service name and never accesses Bambu credentials.
 func Probe(region string) error {
-	id := make([]byte, 12)
+	id := make([]byte, probeRandomBytes)
 	if _, err := rand.Read(id); err != nil {
 		return errors.New("cannot create credential probe")
 	}

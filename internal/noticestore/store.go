@@ -13,6 +13,8 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
+const schemaVersion = 1
+
 type (
 	Store struct{ Path string }
 
@@ -44,7 +46,7 @@ func (s Store) Load() (map[string]farm.Review, error) {
 	if err := json.Unmarshal(b, &d); err != nil {
 		return nil, fmt.Errorf("decode saved notices: %w", err)
 	}
-	if d.Version != 1 {
+	if d.Version != schemaVersion {
 		return nil, fmt.Errorf("unsupported saved notice version %d", d.Version)
 	}
 	return d.Reviews, nil
@@ -53,7 +55,7 @@ func (s Store) Load() (map[string]farm.Review, error) {
 // Save replaces the complete snapshot atomically so interruption cannot leave a
 // partially written document. Readers see either the old file or the new file.
 func (s Store) Save(reviews map[string]farm.Review) error {
-	b, err := json.MarshalIndent(document{Version: 1, Reviews: reviews}, "", "  ")
+	b, err := json.MarshalIndent(document{Version: schemaVersion, Reviews: reviews}, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode saved notices: %w", err)
 	}

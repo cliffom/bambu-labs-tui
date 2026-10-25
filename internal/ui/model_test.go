@@ -258,7 +258,7 @@ func TestNoticeSelectionScrollsIntoViewAndBounds(t *testing.T) {
 		t.Fatal("selection did not scroll")
 	}
 	span := m.noticeSpans[m.noticeIndex]
-	if span[0] < m.notices.YOffset || span[0] >= m.notices.YOffset+m.notices.Height {
+	if span.start < m.notices.YOffset || span.start >= m.notices.YOffset+m.notices.Height {
 		t.Fatal("selection outside viewport")
 	}
 	for _, size := range [][2]int{{120, 30}, {80, 24}, {60, 18}} {

@@ -107,10 +107,10 @@ func (m Model) acceptsKey(key string) bool {
 	if m.terminalFits() || routeFor(m.dialog.active).compact {
 		return true
 	}
-	if key == "esc" {
+	if key == keyEscape {
 		return true
 	}
-	return !m.hasOpenDialog() && (key == "q" || key == "ctrl+c")
+	return !m.hasOpenDialog() && (key == keyQuit || key == keyInterrupt)
 }
 
 // syncDialogs collects pending attention, then refreshes the owner and its
@@ -126,9 +126,9 @@ func (m *Model) syncDialogs() {
 
 func (m *Model) helpKey(key string, _ tea.Msg) tea.Cmd {
 	switch key {
-	case "?":
+	case keyHelp:
 		m.closeDialog()
-	case "esc":
+	case keyEscape:
 		m.closeDialog()
 		m.focus = panelPrinters
 	}
@@ -137,11 +137,11 @@ func (m *Model) helpKey(key string, _ tea.Msg) tea.Cmd {
 
 func (m *Model) clearHistoryKey(key string, _ tea.Msg) tea.Cmd {
 	switch key {
-	case "y", "Y":
+	case keyYes, keyYesUpper:
 		m.Farm.ClearEvents()
 		m.closeDialog()
 		m.toast, m.toastAt = "Session event history cleared; active conditions remain", m.now
-	case "esc", "n", "N":
+	case keyEscape, keyDecisionsOrNo, keyNoUpper:
 		m.closeDialog()
 	}
 	return nil
@@ -150,10 +150,10 @@ func (m *Model) clearHistoryKey(key string, _ tea.Msg) tea.Cmd {
 // Shutdown owns input through both the bounded wait and the explicit exit choice.
 func (m *Model) shutdownKey(key string, _ tea.Msg) tea.Cmd {
 	switch key {
-	case "esc":
+	case keyEscape:
 		// Cancel shutdown, keeping in-flight saves serialized and tracked.
 		m.closeDialog()
-	case "q", "ctrl+c":
+	case keyQuit, keyInterrupt:
 		if m.quitProblem {
 			return tea.Quit
 		}

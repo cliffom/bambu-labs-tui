@@ -32,7 +32,7 @@ func (m Model) decisionItems() []decisionItem {
 	for key, r := range m.Farm.Reviews() {
 		id, _, _ := strings.Cut(key, "/")
 		printer := "Printer " + id
-		if key == "cloud" {
+		if key == farm.ConditionCloud {
 			printer = "Farm"
 		} else if p := m.Farm.Printers[id]; p != nil {
 			printer = p.Name
@@ -65,11 +65,11 @@ func pendingDecisionDescription(key string) string {
 	if !found {
 		family = key
 	}
-	parts := strings.Split(family, "/")
-	if len(parts) == 3 && parts[0] == "low" {
-		unit, unitErr := strconv.ParseUint(parts[1], 10, 8)
-		slot, slotErr := strconv.ParseUint(parts[2], 10, 8)
-		if unitErr == nil && slotErr == nil && slot < 4 {
+	unitText, slotText, low := strings.Cut(strings.TrimPrefix(family, farm.ConditionLowPrefix), "/")
+	if strings.HasPrefix(family, farm.ConditionLowPrefix) && low {
+		unit, unitErr := strconv.ParseUint(unitText, 10, 8)
+		slot, slotErr := strconv.ParseUint(slotText, 10, 8)
+		if unitErr == nil && slotErr == nil && slot < farm.SlotsPerAMS {
 			return fmt.Sprintf("%s slot %d: saved low-filament decision (awaiting telemetry)", farm.AMSLabel(int(unit)), slot+1)
 		}
 	}
@@ -106,23 +106,23 @@ func (m *Model) decisionsKey(key string, msg tea.Msg) tea.Cmd {
 	d := m.decisions
 	if d.confirmReset {
 		switch key {
-		case "y", "Y":
+		case keyYes, keyYesUpper:
 			m.Farm.ResetReviews()
 			m.attentionSeen = nil
 			d.confirmReset = false
 			m.toast, m.toastAt = "Local notice decisions reset; printer state unchanged", m.now
-		case "n", "N", "esc":
+		case keyDecisionsOrNo, keyNoUpper, keyEscape:
 			d.confirmReset = false
 		}
 		return nil
 	}
 	switch key {
-	case "esc", "n":
+	case keyEscape, keyDecisionsOrNo:
 		m.closeDialog()
 		return nil
-	case "q", "ctrl+c":
+	case keyQuit, keyInterrupt:
 		return nil
-	case "R":
+	case keyResetReviews:
 		d.confirmReset = len(m.decisionItems()) > 0
 		return nil
 	}
@@ -132,23 +132,23 @@ func (m *Model) decisionsKey(key string, msg tea.Msg) tea.Cmd {
 		return nil
 	}
 	switch key {
-	case "up", "k", "down", "j", "home", "g", "end", "G":
+	case keyUp, keyVimUp, keyDown, keyVimDown, keyHome, keyFirst, keyEnd, keyLast:
 		switch key {
-		case "up", "k":
+		case keyUp, keyVimUp:
 			d.index--
-		case "down", "j":
+		case keyDown, keyVimDown:
 			d.index++
-		case "home", "g":
+		case keyHome, keyFirst:
 			d.index = 0
-		case "end", "G":
+		case keyEnd, keyLast:
 			d.index = len(items) - 1
 		}
 		d.index = max(0, min(len(items)-1, d.index))
 		d.key = items[d.index].key
 		d.view.GotoTop()
-	case "r", "u":
+	case keyRefreshOrRestore, keyUnreviewOrUnsnooze:
 		changed := false
-		if key == "r" {
+		if key == keyRefreshOrRestore {
 			changed = m.Farm.RestoreDismissal(item.key)
 		} else {
 			changed = m.Farm.MarkUnreviewed(item.key)
@@ -198,7 +198,7 @@ func (m *Model) syncDecisions() {
 		lines = []string{
 			accent.Render(fmt.Sprintf("Notice %d / %d", d.index+1, len(items))), "",
 			field("Printer", item.printer), field("Description", item.text), field("Code", code), field("Severity", item.level), field("Status", status),
-			field("Visibility", dismissal), field("Review", acknowledgement), field("First Seen", item.review.Since.Local().Format("2006-01-02 15:04:05 MST")), "",
+			field("Visibility", dismissal), field("Review", acknowledgement), field("First Seen", item.review.Since.Local().Format(noticeTimestampLayout)), "",
 			"r restores visibility and keeps acknowledgement.", "u marks unreviewed and keeps visibility / dismissal.", "Actionable unreviewed notices can alert after this view closes.", "Restoring a notice does not recreate deleted history.",
 		}
 	}

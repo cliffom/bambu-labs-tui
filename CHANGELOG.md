@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.11 — Named domain and protocol values
+
+- Replace embedded printer states, severities, alert categories, condition identities, telemetry keys, protocol fields, and timing/size policies with named definitions in their owning packages.
+- Use named notice spans, shared table-column records, cloud endpoint/request records, and fault-action catalogue records to clarify field meanings and keep consumers consistent.
+- Preserve wire and saved formats, partial/unknown telemetry handling, keyboard controls, timing thresholds, and displayed output.
+
 ## 0.1.10 — Restore navigation after clearing notices
 
 - Return focus to Printers after `X` clears the Notices panel or finds it already empty, so arrow keys and `j/k` immediately navigate printers. Keep focus in Notices when newer entries remain.

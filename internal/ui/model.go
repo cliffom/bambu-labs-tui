@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	accent   = lipgloss.NewStyle().Foreground(lipgloss.Color("#A3E4BB"))
+	accent   = lipgloss.NewStyle().Foreground(lipgloss.Color(accentColor))
 	muted    = lipgloss.NewStyle().Foreground(lipgloss.Color("#929BA8"))
 	white    = lipgloss.NewStyle().Foreground(lipgloss.Color("#E4E9F0"))
-	warning  = lipgloss.NewStyle().Foreground(lipgloss.Color("#F4BA72"))
+	warning  = lipgloss.NewStyle().Foreground(lipgloss.Color(warningColor))
 	danger   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF8087"))
 	selected = lipgloss.NewStyle().Background(lipgloss.Color("#263B36")).Foreground(lipgloss.Color("#D9F5E4"))
 )
@@ -45,7 +45,7 @@ type (
 		noticeKey                string
 		noticeIndex              int
 		noticeFocused            bool
-		noticeSpans              [][2]int
+		noticeSpans              []noticeSpan
 		inspected                *noticeItem
 		inspection               viewport.Model
 		dialog                   dialogState
@@ -94,12 +94,14 @@ func (m Model) WithNoticePersistence(save func(map[string]farm.Review) error, lo
 }
 
 func New(state *farm.State, events <-chan monitor.Event, refresh chan<- struct{}, demo bool) Model {
-	m := Model{alertPrefs: config.DefaultAlerts(), Farm: state, Events: events, Refresh: refresh, Demo: demo, width: 100, height: 32, now: time.Now(), details: viewport.New(50, 15), notices: viewport.New(40, 15), inspection: viewport.New(90, 26)}
+	m := Model{alertPrefs: config.DefaultAlerts(), Farm: state, Events: events, Refresh: refresh, Demo: demo, width: defaultWidth, height: defaultHeight, now: time.Now(), details: viewport.New(initialDetailsWidth, initialDetailsHeight), notices: viewport.New(initialNoticesWidth, initialNoticesHeight), inspection: viewport.New(initialInspectorWidth, initialInspectorHeight)}
 	m.syncPanels()
 	return m
 }
 
-func tick() tea.Cmd { return tea.Tick(time.Second, func(t time.Time) tea.Msg { return tickMsg(t) }) }
+func tick() tea.Cmd {
+	return tea.Tick(dashboardTickInterval, func(t time.Time) tea.Msg { return tickMsg(t) })
+}
 
 func (m Model) wait() tea.Cmd {
 	return func() tea.Msg {
@@ -152,7 +154,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	case tickMsg:
 		m.now = time.Time(v)
 		m.Farm.Reconcile(m.now)
-		if m.now.Sub(m.toastAt) > 8*time.Second {
+		if m.now.Sub(m.toastAt) > toastLifetime {
 			m.toast = ""
 		}
 		cmd = tick()
@@ -188,61 +190,61 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, cmd
 		}
 		switch v.String() {
-		case "q", "ctrl+c":
+		case keyQuit, keyInterrupt:
 			cmd = m.beginShutdown()
 			return m, cmd
-		case "?":
+		case keyHelp:
 			m.openDialog(dialogHelp)
-		case "!":
+		case keyAttention:
 			m.attentionSeen = nil
 			m.syncAttention(true)
-		case "esc":
+		case keyEscape:
 			m.focus = panelPrinters
-		case "tab":
+		case keyNextPanel:
 			m.focus = (m.focus + 1) % panelCount
-		case "shift+tab":
+		case keyPreviousPanel:
 			m.focus = (m.focus + panelCount - 1) % panelCount
-		case "D":
+		case keyDiagnostics:
 			m.openExport()
-		case "F":
+		case keyFilter:
 			m.printerFilter = (m.printerFilter + 1) % filterCount
-		case "S":
+		case keySort:
 			m.printerSort = (m.printerSort + 1) % sortCount
-		case "f":
+		case keyFault:
 			m.focusFault()
-		case "m":
+		case keyFilament:
 			m.openFilament()
-		case "n":
+		case keyDecisionsOrNo:
 			m.openDecisions()
-		case "s":
+		case keyAlerts:
 			if p := m.current(); p != nil {
 				m.openAlerts(p.ID)
 			}
-		case "enter":
+		case keyEnter:
 			if m.focus == panelNotices {
 				m.openNotice()
 			}
-		case "a":
+		case keyAcknowledge:
 			if m.focus == panelNotices {
 				if item, ok := m.selectedNotice(); ok {
 					m.acknowledge(item, true)
 				}
 			}
-		case "c":
+		case keyClear:
 			if m.focus == panelNotices {
 				if item, ok := m.selectedNotice(); ok {
 					m.clearNotice(item)
 				}
 			}
-		case "C":
+		case keyClearHistory:
 			if m.focus == panelNotices && len(m.Farm.Events) > 0 {
 				m.openDialog(dialogClearHistory)
 			}
-		case "X":
+		case keyClearAll:
 			if m.focus == panelNotices {
 				m.openClearNotices()
 			}
-		case "r":
+		case keyRefreshOrRestore:
 			if m.ended {
 				m.toast = "Reconnect by restarting bambu-tui after signing in"
 			} else {
@@ -258,13 +260,13 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			case panelPrinters:
 				old := m.selection
 				switch v.String() {
-				case "up", "k":
+				case keyUp, keyVimUp:
 					m.selection = max(0, m.selection-1)
-				case "down", "j":
+				case keyDown, keyVimDown:
 					m.selection = min(max(0, len(m.printerIDs)-1), m.selection+1)
-				case "home", "g":
+				case keyHome, keyFirst:
 					m.selection = 0
-				case "end", "G":
+				case keyEnd, keyLast:
 					m.selection = max(0, len(m.printerIDs)-1)
 				}
 				if old != m.selection {
@@ -274,18 +276,18 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 				m.details, cmd = m.details.Update(msg)
 			case panelNotices:
 				switch key {
-				case "up", "k":
+				case keyUp, keyVimUp:
 					m.moveNotice(-1, false)
-				case "down", "j":
+				case keyDown, keyVimDown:
 					m.moveNotice(1, false)
-				case "home", "g":
+				case keyHome, keyFirst:
 					m.moveNotice(0, true)
-				case "end", "G":
+				case keyEnd, keyLast:
 					m.moveNotice(len(m.noticeItems())-1, true)
-				case "pgup", "ctrl+u":
-					m.moveNotice(-max(1, m.notices.Height/3), false)
-				case "pgdown", "ctrl+d":
-					m.moveNotice(max(1, m.notices.Height/3), false)
+				case keyPageUp, keyHalfPageUp:
+					m.moveNotice(-max(1, m.notices.Height/estimatedNoticeRows), false)
+				case keyPageDown, keyHalfPageDown:
+					m.moveNotice(max(1, m.notices.Height/estimatedNoticeRows), false)
 				}
 			}
 		}
@@ -300,7 +302,7 @@ func (m Model) current() *farm.Printer {
 
 // terminalFits reports whether the dashboard and dialogs fit at their minimum size.
 func (m Model) terminalFits() bool {
-	return m.width >= 60 && m.height >= 18
+	return m.width >= minimumWidth && m.height >= minimumHeight
 }
 
 // printerTelemetryCurrent reports whether displayed telemetry has a live, fresh source.
@@ -340,8 +342,8 @@ func duration(n *int) string {
 	if n == nil {
 		return "Unknown"
 	}
-	if *n >= 60 {
-		return fmt.Sprintf("%dh %02dm", *n/60, *n%60)
+	if *n >= minutesPerHour {
+		return fmt.Sprintf("%dh %02dm", *n/minutesPerHour, *n%minutesPerHour)
 	}
 	return fmt.Sprintf("%dm", *n)
 }
@@ -358,30 +360,32 @@ func temp(t farm.Temperature) string {
 
 func stateLabel(s string) string {
 	switch s {
-	case "RUNNING":
+	case farm.StateRunning:
 		return "Printing"
-	case "PAUSE":
+	case farm.StatePaused:
 		return "Paused"
-	case "FINISH":
+	case farm.StateFinished:
 		return "Finished"
-	case "FAILED":
+	case farm.StateFailed:
 		return "Failed"
-	case "IDLE":
+	case farm.StateIdle:
 		return "Idle"
-	case "UNKNOWN":
+	case farm.StateUnknown:
 		return "Unknown"
 	default:
 		return strings.ToLower(s)
 	}
 }
 
-func (m Model) tableRows() int { return min(max(1, len(m.printerIDs)), max(1, min(6, m.height/5))) }
+func (m Model) tableRows() int {
+	return min(max(1, len(m.printerIDs)), max(1, min(maximumPrinterRows, m.height/printerRowsHeightDivisor)))
+}
 
 func (m Model) panelSizes() (int, int, int) {
-	available := max(4, m.height-m.tableRows()-11)
-	if m.width >= 105 {
-		left := (m.width - 3) * 57 / 100
-		return left, m.width - left - 3, available
+	available := max(minimumPanelRows, m.height-m.tableRows()-dashboardReservedRows)
+	if m.width >= sideBySideWidth {
+		left := (m.width - panelGap) * detailsWidthPercent / farm.MaxPercent
+		return left, m.width - left - panelGap, available
 	}
 	return m.width, m.width, max(1, available/2)
 }
@@ -434,7 +438,7 @@ func (m Model) dashboardView(help bool) string {
 	}
 	lines = append(lines, "")
 	left, right, _ := m.panelSizes()
-	if m.width >= 105 {
+	if m.width >= sideBySideWidth {
 		titles := lipgloss.JoinHorizontal(lipgloss.Top, m.section("02  PRINTER DETAILS", m.focus == panelDetails, left), "   ", m.section("03  NOTICES", m.focus == panelNotices, right))
 		panels := lipgloss.JoinHorizontal(lipgloss.Top, m.details.View(), "   ", m.notices.View())
 		lines = append(lines, titles, panels)
@@ -448,7 +452,7 @@ func (m Model) dashboardView(help bool) string {
 	if m.focus == panelNotices {
 		foot = muted.Render("j/k select  enter view  a ack  c clear  X clear all  n decisions  s alerts")
 	}
-	if m.width < 80 {
+	if m.width < compactTableWidth {
 		foot = muted.Render("j/k move  tab  m AMS  n reviews  s alerts  D diag  ?  q quit")
 	}
 	if m.toast != "" {
@@ -495,16 +499,18 @@ func (m Model) section(title string, focused bool, w int) string {
 }
 
 func (m Model) tableHeader() string {
-	if m.width < 80 {
-		return muted.Render(cell("  PRINTER", 21) + cell("STATE", 12) + cell("PROGRESS", 12) + "LEFT")
+	c := columnsFor(m.width)
+	if m.width < compactTableWidth {
+		return muted.Render(cell("  PRINTER", c.name) + cell("STATE", c.state) + cell("PROGRESS", c.progress) + "LEFT")
 	}
-	if m.width < 110 {
-		return muted.Render(cell("  PRINTER", 22) + cell("LINK", 10) + cell("STATE", 12) + cell("DONE", 9) + cell("LEFT", 11) + "FINISH")
+	if m.width < fullTableWidth {
+		return muted.Render(cell("  PRINTER", c.name) + cell("LINK", c.link) + cell("STATE", c.state) + cell("DONE", c.progress) + cell("LEFT", c.remaining) + "FINISH")
 	}
-	return muted.Render(cell("  PRINTER", 23) + cell("LINK", 10) + cell("STATE", 12) + cell("PROGRESS", 16) + cell("LEFT", 11) + cell("FINISH", 10) + cell("!", 4) + "JOB")
+	return muted.Render(cell("  PRINTER", c.name) + cell("LINK", c.link) + cell("STATE", c.state) + cell("PROGRESS", c.progress) + cell("LEFT", c.remaining) + cell("FINISH", c.finish) + cell("!", c.notices) + "JOB")
 }
 
 func (m Model) printerRow(i int) string {
+	c := columnsFor(m.width)
 	p := m.Farm.Printers[m.printerIDs[i]]
 	marker := "  "
 	if i == m.selection {
@@ -514,16 +520,16 @@ func (m Model) printerRow(i int) string {
 	state := stateLabel(p.State)
 	left := duration(p.Remaining)
 	connection := p.Connection(m.now, m.Farm.Connected)
-	if connection == "Cloud disconnected" {
+	if connection == farm.ConnectionCloudDisconnected {
 		connection = "No cloud"
 	}
-	if connection == "Waiting for data" {
+	if connection == farm.ConnectionWaiting {
 		connection = "Waiting"
 	}
 	eta := "—"
 	if t, ok := p.ETA(); ok {
 		eta = t.Local().Format("15:04")
-		if t.Local().Format("2006-01-02") != m.now.Local().Format("2006-01-02") {
+		if t.Local().Format(time.DateOnly) != m.now.Local().Format(time.DateOnly) {
 			eta = t.Local().Format("Mon 15:04")
 		}
 	}
@@ -534,18 +540,18 @@ func (m Model) printerRow(i int) string {
 		eta = "~" + eta
 	}
 	var row string
-	if m.width < 80 {
-		row = cell(name, 21) + cell(state, 12) + cell(percent(p.Progress), 12) + left
-	} else if m.width < 110 {
-		row = cell(name, 22) + cell(connection, 10) + cell(state, 12) + cell(percent(p.Progress), 9) + cell(left, 11) + eta
+	if m.width < compactTableWidth {
+		row = cell(name, c.name) + cell(state, c.state) + cell(percent(p.Progress), c.progress) + left
+	} else if m.width < fullTableWidth {
+		row = cell(name, c.name) + cell(connection, c.link) + cell(state, c.state) + cell(percent(p.Progress), c.progress) + cell(left, c.remaining) + eta
 	} else {
-		bar := "────────"
+		bar := strings.Repeat("─", progressBarWidth)
 		if p.Progress != nil {
-			n := *p.Progress * 8 / 100
-			bar = strings.Repeat("━", n) + strings.Repeat("─", 8-n)
+			n := *p.Progress * progressBarWidth / farm.MaxPercent
+			bar = strings.Repeat("━", n) + strings.Repeat("─", progressBarWidth-n)
 		}
 		notices := m.printerMetrics[p.ID].notices
-		row = cell(name, 23) + cell(connection, 10) + cell(state, 12) + cell(bar+" "+percent(p.Progress), 16) + cell(left, 11) + cell(eta, 10) + cell(fmt.Sprint(notices), 4) + safe(p.Job)
+		row = cell(name, c.name) + cell(connection, c.link) + cell(state, c.state) + cell(bar+" "+percent(p.Progress), c.progress) + cell(left, c.remaining) + cell(eta, c.finish) + cell(fmt.Sprint(notices), c.notices) + safe(p.Job)
 	}
 	row = cell(row, m.width)
 	if i == m.selection {

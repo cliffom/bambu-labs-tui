@@ -32,7 +32,7 @@ func main() {
 }
 
 func run(args []string) error {
-	command := "monitor"
+	command := commandMonitor
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		command = args[0]
 		args = args[1:]
@@ -70,16 +70,16 @@ func run(args []string) error {
 		fmt.Println(buildinfo.String())
 		return nil
 	}
-	if command != "monitor" && command != "login" && command != "logout" && command != "doctor" {
+	if command != commandMonitor && command != commandLogin && command != commandLogout && command != commandDoctor {
 		return errors.New("unknown command; use login, logout, doctor, or --help")
 	}
-	if command != "login" && (*token || *code || *sessionOnly) {
+	if command != commandLogin && (*token || *code || *sessionOnly) {
 		return errors.New("--token, --email-code, and --session are login options")
 	}
 	if *token && *code {
 		return errors.New("choose --token or --email-code")
 	}
-	if *demo && command != "monitor" {
+	if *demo && command != commandMonitor {
 		return errors.New("--demo is a dashboard option")
 	}
 	cfg, err := config.Load(*configPath)
@@ -90,7 +90,7 @@ func run(args []string) error {
 	defer cancel()
 	store := credentials.Store{Region: cfg.Region}
 	api := cloud.New(cfg.Region)
-	if command == "doctor" {
+	if command == commandDoctor {
 		fmt.Println(buildinfo.String())
 		fmt.Println("Checking OS credential persistence with a disposable test entry…")
 		if err := credentials.Probe(cfg.Region); err != nil {
@@ -99,7 +99,7 @@ func run(args []string) error {
 		fmt.Println("Credential save, reload, and deletion succeeded. No Bambu credentials were used.")
 		return nil
 	}
-	if command == "logout" {
+	if command == commandLogout {
 		if err := store.Delete(); err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func run(args []string) error {
 	if *demo {
 		return dashboard(ctx, cfg, nil, cloud.Session{}, true)
 	}
-	if command == "login" {
+	if command == commandLogin {
 		session, err := authenticate(ctx, api, *token, *code)
 		if err != nil {
 			return err
@@ -172,7 +172,7 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 				return cloud.Session{}, err
 			}
 		}
-		if result.LoginType == "verifyCode" && result.AccessToken == "" {
+		if result.LoginType == cloud.LoginVerifyCode && result.AccessToken == "" {
 			// The password login endpoint has already sent the initial email code.
 			verification, err := prompt(ctx, "Email verification code (already sent)", true)
 			if err != nil {
@@ -183,7 +183,7 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 				return cloud.Session{}, err
 			}
 		}
-		if result.LoginType == "tfa" && result.AccessToken == "" {
+		if result.LoginType == cloud.LoginTFA && result.AccessToken == "" {
 			verification, err := prompt(ctx, "Authenticator code", true)
 			if err != nil {
 				return cloud.Session{}, err
@@ -205,7 +205,7 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, session cloud.Session, demo bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	events := make(chan monitor.Event, 128)
+	events := make(chan monitor.Event, eventBufferSize)
 	refresh := make(chan struct{}, 1)
 	done := make(chan struct{})
 	go func() {
@@ -289,11 +289,11 @@ func (m promptModel) Init() tea.Cmd { return textinput.Blink }
 func (m promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.String() {
-		case "ctrl+c", "esc":
+		case keyQuit, keyEscape:
 			m.cancelled = true
 			m.done = true
 			return m, tea.Quit
-		case "enter":
+		case keyEnter:
 			if m.input.Value() != "" {
 				m.done = true
 				return m, tea.Quit
@@ -318,8 +318,8 @@ func (m promptModel) View() string {
 func prompt(ctx context.Context, label string, secret bool) (string, error) {
 	input := textinput.New()
 	input.Focus()
-	input.Width = 48
-	input.CharLimit = 16384
+	input.Width = promptWidth
+	input.CharLimit = promptCharacterLimit
 	if secret {
 		input.EchoMode = textinput.EchoPassword
 		input.EchoCharacter = '•'

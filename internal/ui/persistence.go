@@ -87,7 +87,7 @@ func (m *Model) beginShutdown() tea.Cmd {
 	m.quitting = true
 	m.quitGeneration++
 	generation := m.quitGeneration
-	return tea.Tick(5*time.Second, func(time.Time) tea.Msg { return shutdownTimeoutMsg(generation) })
+	return tea.Tick(shutdownSaveTimeout, func(time.Time) tea.Msg { return shutdownTimeoutMsg(generation) })
 }
 
 // HasUnsavedPersistence lets the caller report interrupted/forced shutdowns after

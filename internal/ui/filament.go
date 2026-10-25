@@ -39,14 +39,14 @@ func filamentUnits(p *farm.Printer) []filamentUnit {
 	for _, unit := range p.AMS {
 		slots := append([]farm.Slot(nil), unit.Slots...)
 		sort.Slice(slots, func(i, j int) bool { return slots[i].ID < slots[j].ID })
-		units = append(units, filamentUnit{key: fmt.Sprintf("ams:%d", unit.ID), name: farm.AMSLabel(unit.ID), id: unit.ID, humidity: unit.Humidity, temperature: unit.Temperature, slots: slots})
+		units = append(units, filamentUnit{key: fmt.Sprintf(amsUnitKeyFormat, unit.ID), name: farm.AMSLabel(unit.ID), id: unit.ID, humidity: unit.Humidity, temperature: unit.Temperature, slots: slots})
 	}
 	// Sort by numeric wire identity rather than display label (AMS 2 before AMS 10).
 	sort.Slice(units, func(i, j int) bool { return units[i].id < units[j].id })
 	if len(p.External) > 0 {
 		slots := append([]farm.Slot(nil), p.External...)
 		sort.Slice(slots, func(i, j int) bool { return slots[i].ID > slots[j].ID })
-		units = append(units, filamentUnit{key: "external", name: "External spools", external: true, slots: slots})
+		units = append(units, filamentUnit{key: externalUnitKey, name: "External spools", external: true, slots: slots})
 	}
 	return units
 }
@@ -58,7 +58,7 @@ func (m Model) filamentSummary(p *farm.Printer, width int) []string {
 	}
 	regular, ht, low, unknown := 0, 0, 0, 0
 	for _, unit := range p.AMS {
-		if unit.ID >= 128 && unit.ID <= 135 {
+		if unit.ID >= farm.AMSHTFirstID && unit.ID <= farm.AMSHTLastID {
 			ht++
 		} else {
 			regular++
@@ -80,12 +80,12 @@ func (m Model) filamentSummary(p *farm.Printer, width int) []string {
 			continue
 		}
 		side := "Right"
-		if nozzle.ID == 1 {
+		if nozzle.ID == farm.LeftNozzle {
 			side = "Left"
 		}
 		path := fmt.Sprintf("%s slot %d", farm.AMSLabel(*nozzle.AMS), *nozzle.Slot+1)
-		if *nozzle.AMS == 254 || *nozzle.AMS == 255 {
-			path = fmt.Sprintf("External %d", 256-*nozzle.AMS)
+		if *nozzle.AMS == farm.ExternalSpoolFirstID || *nozzle.AMS == farm.LegacyExternalSpoolID {
+			path = fmt.Sprintf("External %d", farm.ExternalSpoolNumberBase-*nozzle.AMS)
 		}
 		paths = append(paths, side+": "+path)
 	}
@@ -146,11 +146,11 @@ func (d *filamentDialog) filamentSelection(units []filamentUnit) (int, int) {
 // filamentKey navigates units and slots while keeping quit keys local to the modal.
 func (m *Model) filamentKey(key string, msg tea.Msg) tea.Cmd {
 	d := m.filament
-	if key == "esc" || key == "m" {
+	if key == keyEscape || key == keyFilament {
 		m.closeDialog()
 		return nil
 	}
-	if key == "q" || key == "ctrl+c" {
+	if key == keyQuit || key == keyInterrupt {
 		return nil
 	}
 	units := filamentUnits(m.Farm.Printers[d.printerID])
@@ -159,33 +159,33 @@ func (m *Model) filamentKey(key string, msg tea.Msg) tea.Cmd {
 		return nil
 	}
 	switch key {
-	case "tab", "right", "l", "shift+tab", "left", "h":
+	case keyNextPanel, keyRight, keyVimRight, keyPreviousPanel, keyLeft, keyVimLeft:
 		delta := 1
-		if key == "shift+tab" || key == "left" || key == "h" {
+		if key == keyPreviousPanel || key == keyLeft || key == keyVimLeft {
 			delta = len(units) - 1
 		}
 		d.unitKey, d.slotID = units[(u+delta)%len(units)].key, -1
 		d.ensureSelection = true
 		d.view.GotoTop()
-	case "j", "down", "k", "up", "g", "home", "G", "end":
+	case keyVimDown, keyDown, keyVimUp, keyUp, keyFirst, keyHome, keyLast, keyEnd:
 		if s < 0 {
 			return nil
 		}
 		switch key {
-		case "j", "down":
+		case keyVimDown, keyDown:
 			s++
-		case "k", "up":
+		case keyVimUp, keyUp:
 			s--
-		case "g", "home":
+		case keyFirst, keyHome:
 			s = 0
-		case "G", "end":
+		case keyLast, keyEnd:
 			s = len(units[u].slots) - 1
 		}
 		s = max(0, min(len(units[u].slots)-1, s))
 		d.slotID = units[u].slots[s].ID
 		d.ensureSelection = true
 		d.view.GotoTop()
-	case "enter":
+	case keyEnter:
 		d.view.SetYOffset(d.detailsOffset)
 	default:
 		var cmd tea.Cmd
@@ -198,7 +198,7 @@ func (m *Model) filamentKey(key string, msg tea.Msg) tea.Cmd {
 // slotName preserves reported external-spool identities alongside ordinary slot numbers.
 func slotName(slot farm.Slot, external bool) string {
 	if external {
-		return fmt.Sprintf("External %d", 256-slot.ID)
+		return fmt.Sprintf("External %d", farm.ExternalSpoolNumberBase-slot.ID)
 	}
 	return fmt.Sprintf("Slot %d", slot.ID+1)
 }
@@ -212,7 +212,7 @@ func (m *Model) syncFilament() {
 	p := m.Farm.Printers[d.printerID]
 	units := filamentUnits(p)
 	u, s := d.filamentSelection(units)
-	d.view.Width, d.view.Height = max(1, m.width-8), max(1, m.height-8)
+	d.view.Width, d.view.Height = max(1, m.width-dialogInset), max(1, m.height-dialogInset)
 	var lines []string
 	selectedRow := -1
 	d.detailsOffset = 0
@@ -235,8 +235,8 @@ func (m *Model) syncFilament() {
 				}
 				lines = append(lines, field("Humidity", humidity), field("Temperature", temperature))
 			}
-			materialWidth := max(1, d.view.Width-34)
-			lines = append(lines, "", muted.Render(cell("  SLOT", 14)+cell("MATERIAL", materialWidth)+cell("REMAINING", 10)+cell("NOZZLE", 10)))
+			materialWidth := max(1, d.view.Width-filamentSlotWidth-filamentRemainingWidth-filamentNozzleWidth)
+			lines = append(lines, "", muted.Render(cell("  SLOT", filamentSlotWidth)+cell("MATERIAL", materialWidth)+cell("REMAINING", filamentRemainingWidth)+cell("NOZZLE", filamentNozzleWidth)))
 			for i, slot := range unit.slots {
 				marker, material, remaining := "  ", safe(slot.Material), percent(slot.Remaining)
 				if material == "" {
@@ -254,7 +254,7 @@ func (m *Model) syncFilament() {
 				}
 				material = ansi.Truncate(material, materialWidth, "…")
 				material += strings.Repeat(" ", max(0, materialWidth-ansi.StringWidth(material)))
-				row := cell(marker+slotName(slot, unit.external), 14) + material + cell(remaining, 10) + cell(slotNozzlePath(slot), 10)
+				row := cell(marker+slotName(slot, unit.external), filamentSlotWidth) + material + cell(remaining, filamentRemainingWidth) + cell(slotNozzlePath(slot), filamentNozzleWidth)
 				if i == s {
 					row = selected.Render(row)
 				}
@@ -289,9 +289,9 @@ func slotNozzlePath(slot farm.Slot) string {
 	var names []string
 	for _, id := range slot.Nozzles {
 		switch id {
-		case 0:
+		case farm.RightNozzle:
 			names = append(names, "Right")
-		case 1:
+		case farm.LeftNozzle:
 			names = append(names, "Left")
 		}
 	}
@@ -314,10 +314,10 @@ func (m Model) filamentView() string {
 	}
 	footer := "PgUp/PgDn scroll · m / Esc close"
 	if message := m.storageWarning(); message != "" {
-		footer = ansi.Truncate(message, max(1, m.width-8), "…")
+		footer = ansi.Truncate(message, max(1, m.width-dialogInset), "…")
 	}
-	lines := []string{versionedTitle(accent.Bold(true).Render("AMS / FILAMENT"), max(1, m.width-8)), white.Render(unit), muted.Render("Tab/←/→ unit · ↑/↓ slot · Enter details"), "", d.view.View(), "", footer}
-	box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#A3E4BB")).Padding(0, 1).Width(max(1, m.width-4)).Render(strings.Join(lines, "\n"))
+	lines := []string{versionedTitle(accent.Bold(true).Render("AMS / FILAMENT"), max(1, m.width-dialogInset)), white.Render(unit), muted.Render("Tab/←/→ unit · ↑/↓ slot · Enter details"), "", d.view.View(), "", footer}
+	box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(accentColor)).Padding(0, 1).Width(max(1, m.width-dialogBorderInset)).Render(strings.Join(lines, "\n"))
 	return fit(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box), m.width, m.height)
 }
 
@@ -335,7 +335,7 @@ func slotValue(s farm.Slot) string {
 	var nozzles []string
 	for _, id := range s.Nozzles {
 		side := "Right"
-		if id == 1 {
+		if id == farm.LeftNozzle {
 			side = "Left"
 		}
 		nozzles = append(nozzles, side)
@@ -350,15 +350,15 @@ func slotValue(s farm.Slot) string {
 func filamentColor(value string) (string, string) {
 	color := strings.ToUpper(value)
 	swatch, hex := "○", "Unknown"
-	if len(color) == 8 || len(color) == 6 {
+	if len(color) == colorRGBADigits || len(color) == colorRGBDigits {
 		valid := true
 		for _, r := range color {
-			if !strings.ContainsRune("0123456789ABCDEF", r) {
+			if !strings.ContainsRune(hexDigits, r) {
 				valid = false
 			}
 		}
 		if valid {
-			hex = "#" + color[:6]
+			hex = "#" + color[:colorRGBDigits]
 			swatch = lipgloss.NewStyle().Foreground(lipgloss.Color(hex)).Render("●")
 		}
 	}

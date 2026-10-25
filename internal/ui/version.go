@@ -2,6 +2,7 @@ package ui
 
 import (
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/buildinfo"
@@ -13,7 +14,7 @@ func versionLabel() string {
 	if version == "" {
 		version = "unknown"
 	}
-	return "v" + ansi.Truncate(version, 24, "…")
+	return "v" + ansi.Truncate(version, versionLabelMaxWidth, "…")
 }
 
 // versionedTitle keeps the running version visible in dialog headings.
@@ -42,7 +43,7 @@ func (m Model) dashboardHeader() string {
 	clock := m.now.Local().Format("Mon 02 Jan · 15:04:05")
 	available := m.width - ansi.StringWidth(header) - 1
 	if ansi.StringWidth(clock) > available {
-		clock = m.now.Local().Format("15:04:05")
+		clock = m.now.Local().Format(time.TimeOnly)
 	}
 	if ansi.StringWidth(clock) <= available {
 		header += strings.Repeat(" ", max(1, m.width-ansi.StringWidth(header)-ansi.StringWidth(clock))) + muted.Render(clock)

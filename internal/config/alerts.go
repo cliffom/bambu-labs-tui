@@ -1,5 +1,7 @@
 package config
 
+import "github.com/cliffom/bambu-tui/internal/farm"
+
 type (
 	// AlertRules controls automatic modals without filtering underlying notices.
 	AlertRules struct {
@@ -58,23 +60,23 @@ func (r AlertRules) Allows(categories []string) bool {
 	}
 	for _, category := range categories {
 		switch category {
-		case "filament":
+		case farm.AlertFilament:
 			if r.Filament {
 				return true
 			}
-		case "extrusion":
+		case farm.AlertExtrusion:
 			if r.Extrusion {
 				return true
 			}
-		case "printer_faults":
+		case farm.AlertPrinterFaults:
 			if r.PrinterFaults {
 				return true
 			}
-		case "failed_prints":
+		case farm.AlertFailedPrints:
 			if r.FailedPrints {
 				return true
 			}
-		case "unknown_pauses":
+		case farm.AlertUnknownPauses:
 			if r.UnknownPauses {
 				return true
 			}
@@ -85,5 +87,5 @@ func (r AlertRules) Allows(categories []string) bool {
 
 // AnyCategoryEnabled reports whether automatic modals can interrupt for any supported category.
 func (r AlertRules) AnyCategoryEnabled() bool {
-	return r.Allows([]string{"filament", "extrusion", "printer_faults", "failed_prints", "unknown_pauses"})
+	return r.Allows([]string{farm.AlertFilament, farm.AlertExtrusion, farm.AlertPrinterFaults, farm.AlertFailedPrints, farm.AlertUnknownPauses})
 }

@@ -122,3 +122,39 @@ func TestRegionsAndInvalidIdentity(t *testing.T) {
 		t.Fatal("accepted invalid identity")
 	}
 }
+
+// Empty passwords remain present on the wire; code login omits the password.
+func TestLoginRequestFields(t *testing.T) {
+	for _, tc := range []struct{ password, code, want string }{
+		{want: `{"account":"fixture@example.test","password":""}`},
+		{password: "secret", want: `{"account":"fixture@example.test","password":"secret"}`},
+		{password: "unused", code: "123456", want: `{"account":"fixture@example.test","code":"123456"}`},
+	} {
+		c := fake(t, func(r *http.Request) (int, string, http.Header) {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(body) != tc.want {
+				t.Fatalf("login body = %s, want %s", body, tc.want)
+			}
+			return 200, `{"accessToken":"fixture"}`, nil
+		})
+		if _, err := c.Login(context.Background(), "fixture@example.test", tc.password, tc.code); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestRegionalEndpoints(t *testing.T) {
+	for _, tc := range []struct{ region, api, site, broker string }{
+		{"global", "https://api.bambulab.com", "https://bambulab.com", "us.mqtt.bambulab.com:8883"},
+		{"china", "https://api.bambulab.cn", "https://bambulab.cn", "cn.mqtt.bambulab.com:8883"},
+		{"", "https://api.bambulab.com", "https://bambulab.com", "us.mqtt.bambulab.com:8883"},
+	} {
+		c := New(tc.region)
+		if c.BaseURL != tc.api || c.SiteURL != tc.site || c.MQTTAddress != tc.broker {
+			t.Fatalf("region %q: endpoints = %s, %s, %s", tc.region, c.BaseURL, c.SiteURL, c.MQTTAddress)
+		}
+	}
+}

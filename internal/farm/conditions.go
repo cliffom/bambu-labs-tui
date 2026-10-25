@@ -68,20 +68,20 @@ func (s *State) Reconcile(now time.Time) {
 		if s.CloudProblem != "" {
 			text = s.CloudProblem
 		}
-		next["cloud"] = Condition{Printer: "Farm", Level: "warning", Text: text}
+		next[ConditionCloud] = Condition{Printer: "Farm", Level: LevelWarning, Text: text}
 	}
 	for id, p := range s.Printers {
 		if !p.Online {
-			next[id+"/offline"] = Condition{Printer: p.Name, Level: "warning", Text: "Printer offline"}
+			next[id+"/"+ConditionOffline] = Condition{Printer: p.Name, Level: LevelWarning, Text: "Printer offline"}
 		} else if s.Connected && !p.LastReport.IsZero() && p.Stale(now) {
-			next[id+"/stale"] = Condition{Printer: p.Name, Level: "warning", Text: "Telemetry stale; last report " + p.LastReport.Local().Format("15:04:05")}
+			next[id+"/"+ConditionStale] = Condition{Printer: p.Name, Level: LevelWarning, Text: "Telemetry stale; last report " + p.LastReport.Local().Format(time.TimeOnly)}
 		}
 		for _, f := range p.Faults {
 			level := f.Level
 			if level == "" {
-				level = "warning"
+				level = LevelWarning
 			}
-			next[id+"/fault/"+f.Code] = Condition{Printer: p.Name, Level: level, Text: f.Text + " [" + f.Code + "]", Code: f.Code}
+			next[id+"/"+ConditionFaultPrefix+f.Code] = Condition{Printer: p.Name, Level: level, Text: f.Text + " [" + f.Code + "]", Code: f.Code}
 		}
 		for _, a := range p.AMS {
 			for _, slot := range a.Slots {
@@ -89,13 +89,13 @@ func (s *State) Reconcile(now time.Time) {
 					continue
 				}
 				if slot.Remaining != nil && *slot.Remaining <= s.LowFilament {
-					key := fmt.Sprintf("%s/low/%d/%d", id, a.ID, slot.ID)
-					next[key] = Condition{Printer: p.Name, Level: "warning", Text: fmt.Sprintf("%s slot %d: estimated filament %d%%", AMSLabel(a.ID), slot.ID+1, *slot.Remaining)}
+					key := fmt.Sprintf(lowFilamentKeyFormat, id, a.ID, slot.ID)
+					next[key] = Condition{Printer: p.Name, Level: LevelWarning, Text: fmt.Sprintf("%s slot %d: estimated filament %d%%", AMSLabel(a.ID), slot.ID+1, *slot.Remaining)}
 				}
 			}
 		}
-		if p.State == "PAUSE" || p.State == "FAILED" {
-			next[id+"/state"] = Condition{Printer: p.Name, Level: "warning", Text: "Print " + label(p.State)}
+		if p.State == StatePaused || p.State == StateFailed {
+			next[id+"/"+ConditionState] = Condition{Printer: p.Name, Level: LevelWarning, Text: "Print " + label(p.State)}
 		}
 	}
 	keys := make([]string, 0, len(next))
@@ -115,7 +115,7 @@ func (s *State) Reconcile(now time.Time) {
 		old, ongoing := s.Active[k]
 		// An expired session or failed print is a new condition even if a
 		// previous connection problem or pause used the same list identity.
-		changed := old.Level != c.Level || old.Code != c.Code || ((k == "cloud" || strings.HasSuffix(k, "/state")) && old.Text != c.Text)
+		changed := old.Level != c.Level || old.Code != c.Code || ((k == ConditionCloud || strings.HasSuffix(k, "/"+ConditionState)) && old.Text != c.Text)
 		if ongoing && !changed {
 			c.Since, c.Acknowledged = old.Since, old.Acknowledged
 			c.Dismissed = old.Dismissed
@@ -143,7 +143,7 @@ func (s *State) Reconcile(now time.Time) {
 		if _, ok := next[k]; !ok {
 			c := s.Active[k]
 			if !c.Dismissed {
-				s.add(Event{At: now, Printer: c.Printer, Level: "info", Text: "Resolved: " + c.Text, Code: c.Code, ConditionKey: k})
+				s.add(Event{At: now, Printer: c.Printer, Level: LevelInfo, Text: "Resolved: " + c.Text, Code: c.Code, ConditionKey: k})
 			}
 		}
 	}
@@ -152,13 +152,13 @@ func (s *State) Reconcile(now time.Time) {
 
 func label(s string) string {
 	switch s {
-	case "RUNNING":
+	case StateRunning:
 		return "printing"
-	case "PAUSE":
+	case StatePaused:
 		return "paused"
-	case "FINISH":
+	case StateFinished:
 		return "finished"
-	case "FAILED":
+	case StateFailed:
 		return "failed"
 	default:
 		return strings.ToLower(s)

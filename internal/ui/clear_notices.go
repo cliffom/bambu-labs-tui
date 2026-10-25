@@ -34,12 +34,12 @@ func (m *Model) openClearNotices() {
 
 func (m *Model) clearNoticesKey(key string, _ tea.Msg) tea.Cmd {
 	switch key {
-	case "y", "Y":
+	case keyYes, keyYesUpper:
 		for key, before := range m.clearNotices.active {
 			current, ok := m.Farm.Active[key]
 			// Match occurrence identity using the same fields as reconciliation.
 			// A resolved/replaced occurrence must survive this older confirmation.
-			sameText := key != "cloud" && !strings.HasSuffix(key, "/state") || current.Text == before.Text
+			sameText := key != farm.ConditionCloud && !strings.HasSuffix(key, "/"+farm.ConditionState) || current.Text == before.Text
 			if ok && current.Since.Equal(before.Since) && current.Level == before.Level && current.Code == before.Code && sameText {
 				m.Farm.Dismiss(key)
 			}
@@ -53,7 +53,7 @@ func (m *Model) clearNoticesKey(key string, _ tea.Msg) tea.Cmd {
 			m.focus = panelPrinters
 			m.toast = "Confirmed notices cleared locally; focus returned to printers"
 		}
-	case "esc", "n", "N":
+	case keyEscape, keyDecisionsOrNo, keyNoUpper:
 		m.closeDialog()
 	}
 	return nil

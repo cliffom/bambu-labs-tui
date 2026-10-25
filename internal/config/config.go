@@ -20,11 +20,11 @@ func Path() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "bambu-tui", "config.toml"), nil
+	return filepath.Join(dir, applicationDirectory, configFilename), nil
 }
 
 func Load(path string) (Config, error) {
-	c := Config{Region: "global", LowFilamentPercent: 10, Alerts: DefaultAlerts()}
+	c := Config{Region: RegionGlobal, LowFilamentPercent: defaultLowFilamentPercent, Alerts: DefaultAlerts()}
 	meta, err := toml.DecodeFile(path, &c)
 	if os.IsNotExist(err) {
 		return c, nil
@@ -35,10 +35,10 @@ func Load(path string) (Config, error) {
 	if len(meta.Undecoded()) != 0 {
 		return c, fmt.Errorf("unknown configuration key: %s", meta.Undecoded()[0])
 	}
-	if c.Region != "global" && c.Region != "china" {
+	if c.Region != RegionGlobal && c.Region != RegionChina {
 		return c, fmt.Errorf("region must be global or china")
 	}
-	if c.LowFilamentPercent < 0 || c.LowFilamentPercent > 100 {
+	if c.LowFilamentPercent < 0 || c.LowFilamentPercent > maxPercent {
 		return c, fmt.Errorf("low_filament_percent must be between 0 and 100")
 	}
 	for id := range c.Alerts.Printers {

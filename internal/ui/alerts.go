@@ -112,12 +112,12 @@ func (m *Model) openAlerts(id string) {
 // alertKey captures modal input and applies explicit snooze/resume actions.
 func (m *Model) alertKey(key string, msg tea.Msg) tea.Cmd {
 	switch key {
-	case "s", "esc":
+	case keyAlerts, keyEscape:
 		m.closeDialog()
-	case "q", "ctrl+c":
+	case keyQuit, keyInterrupt:
 		return nil
-	case "1", "2", "3", "u":
-		durations := map[string]time.Duration{"1": 15 * time.Minute, "2": time.Hour, "3": 4 * time.Hour}
+	case keySnoozeShort, keySnoozeHour, keySnoozeLong, keyUnreviewOrUnsnooze:
+		durations := map[string]time.Duration{keySnoozeShort: snoozeShort, keySnoozeHour: snoozeHour, keySnoozeLong: snoozeLong}
 		m.setSnooze(m.alertDialog.printerID, durations[key])
 		m.closeDialog()
 	default:

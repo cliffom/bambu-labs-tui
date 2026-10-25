@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"strings"
-	"time"
 
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
@@ -23,6 +22,20 @@ var (
 )
 
 type (
+	loginRequest struct {
+		Account  string  `json:"account"`
+		Code     *string `json:"code,omitempty"`
+		Password *string `json:"password,omitempty"`
+	}
+	emailCodeRequest struct {
+		Email string `json:"email"`
+		Type  string `json:"type"`
+	}
+	twoFactorRequest struct {
+		Key  string `json:"tfaKey"`
+		Code string `json:"tfaCode"`
+	}
+
 	Client struct {
 		HTTP                          *http.Client
 		BaseURL, SiteURL, MQTTAddress string
@@ -42,12 +55,8 @@ type (
 
 func New(region string) *Client {
 	jar, _ := cookiejar.New(nil)
-	c := &Client{HTTP: &http.Client{Timeout: 15 * time.Second, Jar: jar}, BaseURL: "https://api.bambulab.com", SiteURL: "https://bambulab.com", MQTTAddress: "us.mqtt.bambulab.com:8883"}
-	if region == "china" {
-		c.BaseURL = "https://api.bambulab.cn"
-		c.SiteURL = "https://bambulab.cn"
-		c.MQTTAddress = "cn.mqtt.bambulab.com:8883"
-	}
+	addresses := endpointsFor(region)
+	c := &Client{HTTP: &http.Client{Timeout: requestTimeout, Jar: jar}, BaseURL: addresses.api, SiteURL: addresses.site, MQTTAddress: addresses.mqtt}
 	// Do not forward account credentials or tokens through unexpected redirects.
 	c.HTTP.CheckRedirect = func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }
 	return c
@@ -66,12 +75,12 @@ func (c *Client) request(ctx context.Context, method, url, token string, body an
 	if err != nil {
 		return nil, nil, errors.New("invalid account endpoint")
 	}
-	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("Accept", "application/json")
-	r.Header.Set("User-Agent", "bambu_network_agent/01.09.05.01")
-	r.Header.Set("X-BBL-Client-Name", "OrcaSlicer")
-	r.Header.Set("X-BBL-Client-Type", "slicer")
-	r.Header.Set("X-BBL-Client-Version", "01.09.05.51")
+	r.Header.Set("Content-Type", jsonContentType)
+	r.Header.Set("Accept", jsonContentType)
+	r.Header.Set("User-Agent", userAgent)
+	r.Header.Set("X-BBL-Client-Name", clientName)
+	r.Header.Set("X-BBL-Client-Type", clientType)
+	r.Header.Set("X-BBL-Client-Version", clientVersion)
 	if token != "" {
 		r.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -88,19 +97,19 @@ func (c *Client) request(ctx context.Context, method, url, token string, body an
 		return nil, nil, errors.New("cannot reach Bambu Cloud")
 	}
 	defer func() { _ = resp.Body.Close() }()
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024+1))
-	if err != nil || len(data) > 2*1024*1024 {
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
+	if err != nil || len(data) > maxResponseBytes {
 		return nil, resp, errors.New("invalid account response")
 	}
 	switch resp.StatusCode {
-	case 401:
+	case http.StatusUnauthorized:
 		return nil, resp, ErrAuth
-	case 403:
+	case http.StatusForbidden:
 		return nil, resp, ErrBlocked
-	case 429:
+	case http.StatusTooManyRequests:
 		return nil, resp, ErrRateLimited
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return nil, resp, fmt.Errorf("cloud request failed (HTTP %d)", resp.StatusCode)
 	}
 	// Never expose a response body: it may contain account secrets.
@@ -126,13 +135,13 @@ func decode(data []byte, dest any) error {
 }
 
 func (c *Client) Login(ctx context.Context, email, password, code string) (LoginResult, error) {
-	input := map[string]string{"account": email}
+	input := loginRequest{Account: email}
 	if code != "" {
-		input["code"] = code
+		input.Code = &code
 	} else {
-		input["password"] = password
+		input.Password = &password
 	}
-	data, _, err := c.request(ctx, "POST", c.BaseURL+"/v1/user-service/user/login", "", input, nil)
+	data, _, err := c.request(ctx, http.MethodPost, c.BaseURL+loginPath, "", input, nil)
 	if err != nil {
 		return LoginResult{}, err
 	}
@@ -140,14 +149,14 @@ func (c *Client) Login(ctx context.Context, email, password, code string) (Login
 	if err := decode(data, &r); err != nil {
 		return r, err
 	}
-	if r.AccessToken == "" && r.LoginType != "verifyCode" && r.LoginType != "tfa" {
+	if r.AccessToken == "" && r.LoginType != LoginVerifyCode && r.LoginType != LoginTFA {
 		return r, errors.New("unsupported login response; try token import")
 	}
 	return r, nil
 }
 
 func (c *Client) SendCode(ctx context.Context, email string) error {
-	data, _, err := c.request(ctx, "POST", c.BaseURL+"/v1/user-service/user/sendemail/code", "", map[string]string{"email": email, "type": "codeLogin"}, nil)
+	data, _, err := c.request(ctx, http.MethodPost, c.BaseURL+sendCodePath, "", emailCodeRequest{Email: email, Type: emailCodeLogin}, nil)
 	if err != nil {
 		return err
 	}
@@ -159,25 +168,25 @@ func (c *Client) SendCode(ctx context.Context, email string) error {
 }
 
 func (c *Client) TwoFactor(ctx context.Context, key, code string) (string, error) {
-	_, resp, err := c.request(ctx, "GET", c.SiteURL+"/api/csrf", "", nil, nil)
+	_, resp, err := c.request(ctx, http.MethodGet, c.SiteURL+csrfPath, "", nil, nil)
 	if err != nil {
 		return "", err
 	}
 	csrf := ""
 	for _, cookie := range resp.Cookies() {
-		if cookie.Name == "bbl_csrf_token" {
+		if cookie.Name == csrfCookieName {
 			csrf = cookie.Value
 		}
 	}
 	if csrf == "" {
 		return "", errors.New("no sign-in cookie provided by Bambu; try token import")
 	}
-	data, resp, err := c.request(ctx, "POST", c.SiteURL+"/api/sign-in/tfa", "", map[string]string{"tfaKey": key, "tfaCode": code}, http.Header{"X-Bbl-Csrf-Token": {csrf}})
+	data, resp, err := c.request(ctx, http.MethodPost, c.SiteURL+twoFactorPath, "", twoFactorRequest{Key: key, Code: code}, http.Header{csrfHeader: {csrf}})
 	if err != nil {
 		return "", err
 	}
 	for _, cookie := range resp.Cookies() {
-		if cookie.Name == "token" && cookie.Value != "" {
+		if cookie.Name == tokenCookieName && cookie.Value != "" {
 			return cookie.Value, nil
 		}
 	}
@@ -192,7 +201,7 @@ func (c *Client) TwoFactor(ctx context.Context, key, code string) (string, error
 }
 
 func (c *Client) Session(ctx context.Context, token string) (Session, error) {
-	data, _, err := c.request(ctx, "GET", c.BaseURL+"/v1/design-user-service/my/preference", token, nil, nil)
+	data, _, err := c.request(ctx, http.MethodGet, c.BaseURL+preferencesPath, token, nil, nil)
 	if err != nil {
 		return Session{}, err
 	}
@@ -211,11 +220,11 @@ func (c *Client) Session(ctx context.Context, token string) (Session, error) {
 			return Session{}, errors.New("account response has invalid MQTT user ID")
 		}
 	}
-	return Session{token, "u_" + uid}, nil
+	return Session{token, mqttUsernamePrefix + uid}, nil
 }
 
 func (c *Client) Devices(ctx context.Context, token string) ([]farm.Device, error) {
-	data, _, err := c.request(ctx, "GET", c.BaseURL+"/v1/iot-service/api/user/bind", token, nil, nil)
+	data, _, err := c.request(ctx, http.MethodGet, c.BaseURL+devicesPath, token, nil, nil)
 	if err != nil {
 		return nil, err
 	}

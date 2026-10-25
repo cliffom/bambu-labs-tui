@@ -28,12 +28,12 @@ func addFilamentHMS(messages map[string]string) {
 		0x7000_0002_0004: "filament cannot retract from the toolhead; check for a stuck spool or filament",
 		0x7000_0002_0005: "filament feeding failed; check the filament end and spool movement",
 	}
-	for _, prefix := range []uint32{0x07, 0x18} {
-		for unit := range 8 {
+	for _, prefix := range []uint32{amsFaultPrefix, amsHTFaultPrefix} {
+		for unit := range catalogueUnitCount {
 			name := filamentUnit(prefix, unit)
-			for slot := range 4 {
+			for slot := range SlotsPerAMS {
 				for family, text := range slotMessages {
-					attr := prefix<<24 | uint32(unit)<<16 | uint32(family>>32) | uint32(slot)<<8
+					attr := prefix<<faultPrefixShift | uint32(unit)<<hmsUnitShift | uint32(family>>hmsPartShift) | uint32(slot)<<hmsSlotShift
 					messages[hmsCode(attr, uint32(family))] = fmt.Sprintf("%s slot %d: %s", name, slot+1, text)
 				}
 			}
@@ -43,16 +43,16 @@ func addFilamentHMS(messages map[string]string) {
 				0x00020006: "purge timed out; filament may be stuck or the extruder clogged",
 				0x00020007: "filament runout; replace filament in the same AMS slot",
 			} {
-				attr := prefix<<24 | uint32(unit)<<16 | 0x7000
+				attr := prefix<<faultPrefixShift | uint32(unit)<<hmsUnitShift | 0x7000
 				messages[hmsCode(attr, code)] = name + ": " + text
 			}
 		}
-		for _, port := range []uint32{0xFE, 0xFF} {
+		for _, port := range []uint32{externalPortFirst, externalPortLast} {
 			for code, text := range map[uint32]string{
 				0x00020001: "External spool filament runout; load a replacement spool",
 				0x00020002: "No external spool filament detected; load filament",
 			} {
-				messages[hmsCode(prefix<<24|port<<16|0x2000, code)] = text
+				messages[hmsCode(prefix<<faultPrefixShift|port<<hmsUnitShift|0x2000, code)] = text
 			}
 		}
 	}
@@ -70,13 +70,13 @@ func addFilamentHMS(messages map[string]string) {
 
 // hmsCode formats the wire attribute and code as four hexadecimal groups.
 func hmsCode(attr, code uint32) string {
-	return fmt.Sprintf("%04X_%04X_%04X_%04X", attr>>16, attr&65535, code>>16, code&65535)
+	return fmt.Sprintf("%04X_%04X_%04X_%04X", attr>>faultWordBits, attr&faultWordMask, code>>faultWordBits, code&faultWordMask)
 }
 
 // filamentUnit labels a catalogue unit using its AMS or AMS HT family prefix.
 func filamentUnit(prefix uint32, unit int) string {
-	if prefix == 0x18 {
-		return AMSLabel(128 + unit)
+	if prefix == amsHTFaultPrefix {
+		return AMSLabel(AMSHTFirstID + unit)
 	}
 	return AMSLabel(unit)
 }
@@ -92,8 +92,8 @@ func buildPrintErrors() map[string]string {
 		"0300801C": "Extrusion resistance abnormal; possible extruder clog",
 		"0300801E": "Extruder motor overloaded; possible clog or filament jam",
 	}
-	for _, prefix := range []uint32{0x07, 0x18} {
-		for unit := range 8 {
+	for _, prefix := range []uint32{amsFaultPrefix, amsHTFaultPrefix} {
+		for unit := range catalogueUnitCount {
 			for code, text := range map[uint32]string{
 				0x8003: "filament cannot leave the extruder; possible clog or broken filament",
 				0x8004: "filament retraction failed; check the spool and filament path",
@@ -108,7 +108,7 @@ func buildPrintErrors() map[string]string {
 				messages[key] = filamentUnit(prefix, unit) + ": " + text
 			}
 		}
-		for _, port := range []uint32{0xFE, 0xFF} {
+		for _, port := range []uint32{externalPortFirst, externalPortLast} {
 			for code, text := range map[uint32]string{
 				0x8004: "External spool retraction failed; filament may be stuck in the extruder",
 				0x8006: "External spool filament needs loading into the extruder",

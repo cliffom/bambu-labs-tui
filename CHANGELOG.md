@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.7 — Accurate idle stages and terminal shutdown
+
+- Show Idle, Finished, or Failed stages from the overall job state instead of stale printing stages or negative stage codes; clear the previous stage when a new job starts.
+- Capitalize Idle consistently in printer status displays.
 - Add PTY smoke tests on Linux/macOS for real keyboard input, modal quit ownership, resizing, alternate-screen/cursor cleanup, terminal-mode restoration, and bounded normal/interrupted/panic exits.
 - Use the CLI signal context as the sole owner of SIGINT/SIGTERM and request graceful terminal shutdown on cancellation, preventing competing signal handlers and input-reader closure races.
 

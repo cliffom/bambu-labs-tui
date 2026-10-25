@@ -345,6 +345,8 @@ func stateLabel(s string) string {
 		return "Finished"
 	case "FAILED":
 		return "Failed"
+	case "IDLE":
+		return "Idle"
 	case "UNKNOWN":
 		return "Unknown"
 	default:

@@ -53,7 +53,7 @@ func telemetrySchema() *rule {
 	temperature := numeric(minTemperature, maxTemperature)
 	material := enumeration("Empty", "PLA", "PETG", "ABS", "ASA", "TPU", "PA", "PC", "PVA", "PET", "PLA-CF", "PETG-CF", "PA-CF", "PA6-CF", "PAHT-CF", "PET-CF")
 	tray := object(map[string]*rule{"id": id, "state": word, "tray_type": material, "tray_color": {kind: rulePattern, pattern: colorPattern}, "remain": numeric(-1, farm.MaxPercent)})
-	unit := object(map[string]*rule{"id": id, "temp": numeric(0, farm.MaxPercent), "humidity_raw": numeric(0, farm.MaxPercent), "humidity": numeric(0, maxHumidityLevel), "tray": array(tray, farm.SlotsPerAMS)})
+	unit := object(map[string]*rule{"id": id, "temp": numeric(0, maxAMSTemperature), "humidity_raw": numeric(0, farm.MaxPercent), "humidity": numeric(0, maxHumidityLevel), "tray": array(tray, farm.SlotsPerAMS)})
 	packed := object(map[string]*rule{"temp": word})
 	module := object(map[string]*rule{"name": enumeration("ota"), "sw_ver": version, "cur_ver": version, "new_ver": version})
 	print := object(map[string]*rule{
@@ -65,7 +65,7 @@ func telemetrySchema() *rule {
 			"bed_temp": word, "bed": object(map[string]*rule{"info": packed}), "ctc": object(map[string]*rule{"info": packed}),
 			"extruder": object(map[string]*rule{"state": word, "info": array(object(map[string]*rule{"id": numeric(0, 1), "temp": word, "snow": word}), nozzleCount)}),
 		}),
-		"ams": object(map[string]*rule{"tray_now": id, "ams": array(unit, maxAMSItems)}), "vir_slot": array(tray, nozzleCount), "vt_tray": tray,
+		"ams": object(map[string]*rule{"tray_now": id, "ams": array(unit, maxAMSItems)}), "vir_slot": array(tray, maxExternalSlots), "vt_tray": tray,
 		"upgrade_state": object(map[string]*rule{"new_version_state": numeric(0, 2), "ota_new_version_number": version, "status": enumeration("IDLE", "UPGRADING", "DOWNLOADING", "PREPARING", "INSTALLING", "FAILED", "SUCCESS"), "new_ver_list": array(module, maxUpgradeModules)}),
 	})
 	return object(map[string]*rule{"print": print, "info": object(map[string]*rule{"command": enumeration("get_version"), "result": enumeration("success", "fail", "failed"), "module": array(module, maxModules)})})

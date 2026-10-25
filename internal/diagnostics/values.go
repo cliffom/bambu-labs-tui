@@ -24,10 +24,12 @@ const (
 	rulePattern               = "pattern"
 	minTemperature            = -50
 	maxTemperature            = 500
+	maxAMSTemperature         = 100 // Degrees Celsius; independent of percentage limits.
 	maxHMSItems               = 64
 	maxAMSItems               = 16
 	maxModules                = 16
 	maxUpgradeModules         = 8
 	nozzleCount               = 2
+	maxExternalSlots          = 2 // Independent of the number of extruders.
 	maxHumidityLevel          = 5
 )

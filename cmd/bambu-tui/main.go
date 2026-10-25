@@ -236,7 +236,9 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 		}
 		model = model.WithSnoozePersistence(snoozes, snoozeStore.Save, snoozeErr)
 	}
-	result, err := tea.NewProgram(model, tea.WithContext(ctx), tea.WithAltScreen()).Run()
+	// The CLI context owns SIGINT/SIGTERM. A second handler can block sending
+	// a quit message after cancellation has stopped Bubble Tea's event loop.
+	result, err := tea.NewProgram(model, tea.WithContext(ctx), tea.WithAltScreen(), tea.WithoutSignalHandler()).Run()
 	if final, ok := result.(ui.Model); ok && final.HasUnsavedPersistence() {
 		fmt.Fprintln(os.Stderr, "Notice or snooze changes were not confirmed saved before exit; changes may be lost.")
 	}
@@ -298,7 +300,7 @@ func prompt(ctx context.Context, label string, secret bool) (string, error) {
 		input.EchoMode = textinput.EchoPassword
 		input.EchoCharacter = '•'
 	}
-	result, err := tea.NewProgram(promptModel{label: label, input: input}, tea.WithContext(ctx)).Run()
+	result, err := tea.NewProgram(promptModel{label: label, input: input}, tea.WithContext(ctx), tea.WithoutSignalHandler()).Run()
 	if err != nil {
 		return "", errors.New("cannot read interactive input; use a terminal")
 	}

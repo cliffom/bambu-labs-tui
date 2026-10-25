@@ -88,45 +88,18 @@ func (s *State) reviewKnown(key string) bool {
 	case family == "stale":
 		return !p.LastReport.IsZero()
 	case family == "state":
-		_, ok := p.Raw["gcode_state"]
-		return ok
+		return p.knowledge.printState
 	case strings.HasPrefix(family, "fault/"):
-		field := "print_error"
 		if strings.Count(strings.TrimPrefix(family, "fault/"), "_") == 3 {
-			field = "hms"
+			return p.knowledge.hmsFaults
 		}
-		_, ok := p.Raw[field]
-		return ok
+		return p.knowledge.printerFaults
 	case strings.HasPrefix(family, "low/"):
 		var amsID, slotID int
 		if _, err := fmt.Sscanf(family, "low/%d/%d", &amsID, &slotID); err != nil {
 			return true
 		}
-		units, ok := object(p.Raw["ams"])["ams"].([]any)
-		if !ok {
-			return false
-		}
-		if len(units) == 0 {
-			return true
-		}
-		for _, unit := range units {
-			u := object(unit)
-			if n := number(u["id"]); n == nil || *n != amsID {
-				continue
-			}
-			trays, ok := u["tray"].([]any)
-			if ok && len(trays) == 0 {
-				return true
-			}
-			for _, tray := range trays {
-				v := object(tray)
-				if n := number(v["id"]); n != nil && *n == slotID {
-					_, remaining := v["remain"]
-					state := number(v["state"])
-					return remaining || (state != nil && *state&1 == 0) || str(v["tray_type"]) == "Empty"
-				}
-			}
-		}
+		return p.knowledge.lowFilamentKnown(amsID, slotID)
 	}
 	return false
 }

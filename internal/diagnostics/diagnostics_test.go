@@ -282,3 +282,40 @@ func TestUnknownSignedFaultCodesRemainReproducible(t *testing.T) {
 		t.Fatal("unknown fault code lost its reproducible numeric form")
 	}
 }
+
+func TestMergedTelemetrySnapshotRemainsAllowlistedAndIndependent(t *testing.T) {
+	s, now := diagnosticState()
+	var r Recorder
+	fixture, err := os.ReadFile("../farm/testdata/h2d.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	delta := []byte(`{"print":{"device":{"extruder":{"info":[{"id":1,"temp":15728878}]}},"ams":{"ams":[{"id":"0","tray":[{"id":"0","remain":5}]}]},"unknown":"PRIVATE_NEW_FIELD"}}`)
+	for _, payload := range [][]byte{fixture, delta} {
+		if err := s.Report("PRIVATE_SERIAL", payload, now); err != nil {
+			t.Fatal(err)
+		}
+		r.Record("PRIVATE_SERIAL", payload)
+	}
+	doc, body := encoded(t, &r, s, now)
+	p := s.Printers["PRIVATE_SERIAL"]
+	if !reflect.DeepEqual(doc.Normalized, normalizedPrint(p)) || len(doc.Recent) != 2 || len(p.Nozzles) != 2 || len(p.AMS) != 2 || *p.AMS[0].Slots[0].Remaining != 5 {
+		t.Fatal("merged snapshot lost interpreted identity deltas or normalized values")
+	}
+	for _, private := range []string{"PRIVATE_", "synthetic-spool", "synthetic-h2d-job", "knowledge", "inventoryEmpty"} {
+		if strings.Contains(body, private) {
+			t.Fatalf("diagnostic boundary exported %q", private)
+		}
+	}
+	// Later telemetry must not mutate an already prepared document.
+	if err := s.Report("PRIVATE_SERIAL", []byte(`{"print":{"mc_percent":99,"ams":{"ams":[]}}}`), now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	after, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != body {
+		t.Fatal("prepared diagnostic snapshot changed with live telemetry")
+	}
+}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 — Telemetry interpretation boundaries
+
+- Separate report decoding, partial merging, and normalization from farm lifecycle, condition reconciliation, and history within the farm package.
+- Reconcile saved reviews against explicit condition-family and slot knowledge rather than raw protocol fields. Preserve omitted/empty/unknown semantics, job and replacement-spool estimate invalidation, and allowlisted diagnostic snapshots.
+
 ## 0.1.2 — Explicit dialog ownership
 
 - Centralize dialog focus, keyboard routing, rendering, synchronization, and open/close transitions around one active owner. Preserve existing dialog controls and confirmations.

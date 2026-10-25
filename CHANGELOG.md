@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 — Responsive monitoring and reconnects
+
+- Reset reconnect backoff after two minutes of monitoring following successful subscription and initial refresh; retain exponential backoff and jitter for short failures.
+- Move periodic discovery and serialized outbound requests off the report loop. Coalesce pending refreshes, prioritize due keepalives, bound write batches to ten seconds, and cancel/join session workers on exit.
+
 ## 0.1.3 — Telemetry interpretation boundaries
 
 - Separate report decoding, partial merging, and normalization from farm lifecycle, condition reconciliation, and history within the farm package.

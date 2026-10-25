@@ -21,8 +21,19 @@ func (p *Printer) normalize() {
 	p.Layer = bounded(r["layer_num"], 0, 1000000)
 	p.TotalLayers = bounded(r["total_layer_num"], 0, 1000000)
 	p.Stage = "Unknown"
-	if n := number(r["stg_cur"]); n != nil {
-		p.Stage = stage(*n)
+	// The print stage can linger after a job ends (including code 0,
+	// "Printing"). The overall job state takes precedence in terminal states.
+	switch p.State {
+	case "IDLE":
+		p.Stage = "Idle"
+	case "FINISH":
+		p.Stage = "Finished"
+	case "FAILED":
+		p.Stage = "Failed"
+	default:
+		if n := number(r["stg_cur"]); n != nil && *n >= 0 {
+			p.Stage = stage(*n)
+		}
 	}
 	p.Bed = Temperature{number(r["bed_temper"]), number(r["bed_target_temper"])}
 	p.Chamber = Temperature{number(r["chamber_temper"]), number(r["chamber_target_temper"])}

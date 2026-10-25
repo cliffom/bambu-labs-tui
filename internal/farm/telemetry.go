@@ -30,7 +30,7 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	newTask := task != "" && str(p.Raw["task_id"]) != "" && task != str(p.Raw["task_id"])
 	restart := str(delta["gcode_state"]) == "RUNNING" && (previous == "FINISH" || previous == "FAILED" || previous == "IDLE")
 	if newTask || restart {
-		for _, k := range []string{"mc_remaining_time", "mc_percent", "layer_num", "total_layer_num", "subtask_name", "gcode_file"} {
+		for _, k := range []string{"mc_remaining_time", "mc_percent", "layer_num", "total_layer_num", "subtask_name", "gcode_file", "stg_cur"} {
 			delete(p.Raw, k)
 		}
 		p.RemainingReported = time.Time{}

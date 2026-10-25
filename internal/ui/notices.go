@@ -113,7 +113,7 @@ func (m *Model) focusFault() {
 	}
 	for _, item := range m.noticeItems() {
 		if strings.HasPrefix(item.ActiveKey, p.ID+"/fault/") {
-			m.focus = 2
+			m.focus = panelNotices
 			m.noticeFocused = true
 			m.noticeKey = item.Key
 			m.openNotice()
@@ -229,7 +229,7 @@ func (m *Model) noticeText(w int) string {
 }
 
 func (m *Model) keepNoticeVisible() {
-	if m.focus != 2 || m.noticeIndex >= len(m.noticeSpans) {
+	if m.focus != panelNotices || m.noticeIndex >= len(m.noticeSpans) {
 		return
 	}
 	span := m.noticeSpans[m.noticeIndex]

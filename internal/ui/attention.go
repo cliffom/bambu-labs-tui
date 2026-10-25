@@ -152,12 +152,12 @@ func (m *Model) attentionKey(key string, msg tea.Msg) tea.Cmd {
 	case "enter", "p":
 		m.closeAttention()
 		if m.selectPrinter(group.id) {
-			m.focus = 1
+			m.focus = panelDetails
 		}
 		if key == "enter" {
 			for _, item := range group.items {
 				if _, active := m.attentionActive(item); active {
-					m.focus, m.noticeFocused, m.noticeKey = 2, true, "active:"+item.Key
+					m.focus, m.noticeFocused, m.noticeKey = panelNotices, true, "active:"+item.Key
 					m.openNotice()
 					break
 				}

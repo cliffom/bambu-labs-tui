@@ -122,7 +122,7 @@ func noticeModel(t *testing.T) Model {
 	if err := m.Farm.Report("H", b, m.now); err != nil {
 		t.Fatal(err)
 	}
-	m.width, m.height, m.focus = 120, 30, 2
+	m.width, m.height, m.focus = 120, 30, panelNotices
 	m.syncPanels()
 	return m
 }
@@ -154,7 +154,7 @@ func TestInspectAndAcknowledgeFault(t *testing.T) {
 	if !m.Farm.Active[item.ActiveKey].Dismissed || m.Farm.Active[item.ActiveKey].Acknowledged || len(m.Farm.Printers["H"].Faults) != 2 {
 		t.Fatal("clear must dismiss independently of acknowledgement without editing telemetry")
 	}
-	if m.inspected != nil || m.focus != 2 {
+	if m.inspected != nil || m.focus != panelNotices {
 		t.Fatal("detail return lost focus")
 	}
 	for _, n := range m.noticeItems() {
@@ -239,9 +239,9 @@ func TestHistoryClearRequiresConfirmation(t *testing.T) {
 
 func TestFaultShortcutAndResolvedDetail(t *testing.T) {
 	m := noticeModel(t)
-	m.focus = 1
+	m.focus = panelDetails
 	m = key(m, "f")
-	if m.inspected == nil || m.focus != 2 {
+	if m.inspected == nil || m.focus != panelNotices {
 		t.Fatal("fault shortcut")
 	}
 	updated, _ := m.Update(monitor.Event{Kind: monitor.EventReport, ID: "H", Payload: []byte(`{"print":{"hms":[],"print_error":0}}`), At: m.now})

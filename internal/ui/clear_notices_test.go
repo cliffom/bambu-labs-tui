@@ -49,7 +49,7 @@ func TestClearAllNoticesConfirmationAndPersistence(t *testing.T) {
 	if m.Farm.NoticeCount() != 0 || len(m.Farm.Events) != 0 || len(m.Farm.Active) != len(before) {
 		t.Fatal("bulk clear did not preserve underlying conditions")
 	}
-	if m.focus != 0 {
+	if m.focus != panelPrinters {
 		t.Fatal("clearing the panel left navigation focused on empty notices")
 	}
 	m.printerFilter = filterAll
@@ -106,7 +106,7 @@ func TestClearAllNoticesPreservesArrivalsAndReplacedOccurrences(t *testing.T) {
 				}
 			}
 			m = key(m, "y")
-			if m.focus != 2 {
+			if m.focus != panelNotices {
 				t.Fatal("new notices lost focus after clearing older occurrences")
 			}
 			if c := m.Farm.Active["cloud"]; c.Dismissed || c.Acknowledged {
@@ -121,9 +121,9 @@ func TestClearAllNoticesPreservesArrivalsAndReplacedOccurrences(t *testing.T) {
 
 func TestClearAllNoticesEmptyAndResize(t *testing.T) {
 	m := New(farm.New(10), nil, nil, true)
-	m.focus = 2
+	m.focus = panelNotices
 	m = key(m, "X")
-	if m.hasOpenDialog() || m.focus != 0 || !strings.Contains(m.toast, "No notices") {
+	if m.hasOpenDialog() || m.focus != panelPrinters || !strings.Contains(m.toast, "No notices") {
 		t.Fatal("empty panel handling")
 	}
 	m = noticeModel(t)
@@ -150,7 +150,7 @@ func TestClearAllNoticesEmptyAndResize(t *testing.T) {
 
 func TestClearAllNoticesHistoryOnly(t *testing.T) {
 	m := New(farm.New(10), nil, nil, true)
-	m.focus = 2
+	m.focus = panelNotices
 	m.Farm.Cloud(false, "Reconnecting", m.now)
 	m.Farm.Cloud(true, "", m.now.Add(time.Second))
 	m = key(m, "X")

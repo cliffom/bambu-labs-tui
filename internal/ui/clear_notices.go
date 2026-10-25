@@ -24,7 +24,7 @@ func (m *Model) openClearNotices() {
 		d.events = append(d.events, e.ID)
 	}
 	if len(d.active)+len(d.events) == 0 {
-		m.focus = 0
+		m.focus = panelPrinters
 		m.toast, m.toastAt = "No notices or recent events to clear; focus returned to printers", m.now
 		return
 	}
@@ -50,7 +50,7 @@ func (m *Model) clearNoticesKey(key string, _ tea.Msg) tea.Cmd {
 		m.closeDialog()
 		m.toast, m.toastAt = "Confirmed notices cleared locally; newer notices and events kept", m.now
 		if len(m.noticeItems()) == 0 {
-			m.focus = 0
+			m.focus = panelPrinters
 			m.toast = "Confirmed notices cleared locally; focus returned to printers"
 		}
 	case "esc", "n", "N":

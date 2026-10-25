@@ -20,15 +20,16 @@ func resizeModel(m Model, width, height int) Model {
 }
 
 type hiddenInputState struct {
-	owner                         dialogState
-	focus, selection, noticeIndex int
-	noticeKey                     string
-	filter                        printerFilter
-	sort                          printerSort
-	reviews                       map[string]farm.Review
-	events                        []farm.Event
-	snoozes                       map[string]time.Time
-	reset, writing                bool
+	owner                  dialogState
+	focus                  dashboardPanel
+	selection, noticeIndex int
+	noticeKey              string
+	filter                 printerFilter
+	sort                   printerSort
+	reviews                map[string]farm.Review
+	events                 []farm.Event
+	snoozes                map[string]time.Time
+	reset, writing         bool
 }
 
 func hiddenState(m Model) hiddenInputState {

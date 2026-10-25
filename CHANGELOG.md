@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Preserve unexpected Bubble Tea failures during dashboard cleanup, including recovered panics, while retaining intentional cancellation and monitor shutdown behavior.
+- Block hidden actions and confirmations below the minimum terminal size; preserve Escape, dashboard quit, compact shutdown controls, and asynchronous updates.
+
 ## 0.1.5 — Internal API cleanup
 
 - Use a named monitor event-kind type and constants consistently across live/demo producers, UI dispatch, and tests.

@@ -169,6 +169,9 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		cmd = m.wait()
 	case tea.KeyMsg:
 		key := v.String()
+		if !m.acceptsKey(key) {
+			return m, nil
+		}
 		if m.hasOpenDialog() {
 			cmd = routeFor(m.dialog.active).key(&m, key, msg)
 			m.syncPanels()

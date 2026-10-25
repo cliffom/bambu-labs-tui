@@ -240,9 +240,16 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 	if final, ok := result.(ui.Model); ok && final.HasUnsavedPersistence() {
 		fmt.Fprintln(os.Stderr, "Notice or snooze changes were not confirmed saved before exit; changes may be lost.")
 	}
+	return finishDashboard(ctx, cancel, done, err)
+}
+
+// Capture the program's cancellation cause before cleanup cancels the session.
+// Only a cancellation reported by Bubble Tea itself is an intentional exit.
+func finishDashboard(ctx context.Context, cancel context.CancelFunc, done <-chan struct{}, err error) error {
+	cause := ctx.Err()
 	cancel()
 	<-done
-	if errors.Is(err, tea.ErrProgramKilled) && ctx.Err() != nil {
+	if errors.Is(err, tea.ErrProgramKilled) && cause != nil && errors.Is(err, cause) && !errors.Is(err, tea.ErrProgramPanic) {
 		return nil
 	}
 	return err

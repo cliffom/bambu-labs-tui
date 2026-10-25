@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.6 — Exit handling and resize input
 
 - Preserve unexpected Bubble Tea failures during dashboard cleanup, including recovered panics, while retaining intentional cancellation and monitor shutdown behavior.
 - Block hidden actions and confirmations below the minimum terminal size; preserve Escape, dashboard quit, compact shutdown controls, and asynchronous updates.

@@ -2,7 +2,24 @@ package ui
 
 import tea "github.com/charmbracelet/bubbletea"
 
-type dialogKind uint8
+type (
+	dialogKind uint8
+
+	// dialogState owns focus. Only alerts opened from attention suspend a parent;
+	// reset confirmation remains an explicit substate of the decisions dialog.
+	dialogState struct {
+		active   dialogKind
+		returnTo dialogKind
+	}
+
+	dialogRoute struct {
+		key     func(*Model, string, tea.Msg) tea.Cmd
+		view    func(Model) string
+		sync    func(*Model)
+		clear   func(*Model)
+		compact bool
+	}
+)
 
 const (
 	dialogNone dialogKind = iota
@@ -16,21 +33,6 @@ const (
 	dialogExport
 	dialogShutdown
 )
-
-// dialogState owns focus. Only alerts opened from attention suspend a parent;
-// reset confirmation remains an explicit substate of the decisions dialog.
-type dialogState struct {
-	active   dialogKind
-	returnTo dialogKind
-}
-
-type dialogRoute struct {
-	key     func(*Model, string, tea.Msg) tea.Cmd
-	view    func(Model) string
-	sync    func(*Model)
-	clear   func(*Model)
-	compact bool
-}
 
 // routeFor is the single catalog for dialog input, rendering, and lifecycle.
 // Order carries no priority: the explicit active owner selects exactly one route.
@@ -53,8 +55,10 @@ func routeFor(kind dialogKind) dialogRoute {
 	case dialogExport:
 		return dialogRoute{key: (*Model).exportKey, view: Model.exportView, sync: (*Model).syncExport, clear: func(m *Model) { m.exportDialog = nil }}
 	case dialogShutdown:
-		return dialogRoute{key: (*Model).shutdownKey, view: Model.shutdownView, compact: true,
-			clear: func(m *Model) { m.quitting, m.quitProblem = false, false }}
+		return dialogRoute{
+			key: (*Model).shutdownKey, view: Model.shutdownView, compact: true,
+			clear: func(m *Model) { m.quitting, m.quitProblem = false, false },
+		}
 	default:
 		return dialogRoute{}
 	}

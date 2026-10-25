@@ -13,12 +13,14 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
-type Store struct{ Path string }
+type (
+	Store struct{ Path string }
 
-type document struct {
-	Version int                    `json:"version"`
-	Reviews map[string]farm.Review `json:"reviews"`
-}
+	document struct {
+		Version int                    `json:"version"`
+		Reviews map[string]farm.Review `json:"reviews"`
+	}
+)
 
 func New(region, username string) (Store, error) {
 	dir, err := os.UserConfigDir()

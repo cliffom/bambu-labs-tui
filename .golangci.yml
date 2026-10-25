@@ -7,8 +7,16 @@ run:
 linters:
   default: none
   enable:
+    - decorder
     - errcheck
     - govet
     - ineffassign
     - staticcheck
     - unused
+  settings:
+    decorder:
+      disable-dec-order-check: true
+      disable-init-func-first-check: true
+      disable-dec-num-check: false
+      disable-const-dec-num-check: true
+      disable-var-dec-num-check: true

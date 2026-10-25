@@ -95,8 +95,10 @@ func fetchCatalogue(t *testing.T, ctx context.Context, client *http.Client, mode
 	return catalogue
 }
 
-var localSlotLabel = regexp.MustCompile(`^AMS(?: HT)? \d+ slot (\d+):`)
-var upstreamSlotLabel = regexp.MustCompile(`(?i)\bslot\s*(\d+)`)
+var (
+	localSlotLabel    = regexp.MustCompile(`^AMS(?: HT)? \d+ slot (\d+):`)
+	upstreamSlotLabel = regexp.MustCompile(`(?i)\bslot\s*(\d+)`)
+)
 
 // auditSlotLabel checks that generated slot labels agree with upstream messages.
 func auditSlotLabel(t *testing.T, code, text string, upstream []string) {

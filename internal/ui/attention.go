@@ -11,22 +11,24 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
-type attentionOccurrence struct {
-	key   string
-	since time.Time
-}
+type (
+	attentionOccurrence struct {
+		key   string
+		since time.Time
+	}
 
-type attentionGroup struct {
-	id, name string
-	items    []farm.Attention
-}
+	attentionGroup struct {
+		id, name string
+		items    []farm.Attention
+	}
 
-type attentionDialog struct {
-	groups []attentionGroup
-	index  int
-	view   viewport.Model
-	manual bool
-}
+	attentionDialog struct {
+		groups []attentionGroup
+		index  int
+		view   viewport.Model
+		manual bool
+	}
+)
 
 // syncAttention batches new reports without replacing a dialog being read.
 func (m *Model) syncAttention(force bool) {

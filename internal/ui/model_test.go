@@ -18,10 +18,12 @@ func demoModel() Model {
 	s.Discover([]farm.Device{{ID: "H", Name: "H2D", Model: "H2D", Online: true}, {ID: "X", Name: "X2D", Model: "X2D", Online: true}}, time.Now())
 	return New(s, make(chan monitor.Event), make(chan struct{}, 1), true)
 }
+
 func key(m Model, s string) Model {
 	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)})
 	return next.(Model)
 }
+
 func TestNavigationAndHelp(t *testing.T) {
 	m := demoModel()
 	m = key(m, "j")
@@ -44,6 +46,7 @@ func TestNavigationAndHelp(t *testing.T) {
 		t.Fatal("refresh not sent")
 	}
 }
+
 func TestResponsiveBounds(t *testing.T) {
 	for _, size := range [][2]int{{120, 35}, {80, 24}, {60, 18}, {40, 10}, {0, 0}} {
 		m := demoModel()
@@ -63,6 +66,7 @@ func TestResponsiveBounds(t *testing.T) {
 		}
 	}
 }
+
 func TestUnknownAndEmptyFilament(t *testing.T) {
 	if !strings.Contains(ansi.Strip(slotValue(farm.Slot{})), "Unknown") {
 		t.Fatal("missing unknown")
@@ -76,6 +80,7 @@ func TestUnknownAndEmptyFilament(t *testing.T) {
 		t.Fatal("zero estimate lost")
 	}
 }
+
 func TestUntrustedPrinterTextCannotEscapeTerminal(t *testing.T) {
 	m := demoModel()
 	m.Farm.Printers["H"].Name = "H2D\x1b]52;c;YXR0YWNr\a\n"
@@ -85,6 +90,7 @@ func TestUntrustedPrinterTextCannotEscapeTerminal(t *testing.T) {
 		t.Fatal("terminal control injection")
 	}
 }
+
 func TestEmptyAccountAndSelectionAfterDiscovery(t *testing.T) {
 	m := New(farm.New(10), make(chan monitor.Event), make(chan struct{}, 1), false)
 	next, _ := m.Update(monitor.Event{Kind: monitor.EventConnection, Connected: true, At: time.Now()})

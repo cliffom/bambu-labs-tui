@@ -111,13 +111,16 @@ func merge(dst, src map[string]any) {
 }
 
 func object(v any) map[string]any { m, _ := v.(map[string]any); return m }
-func array(v any) []any           { a, _ := v.([]any); return a }
+
+func array(v any) []any { a, _ := v.([]any); return a }
+
 func str(v any) string {
 	if v == nil {
 		return ""
 	}
 	return fmt.Sprint(v)
 }
+
 func number(v any) *int {
 	var n float64
 	var err error
@@ -135,6 +138,7 @@ func number(v any) *int {
 	i := int(n)
 	return &i
 }
+
 func bounded(v any, min, max int) *int {
 	n := number(v)
 	if n == nil || *n < min || *n > max {
@@ -142,8 +146,11 @@ func bounded(v any, min, max int) *int {
 	}
 	return n
 }
-func ptr(n int) *int       { return &n }
+
+func ptr(n int) *int { return &n }
+
 func boolean(b bool) *bool { return &b }
+
 func packed(v any) Temperature {
 	n := number(v)
 	if n == nil {

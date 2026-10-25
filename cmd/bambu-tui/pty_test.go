@@ -78,7 +78,24 @@ func TestPTYHelperProcess(t *testing.T) {
 	os.Exit(code)
 }
 
-type ptyPanicModel struct{ ui.Model }
+type (
+	ptyPanicModel struct{ ui.Model }
+
+	ptyChild struct {
+		release                     *os.File
+		returned                    chan struct{}
+		returnErr                   error
+		writeMu                     sync.Mutex
+		cmd                         *exec.Cmd
+		master, slave               *os.File
+		before, after               *term.State
+		stateErr, waitErr           error
+		mu                          sync.Mutex
+		output                      []byte
+		readErr                     error
+		changed, readDone, waitDone chan struct{}
+	}
+)
 
 func (m ptyPanicModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "ctrl+g" {
@@ -87,21 +104,6 @@ func (m ptyPanicModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	next, cmd := m.Model.Update(msg)
 	m.Model = next.(ui.Model)
 	return m, cmd
-}
-
-type ptyChild struct {
-	release                     *os.File
-	returned                    chan struct{}
-	returnErr                   error
-	writeMu                     sync.Mutex
-	cmd                         *exec.Cmd
-	master, slave               *os.File
-	before, after               *term.State
-	stateErr, waitErr           error
-	mu                          sync.Mutex
-	output                      []byte
-	readErr                     error
-	changed, readDone, waitDone chan struct{}
 }
 
 func startPTYChild(t *testing.T, mode string) *ptyChild {
@@ -173,7 +175,7 @@ func startPTYChild(t *testing.T, mode string) *ptyChild {
 	configPath := filepath.Join(t.TempDir(), "config.toml")
 	// The real demo reports on a timer. Disable automatic interruptions so test
 	// semantics do not depend on whether a slow CI host reaches the runout step.
-	if err = os.WriteFile(configPath, []byte("[alerts]\nautomatic_modals = false\n"), 0600); err != nil {
+	if err = os.WriteFile(configPath, []byte("[alerts]\nautomatic_modals = false\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	executable, err := os.Executable()
@@ -260,7 +262,9 @@ func (p *ptyChild) transcript() ([]byte, error) {
 	defer p.mu.Unlock()
 	return bytes.Clone(p.output), p.readErr
 }
+
 func (p *ptyChild) mark() int { output, _ := p.transcript(); return len(output) }
+
 func (p *ptyChild) expect(t *testing.T, after int, text string) {
 	t.Helper()
 	deadline := time.NewTimer(ptyStepLimit)
@@ -280,6 +284,7 @@ func (p *ptyChild) expect(t *testing.T, after int, text string) {
 		}
 	}
 }
+
 func (p *ptyChild) write(data []byte) error {
 	p.writeMu.Lock()
 	defer p.writeMu.Unlock()
@@ -298,6 +303,7 @@ func (p *ptyChild) send(t *testing.T, keys string) int {
 	}
 	return after
 }
+
 func (p *ptyChild) resize(t *testing.T, width, height uint16) int {
 	t.Helper()
 	after := p.mark()
@@ -309,6 +315,7 @@ func (p *ptyChild) resize(t *testing.T, width, height uint16) int {
 	}
 	return after
 }
+
 func (p *ptyChild) exited(t *testing.T, code int) {
 	t.Helper()
 	select {

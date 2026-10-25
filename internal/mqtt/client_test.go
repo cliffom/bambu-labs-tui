@@ -96,6 +96,7 @@ func TestBrokerMonitoringExchange(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
 func TestAuthRejection(t *testing.T) {
 	local, broker := net.Pipe()
 	defer func() { _ = local.Close() }()
@@ -109,6 +110,7 @@ func TestAuthRejection(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
 func TestRejectedSubscription(t *testing.T) {
 	local, broker := net.Pipe()
 	defer func() { _ = local.Close() }()
@@ -118,6 +120,7 @@ func TestRejectedSubscription(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
 func TestTopicIsolation(t *testing.T) {
 	local, broker := net.Pipe()
 	defer func() { _ = local.Close() }()
@@ -129,6 +132,7 @@ func TestTopicIsolation(t *testing.T) {
 	}
 	_ = broker.Close()
 }
+
 func TestPacketBoundsAndTruncation(t *testing.T) {
 	for _, b := range [][]byte{{}, {0x30}, {0x30, 0xff, 0xff, 0xff, 0x7f}, {0x30, 0x80, 0x80, 0x80, 0x80}, {0x30, 5, 1}} {
 		if _, _, err := readPacket(bytes.NewReader(b)); err == nil {
@@ -140,6 +144,7 @@ func TestPacketBoundsAndTruncation(t *testing.T) {
 		t.Fatal(kind, b, err)
 	}
 }
+
 func FuzzReadPacket(f *testing.F) {
 	f.Add([]byte{0xd0, 0})
 	f.Add([]byte{0x30, 1, 1})

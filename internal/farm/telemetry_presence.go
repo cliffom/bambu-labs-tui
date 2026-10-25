@@ -1,21 +1,23 @@
 package farm
 
-// conditionKnowledge records whether telemetry has supplied enough information
-// to reconcile an absent condition. Observation differs from a valid measurement:
-// an explicit unknown estimate still supersedes an older estimate, while an
-// omitted estimate must preserve a restored review until its slot is known.
-// These fields are internal interpretation metadata, not diagnostic export data.
-type conditionKnowledge struct {
-	printState, printerFaults, hmsFaults bool
-	inventoryEmpty                       bool
-	units                                []unitKnowledge
-}
+type (
+	// conditionKnowledge records whether telemetry has supplied enough information
+	// to reconcile an absent condition. Observation differs from a valid measurement:
+	// an explicit unknown estimate still supersedes an older estimate, while an
+	// omitted estimate must preserve a restored review until its slot is known.
+	// These fields are internal interpretation metadata, not diagnostic export data.
+	conditionKnowledge struct {
+		printState, printerFaults, hmsFaults bool
+		inventoryEmpty                       bool
+		units                                []unitKnowledge
+	}
 
-type unitKnowledge struct {
-	id    int
-	empty bool
-	slots map[int]bool
-}
+	unitKnowledge struct {
+		id    int
+		empty bool
+		slots map[int]bool
+	}
+)
 
 func (k conditionKnowledge) lowFilamentKnown(unitID, slotID int) bool {
 	if k.inventoryEmpty {

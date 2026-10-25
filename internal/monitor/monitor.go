@@ -14,8 +14,66 @@ import (
 	"github.com/cliffom/bambu-tui/internal/mqtt"
 )
 
-// EventKind identifies the monitor messages consumed by the UI reducer.
-type EventKind string
+type (
+	// EventKind identifies the monitor messages consumed by the UI reducer.
+	EventKind string
+
+	Event struct {
+		Kind      EventKind
+		At        time.Time
+		Devices   []farm.Device
+		ID        string
+		Payload   []byte
+		Connected bool
+		Problem   string
+	}
+
+	// API implementations must return when the supplied context is canceled.
+	API interface {
+		Devices(context.Context, string) ([]farm.Device, error)
+	}
+
+	// Transport serializes packet writes (including Read acknowledgements). Close
+	// must unblock every pending Read, Subscribe, Refresh, and Ping operation.
+	Transport interface {
+		Subscribe([]string) error
+		Refresh([]string) error
+		Ping() error
+		Read() (string, []byte, error)
+		Close() error
+	}
+
+	Dial func(context.Context) (Transport, error)
+
+	Runner struct {
+		API   API
+		Token string
+		Dial  Dial
+		// Shorter intervals are injected in tests; production uses protocol-safe defaults.
+		PollInterval, PingInterval, RetryMin, RetryMax time.Duration
+		HealthyAfter, WriteTimeout                     time.Duration
+		// Tests can advance session time and observe backoff without wall-clock sleeps.
+		now                  func() time.Time
+		wait                 func(context.Context, time.Duration) bool
+		pollTicks, pingTicks <-chan time.Time
+	}
+
+	report struct {
+		id   string
+		body []byte
+		err  error
+	}
+
+	discovery struct {
+		devices []farm.Device
+		err     error
+	}
+
+	writeRequest struct {
+		subscribe, refresh []string
+		ping               bool
+	}
+)
 
 const (
 	EventDevices    EventKind = "devices"
@@ -24,49 +82,12 @@ const (
 	EventProblem    EventKind = "problem"
 )
 
-type Event struct {
-	Kind      EventKind
-	At        time.Time
-	Devices   []farm.Device
-	ID        string
-	Payload   []byte
-	Connected bool
-	Problem   string
-}
-
-// API implementations must return when the supplied context is canceled.
-type API interface {
-	Devices(context.Context, string) ([]farm.Device, error)
-}
-
-// Transport serializes packet writes (including Read acknowledgements). Close
-// must unblock every pending Read, Subscribe, Refresh, and Ping operation.
-type Transport interface {
-	Subscribe([]string) error
-	Refresh([]string) error
-	Ping() error
-	Read() (string, []byte, error)
-	Close() error
-}
-type Dial func(context.Context) (Transport, error)
-type Runner struct {
-	API   API
-	Token string
-	Dial  Dial
-	// Shorter intervals are injected in tests; production uses protocol-safe defaults.
-	PollInterval, PingInterval, RetryMin, RetryMax time.Duration
-	HealthyAfter, WriteTimeout                     time.Duration
-	// Tests can advance session time and observe backoff without wall-clock sleeps.
-	now                  func() time.Time
-	wait                 func(context.Context, time.Duration) bool
-	pollTicks, pingTicks <-chan time.Time
-}
-
 func New(api *cloud.Client, session cloud.Session) *Runner {
 	return &Runner{API: api, Token: session.Token, Dial: func(ctx context.Context) (Transport, error) {
 		return mqtt.Dial(ctx, api.MQTTAddress, session.Username, session.Token)
 	}}
 }
+
 func emit(ctx context.Context, out chan<- Event, e Event) bool {
 	if e.At.IsZero() {
 		e.At = time.Now()
@@ -78,6 +99,7 @@ func emit(ctx context.Context, out chan<- Event, e Event) bool {
 		return false
 	}
 }
+
 func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struct{}) {
 	defer close(out)
 	minimum, maximum := r.RetryMin, r.RetryMax
@@ -133,6 +155,7 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 		delay = min(delay*2, maximum)
 	}
 }
+
 func waitRetry(ctx context.Context, delay time.Duration) bool {
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
@@ -149,20 +172,6 @@ func (r *Runner) clock() time.Time {
 		return r.now()
 	}
 	return time.Now()
-}
-
-type report struct {
-	id   string
-	body []byte
-	err  error
-}
-type discovery struct {
-	devices []farm.Device
-	err     error
-}
-type writeRequest struct {
-	subscribe, refresh []string
-	ping               bool
 }
 
 // write bounds the whole batch, including time waiting for MQTT's packet mutex.

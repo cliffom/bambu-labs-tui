@@ -45,6 +45,7 @@ func Dial(ctx context.Context, address, username, password string) (*Client, err
 	}
 	return c, nil
 }
+
 func handshake(conn net.Conn, id, user, password string) (*Client, error) {
 	for _, s := range []string{id, user, password} {
 		if len(s) > 65535 {
@@ -90,6 +91,7 @@ func validSerial(id string) bool {
 	}
 	return true
 }
+
 func (c *Client) Subscribe(ids []string) error {
 	if len(ids) == 0 {
 		return nil
@@ -128,7 +130,9 @@ func (c *Client) Refresh(ids []string) error {
 	}
 	return nil
 }
-func (c *Client) Ping() error  { return c.write(0xc0, nil) }
+
+func (c *Client) Ping() error { return c.write(0xc0, nil) }
+
 func (c *Client) Close() error { return c.conn.Close() }
 
 // Read returns the next printer report and acknowledges inbound QoS 1 packets.
@@ -183,12 +187,15 @@ func (c *Client) Read() (string, []byte, error) {
 		}
 	}
 }
+
 func field(s string) []byte { return append([]byte{byte(len(s) >> 8), byte(len(s))}, []byte(s)...) }
+
 func (c *Client) write(kind byte, body []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.writeLocked(kind, body)
 }
+
 func (c *Client) writeLocked(kind byte, body []byte) error {
 	if len(body) > 2*1024*1024 {
 		return errors.New("MQTT packet too large")
@@ -219,6 +226,7 @@ func (c *Client) writeLocked(kind byte, body []byte) error {
 	}
 	return nil
 }
+
 func readPacket(r io.Reader) (byte, []byte, error) {
 	var b [1]byte
 	if _, err := io.ReadFull(r, b[:]); err != nil {

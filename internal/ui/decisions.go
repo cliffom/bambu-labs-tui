@@ -11,18 +11,20 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
-type decisionItem struct {
-	key, printer, text, code, level string
-	review                          farm.Review
-	active                          bool
-}
+type (
+	decisionItem struct {
+		key, printer, text, code, level string
+		review                          farm.Review
+		active                          bool
+	}
 
-type decisionsDialog struct {
-	key          string
-	index        int
-	view         viewport.Model
-	confirmReset bool
-}
+	decisionsDialog struct {
+		key          string
+		index        int
+		view         viewport.Model
+		confirmReset bool
+	}
+)
 
 // decisionItems includes reviewed active conditions and decisions awaiting telemetry.
 func (m Model) decisionItems() []decisionItem {
@@ -43,8 +45,10 @@ func (m Model) decisionItems() []decisionItem {
 	}
 	for key, c := range m.Farm.Active {
 		if c.Acknowledged || c.Dismissed {
-			items[key] = decisionItem{key: key, printer: c.Printer, text: c.Text, code: c.Code, level: c.Level, active: true,
-				review: farm.Review{Since: c.Since, Acknowledged: c.Acknowledged, Dismissed: c.Dismissed}}
+			items[key] = decisionItem{
+				key: key, printer: c.Printer, text: c.Text, code: c.Code, level: c.Level, active: true,
+				review: farm.Review{Since: c.Since, Acknowledged: c.Acknowledged, Dismissed: c.Dismissed},
+			}
 		}
 	}
 	result := make([]decisionItem, 0, len(items))
@@ -191,10 +195,12 @@ func (m *Model) syncDecisions() {
 			code = "—"
 		}
 		field := func(label, value string) string { return detailField(label, safe(value), d.view.Width, white) }
-		lines = []string{accent.Render(fmt.Sprintf("Notice %d / %d", d.index+1, len(items))), "",
+		lines = []string{
+			accent.Render(fmt.Sprintf("Notice %d / %d", d.index+1, len(items))), "",
 			field("Printer", item.printer), field("Description", item.text), field("Code", code), field("Severity", item.level), field("Status", status),
 			field("Visibility", dismissal), field("Review", acknowledgement), field("First Seen", item.review.Since.Local().Format("2006-01-02 15:04:05 MST")), "",
-			"r restores visibility and keeps acknowledgement.", "u marks unreviewed and keeps visibility / dismissal.", "Actionable unreviewed notices can alert after this view closes.", "Restoring a notice does not recreate deleted history."}
+			"r restores visibility and keeps acknowledgement.", "u marks unreviewed and keeps visibility / dismissal.", "Actionable unreviewed notices can alert after this view closes.", "Restoring a notice does not recreate deleted history.",
+		}
 	}
 	d.view.SetContent(wrapLines(lines, d.view.Width))
 }
@@ -203,10 +209,12 @@ func (m *Model) syncDecisions() {
 func (m Model) decisionsView() string {
 	d := m.decisions
 	if d.confirmReset {
-		lines := []string{warning.Bold(true).Render("RESET NOTICE DECISIONS?"), "",
+		lines := []string{
+			warning.Bold(true).Render("RESET NOTICE DECISIONS?"), "",
 			"Reset all notice decisions for this account and region?", "",
 			"Includes saved decisions awaiting telemetry.", "Active notices become visible and unreviewed.", "Session alert suppression resets; actionable notices can prompt again.", "Printer state and event history remain unchanged.", "",
-			"y: reset decisions     n / Esc: cancel"}
+			"y: reset decisions     n / Esc: cancel",
+		}
 		return m.fullView([]string{wrapLines(lines, m.width)}, "n / Esc cancel")
 	}
 	mode := "Account and region · local decisions"

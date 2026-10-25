@@ -34,25 +34,30 @@ func TestDemoRunoutScenario(t *testing.T) {
 	}
 }
 
-type fakeAPI struct{ err error }
+type (
+	fakeAPI struct{ err error }
+
+	fakeTransport struct {
+		done    chan struct{}
+		once    sync.Once
+		refresh chan []string
+		fail    bool
+	}
+)
 
 func (f fakeAPI) Devices(context.Context, string) ([]farm.Device, error) {
 	return []farm.Device{{ID: "TEST", Name: "Test", Online: true}}, f.err
 }
 
-type fakeTransport struct {
-	done    chan struct{}
-	once    sync.Once
-	refresh chan []string
-	fail    bool
-}
-
 func (f *fakeTransport) Subscribe([]string) error { return nil }
+
 func (f *fakeTransport) Refresh(ids []string) error {
 	f.refresh <- append([]string(nil), ids...)
 	return nil
 }
+
 func (f *fakeTransport) Ping() error { return nil }
+
 func (f *fakeTransport) Read() (string, []byte, error) {
 	if f.fail {
 		return "", nil, io.EOF
@@ -60,7 +65,9 @@ func (f *fakeTransport) Read() (string, []byte, error) {
 	<-f.done
 	return "", nil, io.EOF
 }
+
 func (f *fakeTransport) Close() error { f.once.Do(func() { close(f.done) }); return nil }
+
 func receive(t *testing.T, events <-chan Event, kind EventKind) Event {
 	t.Helper()
 	timeout := time.After(2 * time.Second)
@@ -78,6 +85,7 @@ func receive(t *testing.T, events <-chan Event, kind EventKind) Event {
 		}
 	}
 }
+
 func TestReconnectResubscribesAndRefreshes(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -117,6 +125,7 @@ func TestReconnectResubscribesAndRefreshes(t *testing.T) {
 		t.Fatal("shutdown blocked")
 	}
 }
+
 func TestAuthFailureStopsRetries(t *testing.T) {
 	for _, source := range []string{"http", "mqtt"} {
 		t.Run(source, func(t *testing.T) {
@@ -145,6 +154,7 @@ func TestAuthFailureStopsRetries(t *testing.T) {
 		})
 	}
 }
+
 func TestCancellationDuringBackoff(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	events := make(chan Event, 8)
@@ -159,6 +169,7 @@ func TestCancellationDuringBackoff(t *testing.T) {
 		t.Fatal("backoff ignored cancellation")
 	}
 }
+
 func TestDemoProducesBothModels(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

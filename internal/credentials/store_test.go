@@ -55,6 +55,7 @@ func fakeStore(t *testing.T, platform string) (Store, *map[string]string) {
 	}
 	return s, &data
 }
+
 func TestNativeStoreLifecycle(t *testing.T) {
 	for _, platform := range []string{"darwin", "linux"} {
 		t.Run(platform, func(t *testing.T) {
@@ -83,6 +84,7 @@ func TestNativeStoreLifecycle(t *testing.T) {
 		})
 	}
 }
+
 func TestUnavailableDoesNotBecomeMissingSession(t *testing.T) {
 	for _, code := range []int{36, 152} {
 		s := Store{Region: "global", platform: "darwin", execute: func(string, string, ...string) ([]byte, error) { return nil, commandError{code} }}
@@ -97,6 +99,7 @@ func TestUnavailableDoesNotBecomeMissingSession(t *testing.T) {
 		}
 	}
 }
+
 func TestErrorsDoNotExposeNativeOutput(t *testing.T) {
 	s := Store{Region: "global", platform: "linux", execute: func(string, string, ...string) ([]byte, error) { return nil, errors.New("secret-from-native-stderr") }}
 	err := s.Save(cloud.Session{Token: "private-token", Username: "private-user"})
@@ -104,6 +107,7 @@ func TestErrorsDoNotExposeNativeOutput(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
 func TestSaveVerifiesReadback(t *testing.T) {
 	s, _ := fakeStore(t, "linux")
 	old := s.execute
@@ -117,6 +121,7 @@ func TestSaveVerifiesReadback(t *testing.T) {
 		t.Fatal("unverified write", err)
 	}
 }
+
 func TestCorruptSessionCanBeDeleted(t *testing.T) {
 	s, data := fakeStore(t, "linux")
 	(*data)["value"] = "invalid-json"
@@ -127,6 +132,7 @@ func TestCorruptSessionCanBeDeleted(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
 func TestProbeLeavesNoTemporaryCredential(t *testing.T) {
 	s, data := fakeStore(t, "darwin")
 	s.serviceName = "disposable-probe"
@@ -137,6 +143,7 @@ func TestProbeLeavesNoTemporaryCredential(t *testing.T) {
 		t.Fatal("probe left temporary credentials")
 	}
 }
+
 func TestOversizeMacSessionNeverStartsCommand(t *testing.T) {
 	s := Store{Region: "global", platform: "darwin", execute: func(string, string, ...string) ([]byte, error) {
 		t.Fatal("oversize credential sent to fixed-size command parser")
@@ -146,6 +153,7 @@ func TestOversizeMacSessionNeverStartsCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
 func TestSessionValidation(t *testing.T) {
 	s, data := fakeStore(t, "linux")
 	if err := s.Save(cloud.Session{}); !errors.Is(err, ErrInvalid) {

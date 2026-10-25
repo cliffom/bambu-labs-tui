@@ -18,11 +18,11 @@ func TestReplaceUsesPrivateFilesAndAtomicReplacement(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir, err := os.Stat(filepath.Dir(path))
-	if err != nil || dir.Mode().Perm() != 0700 {
+	if err != nil || dir.Mode().Perm() != 0o700 {
 		t.Fatalf("directory permissions: %v, %v", dir, err)
 	}
 	// Replacing a less restrictive existing file must still install a private file.
-	if err := os.Chmod(path, 0644); err != nil {
+	if err := os.Chmod(path, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	old, err := os.Open(path)
@@ -42,7 +42,7 @@ func TestReplaceUsesPrivateFilesAndAtomicReplacement(t *testing.T) {
 		t.Fatal("destination is not the complete new snapshot")
 	}
 	info, err := os.Stat(path)
-	if err != nil || info.Mode().Perm() != 0600 {
+	if err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatalf("file permissions: %v, %v", info, err)
 	}
 	files, err := os.ReadDir(filepath.Dir(path))
@@ -54,11 +54,11 @@ func TestReplaceUsesPrivateFilesAndAtomicReplacement(t *testing.T) {
 func TestFailedReplacementCleansTemporaryFileAndPreservesDestination(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "destination")
-	if err := os.Mkdir(target, 0700); err != nil {
+	if err := os.Mkdir(target, 0o700); err != nil {
 		t.Fatal(err)
 	}
 	sentinel := filepath.Join(target, "existing")
-	if err := os.WriteFile(sentinel, []byte("original"), 0600); err != nil {
+	if err := os.WriteFile(sentinel, []byte("original"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	err := Replace(target, ".snapshot-*", []byte("replacement"))
@@ -79,7 +79,7 @@ func TestFailedReplacementCleansTemporaryFileAndPreservesDestination(t *testing.
 func TestCreationFailuresPreserveExistingDataAndPropagateErrors(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "existing.json")
-	if err := os.WriteFile(path, []byte("existing"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("existing"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	err := Replace(filepath.Join(path, "blocked.json"), ".snapshot-*", nil)

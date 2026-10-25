@@ -7,79 +7,89 @@ import (
 	"time"
 )
 
-type Device struct {
-	ID        string `json:"dev_id"`
-	Name      string `json:"name"`
-	Model     string `json:"dev_product_name"`
-	ModelCode string `json:"dev_model_name"`
-	Online    bool   `json:"online"`
-}
+type (
+	Device struct {
+		ID        string `json:"dev_id"`
+		Name      string `json:"name"`
+		Model     string `json:"dev_product_name"`
+		ModelCode string `json:"dev_model_name"`
+		Online    bool   `json:"online"`
+	}
 
-type Temperature struct{ Current, Target *int }
-type Nozzle struct {
-	ID          int
-	Temperature Temperature
-	Active      bool
-	AMS, Slot   *int
-}
-type Slot struct {
-	ID              int
-	Material, Color string
-	Present         *bool
-	Remaining       *int
-	Nozzles         []int
-}
-type AMS struct {
-	ID          int
-	Humidity    *int
-	Temperature *int
-	Slots       []Slot
-}
-type Fault struct{ Code, Text, Level string }
-type Printer struct {
-	Device
-	Firmware Firmware
-	// Raw is the flexible merged snapshot for telemetry interpretation and
-	// allowlisted diagnostics; lifecycle decisions use normalized fields.
-	Raw                                     map[string]any
-	knowledge                               conditionKnowledge
-	LastReport                              time.Time
-	RemainingReported                       time.Time
-	State, Job, Stage                       string
-	Progress, Remaining, Layer, TotalLayers *int
-	Bed, Chamber                            Temperature
-	Nozzles                                 []Nozzle
-	AMS                                     []AMS
-	External                                []Slot
-	Faults                                  []Fault
-}
-type Event struct {
-	ID                   uint64
-	At                   time.Time
-	Printer, Level, Text string
-	Code                 string
-	ConditionKey         string
-}
-type Condition struct {
-	Printer, Level, Text string
-	Code                 string
-	Since                time.Time
-	Acknowledged         bool
-	Dismissed            bool
-}
-type State struct {
-	Printers                  map[string]*Printer
-	Order                     []string
-	Events                    []Event
-	Active                    map[string]Condition
-	Connected                 bool
-	CloudProblem              string
-	LowFilament               int
-	nextEventID               uint64
-	reviews                   map[string]Review
-	reviewRevision            uint64
-	discovered, cloudObserved bool
-}
+	Temperature struct{ Current, Target *int }
+
+	Nozzle struct {
+		ID          int
+		Temperature Temperature
+		Active      bool
+		AMS, Slot   *int
+	}
+
+	Slot struct {
+		ID              int
+		Material, Color string
+		Present         *bool
+		Remaining       *int
+		Nozzles         []int
+	}
+
+	AMS struct {
+		ID          int
+		Humidity    *int
+		Temperature *int
+		Slots       []Slot
+	}
+
+	Fault struct{ Code, Text, Level string }
+
+	Printer struct {
+		Device
+		Firmware Firmware
+		// Raw is the flexible merged snapshot for telemetry interpretation and
+		// allowlisted diagnostics; lifecycle decisions use normalized fields.
+		Raw                                     map[string]any
+		knowledge                               conditionKnowledge
+		LastReport                              time.Time
+		RemainingReported                       time.Time
+		State, Job, Stage                       string
+		Progress, Remaining, Layer, TotalLayers *int
+		Bed, Chamber                            Temperature
+		Nozzles                                 []Nozzle
+		AMS                                     []AMS
+		External                                []Slot
+		Faults                                  []Fault
+	}
+
+	Event struct {
+		ID                   uint64
+		At                   time.Time
+		Printer, Level, Text string
+		Code                 string
+		ConditionKey         string
+	}
+
+	Condition struct {
+		Printer, Level, Text string
+		Code                 string
+		Since                time.Time
+		Acknowledged         bool
+		Dismissed            bool
+	}
+
+	State struct {
+		Printers                  map[string]*Printer
+		Order                     []string
+		Events                    []Event
+		Active                    map[string]Condition
+		Connected                 bool
+		CloudProblem              string
+		LowFilament               int
+		nextEventID               uint64
+		reviews                   map[string]Review
+		reviewRevision            uint64
+		discovered, cloudObserved bool
+	}
+)
 
 func New(threshold int) *State {
 	return &State{Printers: map[string]*Printer{}, Active: map[string]Condition{}, LowFilament: threshold}
@@ -157,6 +167,7 @@ func (s *State) Report(id string, payload []byte, now time.Time) error {
 func (p *Printer) Stale(now time.Time) bool {
 	return p.LastReport.IsZero() || now.Sub(p.LastReport) > 120*time.Second
 }
+
 func (p *Printer) Connection(now time.Time, cloud bool) string {
 	if !cloud {
 		return "Cloud disconnected"
@@ -172,6 +183,7 @@ func (p *Printer) Connection(now time.Time, cloud bool) string {
 	}
 	return "Live"
 }
+
 func (p *Printer) ETA() (time.Time, bool) {
 	if p.State != "RUNNING" || p.Remaining == nil || p.RemainingReported.IsZero() {
 		return time.Time{}, false
@@ -197,4 +209,5 @@ func (s *State) DeleteEvent(id uint64) bool {
 	}
 	return false
 }
+
 func (s *State) ClearEvents() { s.Events = nil }

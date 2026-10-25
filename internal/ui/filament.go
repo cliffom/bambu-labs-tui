@@ -12,21 +12,23 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
-type filamentUnit struct {
-	key, name             string
-	id                    int
-	humidity, temperature *int
-	slots                 []farm.Slot
-	external              bool
-}
+type (
+	filamentUnit struct {
+		key, name             string
+		id                    int
+		humidity, temperature *int
+		slots                 []farm.Slot
+		external              bool
+	}
 
-type filamentDialog struct {
-	printerID, unitKey string
-	slotID             int
-	view               viewport.Model
-	ensureSelection    bool
-	detailsOffset      int
-}
+	filamentDialog struct {
+		printerID, unitKey string
+		slotID             int
+		view               viewport.Model
+		ensureSelection    bool
+		detailsOffset      int
+	}
+)
 
 // filamentUnits returns stable unit identities and ordered copies of slot lists.
 func filamentUnits(p *farm.Printer) []filamentUnit {

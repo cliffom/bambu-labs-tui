@@ -163,12 +163,14 @@ func (m *Model) syncAlertDialog() {
 		return "Off"
 	}
 	field := func(name, value string) string { return detailField(name, safe(value), d.view.Width, white) }
-	lines := []string{field("Printer", p.Name), field("Printer ID", p.ID), field("Alerts", m.alertStatus(p.ID)), "",
+	lines := []string{
+		field("Printer", p.Name), field("Printer ID", p.ID), field("Alerts", m.alertStatus(p.ID)), "",
 		field("Auto Modals", label(rules.AutomaticModals)), field("Filament", label(rules.Filament)), field("Extrusion", label(rules.Extrusion)),
 		field("Printer Faults", label(rules.PrinterFaults)), field("Failed Prints", label(rules.FailedPrints)), field("Unknown Pauses", label(rules.UnknownPauses)), "",
 		"Edit [alerts] / [alerts.printers.\"PRINTER_ID\"] in config.toml and restart to change these defaults.",
 		"1: snooze 15 minutes · 2: 1 hour · 3: 4 hours", "u: end snooze and re-arm eligible alerts", "Snoozing keeps all printer state and notices visible.",
-		"Expiry re-arms eligible unreviewed alerts, including new faults during the snooze.", "!: manually inspect alerts from the dashboard, even while muted or snoozed.", "Sound notifications are not supported."}
+		"Expiry re-arms eligible unreviewed alerts, including new faults during the snooze.", "!: manually inspect alerts from the dashboard, even while muted or snoozed.", "Sound notifications are not supported.",
+	}
 	if m.Demo || m.saveSnoozes == nil {
 		lines = append(lines, "Snooze changes apply only to this session.")
 	}

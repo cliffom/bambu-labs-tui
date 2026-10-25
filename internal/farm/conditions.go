@@ -60,6 +60,7 @@ func (s *State) Unacknowledged() int {
 	}
 	return n
 }
+
 func (s *State) Reconcile(now time.Time) {
 	next := map[string]Condition{}
 	if !s.Connected {

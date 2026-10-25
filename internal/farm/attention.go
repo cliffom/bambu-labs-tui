@@ -8,19 +8,27 @@ import (
 	"time"
 )
 
-// Attention identifies an unreviewed condition that warrants operator attention.
-// Key and Since preserve the underlying notice's independent occurrence identity.
-type Attention struct {
-	Key, PrinterID, Printer, Text, Code, Guidance string
-	Since                                         time.Time
-	// Categories includes contributing fault categories for a related pause-state notice.
-	Categories []string
-}
+type (
+	// Attention identifies an unreviewed condition that warrants operator attention.
+	// Key and Since preserve the underlying notice's independent occurrence identity.
+	Attention struct {
+		Key, PrinterID, Printer, Text, Code, Guidance string
+		Since                                         time.Time
+		// Categories includes contributing fault categories for a related pause-state notice.
+		Categories []string
+	}
 
-type faultAction struct {
-	guidance                     string
-	known, recovering, userPause bool
-}
+	faultAction struct {
+		guidance                     string
+		known, recovering, userPause bool
+	}
+
+	// printerAttention collects verified reasons that affect a separate pause-state alert.
+	printerAttention struct {
+		intervention, recovering, userPause bool
+		categories                          []string
+	}
+)
 
 const (
 	reviewPrinter     = "Inspect the printer and its reported fault; use the printer or Bambu app to resolve it."
@@ -153,12 +161,6 @@ func faultAlertCategory(guidance string) string {
 	default:
 		return "printer_faults"
 	}
-}
-
-// printerAttention collects verified reasons that affect a separate pause-state alert.
-type printerAttention struct {
-	intervention, recovering, userPause bool
-	categories                          []string
 }
 
 // pauseNeedsReview waits for complete snapshots and excludes explained pauses.

@@ -12,6 +12,7 @@ import (
 type roundTrip func(*http.Request) (*http.Response, error)
 
 func (f roundTrip) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
 func fake(t *testing.T, handler func(*http.Request) (int, string, http.Header)) *Client {
 	t.Helper()
 	c := New("global")
@@ -21,6 +22,7 @@ func fake(t *testing.T, handler func(*http.Request) (int, string, http.Header)) 
 	})
 	return c
 }
+
 func TestLoginAndDiscovery(t *testing.T) {
 	ctx := context.Background()
 	c := fake(t, func(r *http.Request) (int, string, http.Header) {
@@ -63,6 +65,7 @@ func TestLoginAndDiscovery(t *testing.T) {
 		t.Fatal(devices, err)
 	}
 }
+
 func TestAuthenticatorCookieFlow(t *testing.T) {
 	ctx := context.Background()
 	c := fake(t, func(r *http.Request) (int, string, http.Header) {
@@ -85,6 +88,7 @@ func TestAuthenticatorCookieFlow(t *testing.T) {
 		t.Fatal(token, err)
 	}
 }
+
 func TestErrorsNeverExposeResponseSecrets(t *testing.T) {
 	for _, tc := range []struct {
 		code int
@@ -107,6 +111,7 @@ func TestErrorsNeverExposeResponseSecrets(t *testing.T) {
 		})
 	}
 }
+
 func TestRegionsAndInvalidIdentity(t *testing.T) {
 	c := New("china")
 	if !strings.Contains(c.BaseURL, ".cn") || c.MQTTAddress != "cn.mqtt.bambulab.com:8883" {

@@ -49,6 +49,15 @@ func TestClearAllNoticesConfirmationAndPersistence(t *testing.T) {
 	if m.Farm.NoticeCount() != 0 || len(m.Farm.Events) != 0 || len(m.Farm.Active) != len(before) {
 		t.Fatal("bulk clear did not preserve underlying conditions")
 	}
+	if m.focus != 0 {
+		t.Fatal("clearing the panel left navigation focused on empty notices")
+	}
+	m.printerFilter = filterAll
+	m.syncPanels()
+	m = key(m, "j")
+	if m.selection != 1 {
+		t.Fatal("printer navigation did not resume after clearing")
+	}
 	for k, c := range before {
 		if !m.Farm.Active[k].Dismissed || !saved[k].Dismissed || saved[k].Acknowledged != c.Acknowledged {
 			t.Fatal("dismissal/review semantics changed")
@@ -97,6 +106,9 @@ func TestClearAllNoticesPreservesArrivalsAndReplacedOccurrences(t *testing.T) {
 				}
 			}
 			m = key(m, "y")
+			if m.focus != 2 {
+				t.Fatal("new notices lost focus after clearing older occurrences")
+			}
 			if c := m.Farm.Active["cloud"]; c.Dismissed || c.Acknowledged {
 				t.Fatal("new occurrence cleared")
 			}
@@ -111,7 +123,7 @@ func TestClearAllNoticesEmptyAndResize(t *testing.T) {
 	m := New(farm.New(10), nil, nil, true)
 	m.focus = 2
 	m = key(m, "X")
-	if m.hasOpenDialog() || !strings.Contains(m.toast, "No notices") {
+	if m.hasOpenDialog() || m.focus != 0 || !strings.Contains(m.toast, "No notices") {
 		t.Fatal("empty panel handling")
 	}
 	m = noticeModel(t)

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Return focus to Printers after `X` clears the Notices panel or finds it already empty, so arrow keys and `j/k` immediately navigate printers. Keep focus in Notices when newer entries remain.
+
 ## 0.1.9 — Clear all notices
 
 - Add `X` in the Notices panel to clear all notices across the farm after confirmation, saving local dismissals and clearing captured history while preserving newly arriving occurrences and events.

@@ -396,6 +396,38 @@ func TestPTYNavigationResizeAndNormalQuit(t *testing.T) {
 	child.exited(t, 0)
 }
 
+func TestPTYClearAllNoticesRemainsResponsive(t *testing.T) {
+	child := startPTYChild(t, "demo")
+	child.expect(t, 0, "Gridfinity baseplate")
+	child.send(t, "\t")
+	mark := child.send(t, "\t")
+	child.expect(t, mark, "X clear all")
+	mark = child.send(t, "X")
+	child.expect(t, mark, "CLEAR ALL NOTICES?")
+	mark = child.send(t, "y")
+	child.expect(t, mark, "Confirmed notices cleared locally")
+	// Input and rendering must continue after confirmation empties the panel.
+	mark = child.send(t, "j")
+	child.expect(t, mark, "Printer Name:    X2D")
+	// Re-entering the empty panel and clearing again must also restore navigation.
+	child.send(t, "\t")
+	child.send(t, "\t")
+	mark = child.send(t, "X")
+	child.expect(t, mark, "No notices or recent events to clear")
+	mark = child.send(t, "k")
+	child.expect(t, mark, "Printer Name:    H2D")
+	mark = child.send(t, "?")
+	child.expect(t, mark, "KEYBOARD")
+	mark = child.send(t, "\x1b")
+	child.expect(t, mark, "01  PRINTERS")
+	mark = child.send(t, "m")
+	child.expect(t, mark, "AMS / FILAMENT")
+	mark = child.send(t, "\x1b")
+	child.expect(t, mark, "01  PRINTERS")
+	child.send(t, "q")
+	child.exited(t, 0)
+}
+
 func TestPTYInterruptedExitRestoresTerminal(t *testing.T) {
 	for _, signal := range []syscall.Signal{syscall.SIGINT, syscall.SIGTERM} {
 		t.Run(signal.String(), func(t *testing.T) {

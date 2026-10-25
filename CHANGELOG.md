@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Add PTY smoke tests on Linux/macOS for real keyboard input, modal quit ownership, resizing, alternate-screen/cursor cleanup, terminal-mode restoration, and bounded normal/interrupted/panic exits.
-- Use the CLI signal context as the sole owner of SIGINT/SIGTERM, preventing competing Bubble Tea handlers from hanging shutdown after cancellation.
+- Use the CLI signal context as the sole owner of SIGINT/SIGTERM and request graceful terminal shutdown on cancellation, preventing competing signal handlers and input-reader closure races.
 
 ## 0.1.6 — Exit handling and resize input
 

@@ -54,7 +54,7 @@ func TestPTYHelperProcess(t *testing.T) {
 		done := make(chan struct{})
 		go func() { <-ctx.Done(); close(events); close(done) }()
 		model := ptyPanicModel{Model: ui.New(farm.New(10), events, make(chan struct{}, 1), true)}
-		_, err = tea.NewProgram(model, tea.WithContext(ctx), tea.WithAltScreen(), tea.WithoutSignalHandler()).Run()
+		_, err = runTerminalProgram(ctx, model, tea.WithAltScreen())
 		err = finishDashboard(ctx, cancel, done, err)
 	default:
 		t.Fatalf("unknown PTY helper mode %q", mode)

@@ -23,7 +23,7 @@ The parent starts the current Go test executable in a new session with a control
 - A test-only wrapper around the real UI raises a panic on raw Ctrl+G. Bubble Tea recovers, the dashboard cleanup helper preserves the error, and the child exits nonzero. There is no production fault-injection flag.
 - For each exit path, terminal settings match the original state, and output includes alternate-screen exit, cursor restoration, and bracketed-paste disable sequences.
 
-The CLI's signal context owns SIGINT/SIGTERM; Bubble Tea's duplicate signal handler is disabled for the dashboard and login prompts. This avoids its unbuffered quit-message send racing with context cancellation, while preserving raw key dispatch and SIGWINCH handling.
+The CLI's signal context owns SIGINT/SIGTERM; Bubble Tea's duplicate signal handler is disabled for the dashboard and login prompts. The shared terminal runner translates context cancellation into a graceful quit, letting Bubble Tea join its input reader before closing cancellation descriptors. It preserves a cancellation error for callers and leaves unexpected errors intact. This avoids both competing quit-message sends and the v1 hard-cancel input-reader close race, while preserving raw key dispatch and SIGWINCH handling.
 
 ## Synchronization and cleanup
 

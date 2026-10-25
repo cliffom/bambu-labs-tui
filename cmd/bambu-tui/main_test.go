@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"testing"
 	"time"
@@ -66,5 +67,14 @@ func TestFinishDashboardClassifiesExitBeforeCleanupAndJoinsMonitor(t *testing.T)
 				t.Fatal("cleanup did not finish")
 			}
 		})
+	}
+}
+
+func TestRunTerminalProgramHandlesCancellationBeforeStartup(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := runTerminalProgram(ctx, promptModel{}, tea.WithInput(nil), tea.WithOutput(io.Discard), tea.WithoutRenderer())
+	if !errors.Is(err, tea.ErrProgramKilled) || !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancellation cause lost: %v", err)
 	}
 }

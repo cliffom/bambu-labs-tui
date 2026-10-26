@@ -494,3 +494,57 @@ func TestMutedObserverPreservesUncontendedQueuedRecurrence(t *testing.T) {
 		})
 	}
 }
+
+func TestObserverLeaseBecomesVisibleDeliveryOwnerOnReenable(t *testing.T) {
+	ledger := testLedger(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	worker := &Worker{
+		ctx: ctx, cancel: cancel, ledger: ledger,
+		send:  func(context.Context, Message) error { return nil },
+		queue: make(chan frame, workerQueueCapacity), now: time.Now, changed: make(chan struct{}, 1),
+	}
+	defer worker.releaseOwner()
+	processNext := func() { t.Helper(); worker.process(<-worker.queue) }
+	worker.Submit(incidentFrame())
+	processNext()
+	muted := incidentFrame()
+	muted.ObserveOnly = true
+	worker.Submit(muted)
+	processNext()
+	clear := muted
+	clear.Snapshot = incidentFrame().Snapshot
+	printer := clear.Snapshot["TEST"]
+	printer.Conditions = nil
+	clear.Snapshot["TEST"] = printer
+	worker.Submit(clear)
+	worker.Submit(incidentFrame())
+	processNext()
+	before := worker.Status()
+	if before.Ownership != OwnershipObserver || worker.owner == nil {
+		t.Fatal("queued muted clear did not retain temporary observation lease", before)
+	}
+	processNext()
+	after := worker.Status()
+	if after.Ownership != OwnershipOwner || after.Accepted != 2 || after.Revision <= before.Revision {
+		t.Fatal("re-enabled lease did not report active delivery ownership", after)
+	}
+	if OwnershipText(after) != "This TUI owns desktop delivery" {
+		t.Fatal("incorrect ownership text", OwnershipText(after))
+	}
+	found := false
+	for _, entry := range after.History {
+		if entry.Reason == ReasonOwner && entry.ID > before.History[len(before.History)-1].ID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("role promotion missing from activity", after.History)
+	}
+	if owner, err := ledger.AcquireOwner(); !errors.Is(err, notification_state.ErrBusy) {
+		if owner != nil {
+			_ = owner.Close()
+		}
+		t.Fatal("displayed owner did not retain exclusive lease", err)
+	}
+}

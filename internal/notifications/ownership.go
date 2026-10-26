@@ -87,6 +87,7 @@ func (w *Worker) requestOwnershipCheck() {
 func (w *Worker) acquireOwner(input frame) bool {
 	w.mu.Lock()
 	if w.owner != nil {
+		w.setOwnedRoleLocked(input)
 		w.mu.Unlock()
 		return true
 	}
@@ -135,6 +136,14 @@ func (w *Worker) acquireOwner(input frame) bool {
 	w.previousOwner = owner
 	w.owner = owner
 	w.observationGap = false
+	w.setOwnedRoleLocked(input)
+	w.mu.Unlock()
+	return true
+}
+
+// New and reused leases share role transitions so a temporary observer lease
+// promoted to desktop delivery updates the public status and activity history.
+func (w *Worker) setOwnedRoleLocked(input frame) {
 	role, reason := OwnershipOwner, ReasonOwner
 	if input.ObserveOnly {
 		role, reason = OwnershipObserver, ReasonObserver
@@ -146,8 +155,6 @@ func (w *Worker) acquireOwner(input frame) bool {
 		w.status.Last = OwnershipText(w.status)
 		w.appendActivityLocked(Activity{Printer: "Session", Subject: "Notification ownership", Outcome: OutcomeStatus, Reason: reason}, "ownership/"+reason)
 	}
-	w.mu.Unlock()
-	return true
 }
 
 func (w *Worker) releaseOwner() {

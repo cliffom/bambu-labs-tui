@@ -10,6 +10,8 @@ Monitor your Bambu Lab print farm from the terminal: printer status, print progr
 
 Bambu TUI connects through **Bambu Cloud**, with displayed telemetry validated on **H2D and X2D**. It is a read-only monitor: printer control and LAN connections are not supported. Try a simulated farm without an account or printer.
 
+![Bambu TUI farm dashboard showing three printers, selected printer details, filament inventory, notices, and recent events.](assets/screenshots/farm.png)
+
 ## Get started
 
 You need macOS or Linux and a terminal of at least **60 columns × 18 rows**. To monitor real printers, use a Bambu account with your printers already bound to it. Saved login sessions use macOS Keychain or Linux Secret Service; Linux needs `secret-tool` (usually in `libsecret-tools`) and a running Secret Service session.

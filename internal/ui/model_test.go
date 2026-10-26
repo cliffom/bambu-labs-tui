@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -44,6 +45,36 @@ func TestNavigationAndHelp(t *testing.T) {
 	m = key(m, "r")
 	if len(m.Refresh) != 1 {
 		t.Fatal("refresh not sent")
+	}
+}
+
+func TestDashboardSectionHeadersFollowPanelFocus(t *testing.T) {
+	for _, size := range [][2]int{{60, 18}, {104, 32}, {105, 32}, {120, 32}} {
+		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
+			m := demoModel()
+			for _, focused := range []string{"PRINTERS", "PRINTER DETAILS", "NOTICES", "PRINTERS"} {
+				// Headers retain their focus indication after resizing and reports.
+				next, _ := m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
+				m = attentionReport(t, next.(Model), "H", `{"print":{"gcode_state":"RUNNING","mc_percent":42}}`)
+				view := ansi.Strip(m.View())
+				for _, title := range []string{"PRINTERS", "PRINTER DETAILS", "NOTICES"} {
+					marker := "  "
+					if title == focused {
+						marker = "› "
+					}
+					if !strings.Contains(view, marker+title+" ─") {
+						t.Fatalf("missing section header %q with focus on %s:\n%s", title, focused, view)
+					}
+					if strings.Contains(view, "› "+title+" ─") != (title == focused) {
+						t.Fatalf("incorrect focus marker for %s:\n%s", title, view)
+					}
+				}
+				if m.current().ID != "H" {
+					t.Fatal("printer selection changed")
+				}
+				m = key(m, "tab")
+			}
+		})
 	}
 }
 

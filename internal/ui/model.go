@@ -426,7 +426,7 @@ func (m Model) dashboardView(help bool) string {
 	header := m.dashboardHeader()
 	lines := []string{header}
 	lines = append(lines, m.overviewLines()...)
-	lines = append(lines, "", m.section("01  PRINTERS", m.focus == panelPrinters, m.width), muted.Render(m.printerListStatus()), m.tableHeader())
+	lines = append(lines, "", m.section("PRINTERS", m.focus == panelPrinters, m.width), muted.Render(m.printerListStatus()), m.tableHeader())
 	if len(m.printerIDs) == 0 {
 		lines = append(lines, muted.Render(m.emptyPrinterList()))
 	} else {
@@ -439,11 +439,11 @@ func (m Model) dashboardView(help bool) string {
 	lines = append(lines, "")
 	left, right, _ := m.panelSizes()
 	if m.width >= sideBySideWidth {
-		titles := lipgloss.JoinHorizontal(lipgloss.Top, m.section("02  PRINTER DETAILS", m.focus == panelDetails, left), "   ", m.section("03  NOTICES", m.focus == panelNotices, right))
+		titles := lipgloss.JoinHorizontal(lipgloss.Top, m.section("PRINTER DETAILS", m.focus == panelDetails, left), "   ", m.section("NOTICES", m.focus == panelNotices, right))
 		panels := lipgloss.JoinHorizontal(lipgloss.Top, m.details.View(), "   ", m.notices.View())
 		lines = append(lines, titles, panels)
 	} else {
-		lines = append(lines, m.section("02  PRINTER DETAILS", m.focus == panelDetails, left), m.details.View(), m.section("03  NOTICES", m.focus == panelNotices, right), m.notices.View())
+		lines = append(lines, m.section("PRINTER DETAILS", m.focus == panelDetails, left), m.details.View(), m.section("NOTICES", m.focus == panelNotices, right), m.notices.View())
 	}
 	foot := muted.Render("j/k select  tab panel  m AMS  n reviews  s alerts  D export  ? help  q quit")
 	if m.focus == panelDetails {

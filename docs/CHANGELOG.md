@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.14 — Cleaner section headers
+
+- Remove numeric prefixes from the Printers, Printer Details, and Notices section headers in compact and wide layouts, retaining the existing focus marker and keyboard navigation.
+
 ## 0.1.13 — Security hardening
 
 - Bound cumulative telemetry retention and report complexity. Reject over-limit reports atomically, preserving last accepted telemetry, firmware, freshness, faults, and local notice decisions; retain partial-report and explicit-empty semantics within the limits.

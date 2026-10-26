@@ -49,6 +49,8 @@ A comparable finish estimate requires a running printer, remaining-time data, li
 
 ## Selection and navigation
 
+The dashboard sections are labeled **Printers**, **Printer Details**, and **Notices**, without numeric prefixes. A `›` marker identifies the focused panel, including when color is unavailable. Use `Tab` / `Shift+Tab` to move focus between panels.
+
 Updates may reorder rows, but selection stays attached to the same printer ID while it still matches the filter. Printer details retain their scroll position when that identity stays selected, subject to normal viewport limits after resizing. Renaming a printer does not change its identity.
 
 If the selected printer is removed or stops matching, selection falls back to the nearest remaining row and details start at the top. An empty list has no selected printer. Panel focus is preserved, and regular `j/k`, arrows, and `g/G` or Home/End navigation operates on the visible list. Filter and sort choices last for this TUI session and reset to All / Name on restart.

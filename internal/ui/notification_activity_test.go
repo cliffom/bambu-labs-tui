@@ -157,3 +157,58 @@ func TestEmptyActivityAvailabilityAndHiddenInput(t *testing.T) {
 		t.Fatal("opt-out empty state missing")
 	}
 }
+
+func TestActivityOwnershipAndRecoveryAreVisibleAndUseFreshPolicy(t *testing.T) {
+	for _, size := range [][2]int{{60, 18}, {120, 32}} {
+		m, client, keyID := notificationModel(t)
+		m = resizeModel(m, size[0], size[1])
+		m = key(m, "N")
+		cases := []struct {
+			status notifications.Status
+			label  string
+		}{
+			{notifications.Status{Ownership: notifications.OwnershipOwner}, "This TUI owns desktop delivery"},
+			{notifications.Status{Ownership: notifications.OwnershipStandby}, "Another TUI owns desktop delivery"},
+			{notifications.Status{Ownership: notifications.OwnershipObserver}, "Desktop off; no delivery ownership"},
+			{notifications.Status{Disabled: true}, "Paused; r retries after fixing the cause"},
+			{notifications.Status{Recovering: true}, "Checking existing identity state"},
+		}
+		for _, tc := range cases {
+			client.status = tc.status
+			m.syncNotificationActivity()
+			view := ansi.Strip(m.View())
+			if !strings.Contains(view, tc.label) || !strings.Contains(view, "r retry") {
+				t.Fatal("ownership/recovery hidden", size, view)
+			}
+			lines := strings.Split(view, "\n")
+			if len(lines) != size[1] {
+				t.Fatal("ownership state height overflow")
+			}
+			for _, line := range lines {
+				if ansi.StringWidth(line) > size[0] {
+					t.Fatal("ownership state width overflow")
+				}
+			}
+		}
+		m.snoozes = map[string]time.Time{"TEST": m.now.Add(time.Hour)}
+		m.Farm.Acknowledge(keyID, true)
+		before := m.configRevision
+		m = key(m, "r")
+		input := client.retryInput
+		if client.retries != 1 || !input.Policies["TEST"].Snoozed || !input.Snapshot["TEST"].Conditions[keyID].Reviewed {
+			t.Fatal("recovery used an old preference/review snapshot")
+		}
+		if m.configRevision != before || !m.Farm.Active[keyID].Acknowledged {
+			t.Fatal("recovery edited config or reviews")
+		}
+		m = resizeModel(m, 59, 17)
+		m = key(m, "r")
+		if client.retries != 1 {
+			t.Fatal("hidden recovery ran below minimum size")
+		}
+		m = key(m, "esc")
+		if m.hasOpenDialog() {
+			t.Fatal("undersized recovery screen did not close")
+		}
+	}
+}

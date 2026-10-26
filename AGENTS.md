@@ -27,7 +27,7 @@ Use the pinned tools documented in the contributing guide; Make supports overrid
 - `internal/cloud`, `internal/mqtt`, `internal/monitor`: authentication/discovery, transport, and monitor workers.
 - `internal/farm`: telemetry decoding, normalization, condition lifetime, and farm state.
 - `internal/ui`: Bubble Tea reducer, dialogs, panels, and asynchronous persistence commands.
-- `internal/config`, `internal/credentials`, `internal/noticestore`, `internal/alertstore`, `internal/notificationstate`, `internal/atomicfile`: configuration and storage.
+- `internal/config`, `internal/credentials`, `internal/noticestore`, `internal/alertstore`, `internal/notification_state`, `internal/atomicfile`: configuration and storage.
 - `internal/diagnostics`: allowlisted local exports.
 
 Read [architecture and conventions](docs/development/architecture.md) before changing ownership, concurrency, persistence, or protocol handling. Keep regression fixtures synthetic or sanitized; never commit credentials, private telemetry, or unredacted account/printer identifiers. Automated coverage does not establish live hardware validation.

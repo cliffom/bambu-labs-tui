@@ -72,7 +72,7 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 | `F` / `S` | Cycle the printer filter / sort without changing panel focus |
 | `m` | Open the selected printer's AMS/filament browser |
 | `s` | View effective printer alert settings and snooze/resume controls |
-| `N` | Inspect recent notification activity and suppression reasons |
+| `N` | Inspect notification activity, ownership, and paused-worker recovery |
 | `,` | Edit general settings, global alerts, and printer overrides |
 | `n` | Manage local notice decisions, including dismissals |
 | `!` | Reopen unreviewed action-needed alerts |

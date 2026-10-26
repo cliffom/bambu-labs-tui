@@ -10,8 +10,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 )
+
+func withoutOwnership(status Status) Status {
+	history := status.History[:0:0]
+	for _, entry := range status.History {
+		if entry.Subject != "Notification ownership" {
+			history = append(history, entry)
+		}
+	}
+	status.History = history
+	return status
+}
 
 func TestActivityRetentionCoalescingTransitionsAndCopyOwnership(t *testing.T) {
 	now := time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
@@ -43,7 +54,7 @@ func TestActivityRetentionCoalescingTransitionsAndCopyOwnership(t *testing.T) {
 	if !w.appendActivityLocked(entry, "occurrence/snoozed") {
 		t.Fatal("return to prior reason should be a new transition")
 	}
-	status := w.Status()
+	status := withoutOwnership(w.Status())
 	status.History[0].Printer = "changed"
 	if w.Status().History[0].Printer == "changed" {
 		t.Fatal("status shares worker-owned history")
@@ -81,8 +92,17 @@ func TestWorkerActivityExplainsPoliciesAndCoalescesRepeatedObservations(t *testi
 				input.Active = false
 			}
 			input.Policies["TEST"] = policy
+			var owner *notification_state.Owner
+			if tc.kind == "closing" {
+				held, err := ledger.AcquireOwner()
+				if err != nil {
+					t.Fatal(err)
+				}
+				owner = held
+			}
 			w.mu.Lock()
 			w.latest = frame{Input: input}
+			w.owner = owner
 			w.mu.Unlock()
 			// Drive deterministic observations directly while the worker's queue is idle.
 			for i := range 5 {
@@ -90,7 +110,7 @@ func TestWorkerActivityExplainsPoliciesAndCoalescesRepeatedObservations(t *testi
 					t.Fatal("worker stopped", i)
 				}
 			}
-			status := w.Status()
+			status := withoutOwnership(w.Status())
 			if len(status.History) != 1 || status.History[0].Reason != tc.reason || status.History[0].Repeats != 5 || status.Suppressed != 1 {
 				t.Fatal(status)
 			}
@@ -106,7 +126,7 @@ func TestGroupedOutcomesRetainMembersAndRestartExplainsDedup(t *testing.T) {
 		await(t, ledger.recorded)
 	}
 	stopWorker(t, w)
-	history := w.Status().History
+	history := withoutOwnership(w.Status()).History
 	if len(history) != 3 {
 		t.Fatal(history)
 	}
@@ -124,8 +144,8 @@ func TestGroupedOutcomesRetainMembersAndRestartExplainsDedup(t *testing.T) {
 		t.Fatal("restarted worker stopped")
 	}
 	stopWorker(t, restarted)
-	for _, entry := range restarted.Status().History {
-		if entry.Reason != notificationstate.SuppressedAccepted {
+	for _, entry := range withoutOwnership(restarted.Status()).History {
+		if entry.Reason != notification_state.SuppressedAccepted {
 			t.Fatal(entry)
 		}
 	}
@@ -151,7 +171,7 @@ func TestFailedAndUnconfirmedActivityDoNotLeakBackendData(t *testing.T) {
 				t.Fatal("unexpected worker pause")
 			}
 			stopWorker(t, w)
-			history := w.Status().History
+			history := withoutOwnership(w.Status()).History
 			if len(history) != 1 || history[0].Outcome != tc.outcome || history[0].Reason != tc.reason {
 				t.Fatal(history)
 			}
@@ -168,8 +188,8 @@ func TestActivityReportsStorageFailuresAndPreservesAcceptedOutcome(t *testing.T)
 		err    error
 		reason string
 	}{
-		{"observe", notificationstate.ErrBusy, ReasonStorageBusy},
-		{"observe", notificationstate.ErrCapacity, ReasonStorageFull},
+		{"observe", notification_state.ErrBusy, ReasonStorageBusy},
+		{"observe", notification_state.ErrCapacity, ReasonStorageFull},
 		{"reserve", errors.New("private path secret"), ReasonStorage},
 		{"record", errors.New("private token"), ReasonStorage},
 	} {
@@ -193,7 +213,7 @@ func TestActivityReportsStorageFailuresAndPreservesAcceptedOutcome(t *testing.T)
 				t.Fatal("storage failure did not pause")
 			}
 			stopWorker(t, w)
-			status := w.Status()
+			status := withoutOwnership(w.Status())
 			if !status.Disabled || status.History[len(status.History)-1].Reason != tc.reason || strings.Contains(status.Error, "private") {
 				t.Fatal(status)
 			}
@@ -234,8 +254,8 @@ func TestFailedAttemptExplainsNoAutomaticRetry(t *testing.T) {
 		}
 	}
 	stopWorker(t, w)
-	status := w.Status()
-	if calls != 1 || status.Failed != 1 || len(status.History) != 2 || status.History[1].Reason != notificationstate.SuppressedFailed {
+	status := withoutOwnership(w.Status())
+	if calls != 1 || status.Failed != 1 || len(status.History) != 2 || status.History[1].Reason != notification_state.SuppressedFailed {
 		t.Fatal("failed attempt replayed or was not explained", status)
 	}
 }

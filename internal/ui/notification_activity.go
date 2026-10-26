@@ -61,6 +61,13 @@ func (m *Model) notificationActivityKey(key string, _ tea.Msg) tea.Cmd {
 	case keyEscape, keyNotificationActivity:
 		m.closeDialog()
 		return nil
+	case keyRefreshOrRestore:
+		if m.notificationClient != nil {
+			// Publish current policy/telemetry before requesting recovery.
+			m.syncNotifications()
+			m.notificationClient.Retry()
+		}
+		return nil
 	case keyUp, keyVimUp:
 		d.index--
 	case keyDown, keyVimDown:
@@ -102,13 +109,27 @@ func activityOutcome(entry notifications.Activity) string {
 func (m Model) notificationActivityView() string {
 	d := m.notificationActivity
 	width := max(1, m.width-2)
-	hint := white.Bold(true).Render("↑/↓") + muted.Render(" select · ") + white.Bold(true).Render("PgUp/PgDn") + muted.Render(" page · ") + white.Bold(true).Render("N / Esc") + muted.Render(" close")
+	hint := white.Bold(true).Render("↑/↓") + muted.Render(" select · ") + white.Bold(true).Render("PgUp/PgDn") + muted.Render(" page · ") + white.Bold(true).Render("r") + muted.Render(" retry · ") + white.Bold(true).Render("N / Esc") + muted.Render(" close")
 	status := notifications.Status{}
 	if m.notificationClient != nil {
 		status = m.notificationClient.Status()
 	}
 	summary := fmt.Sprintf("Accepted %d · Failed %d · Suppressed %d", status.Accepted, status.Failed, status.Suppressed)
-	lines := []string{accent.Bold(true).Render("NOTIFICATION ACTIVITY"), hint, fmt.Sprintf("Last %d decisions · this session only · newest first", notifications.ActivityLimit), summary, ""}
+	ownership := notifications.OwnershipText(status)
+	ownerStyle := muted
+	if status.Ownership == notifications.OwnershipOwner {
+		ownerStyle = accent
+	}
+	if status.Ownership == notifications.OwnershipStandby {
+		ownerStyle = warning
+	}
+	if status.Disabled {
+		ownerStyle = danger
+	}
+	if m.notificationClient == nil {
+		ownership = "Desktop delivery unavailable in this session"
+	}
+	lines := []string{accent.Bold(true).Render("NOTIFICATION ACTIVITY"), hint, fmt.Sprintf("Last %d decisions · this session only · newest first", notifications.ActivityLimit), summary, ownerStyle.Render(ansi.Truncate(ownership, width, "…"))}
 	visible := max(1, m.height-activityReservedRows)
 	if len(d.entries) == 0 {
 		lines = append(lines, "No live notification decisions yet.")
@@ -117,6 +138,10 @@ func (m Model) notificationActivityView() string {
 			explanation = m.notificationSetupError
 		} else if m.notificationClient == nil {
 			explanation = "No live desktop notification worker in this session."
+		} else if status.Ownership == notifications.OwnershipStandby {
+			explanation = "Monitoring continues. Takeover follows owner exit."
+		} else if status.Disabled {
+			explanation = "Fix the reported cause, then press r to check existing state."
 		} else if !m.alertPrefs.DesktopEnabled() {
 			explanation = "Desktop delivery is off. Enable it in Config > Alerts."
 		}
@@ -164,5 +189,5 @@ func (m Model) notificationActivityView() string {
 	} else {
 		lines = append(lines, "History is held in memory and clears on restart.", "Config tests and doctor are separate from live activity.", "Accepted does not confirm a visible banner or sound.", "No automatic retries of failed or unconfirmed attempts.")
 	}
-	return m.fullView(lines, "Home newest · End oldest · no automatic retries")
+	return m.fullView(lines, "Home newest · End oldest · r checks paused delivery")
 }

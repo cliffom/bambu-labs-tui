@@ -1,4 +1,4 @@
-package notificationstate
+package notification_state
 
 // These reasons describe existing delivery policy, not physical fault resolution.
 const (

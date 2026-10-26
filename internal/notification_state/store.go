@@ -1,7 +1,7 @@
-// Package notificationstate persists notification occurrences and delivery
+// Package notification_state persists notification occurrences and delivery
 // reservations independently from notice reviews and snoozes. Methods perform
 // filesystem I/O and belong in a serialized worker, never the UI reducer.
-package notificationstate
+package notification_state
 
 import (
 	"bytes"

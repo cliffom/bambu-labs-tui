@@ -19,9 +19,13 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for v0.3.0.** Establish hardware-backed feasibility before promising compatibility or delivery.
 
+## v0.2.5 — notification ownership and recovery
+
+[#18](https://github.com/cliffom/bambu-tui/issues/18) adds one delivery owner per account/region, visible standby sessions, crash/exit takeover from fresh UI state, and explicit paused-worker rechecks with `r`. Accepted, failed, and uncertain attempts remain deduplicated; corrupt/full state is protected from automatic reset or eviction. Long-term capacity retention remains a separate policy decision.
+
 ## Notification activity
 
-[#20](https://github.com/cliffom/bambu-tui/issues/20) adds a read-only `N` activity view with the last 100 session decisions, per-printer incident subjects, outcome/reason details, repeat coalescing, and grouped-request membership. It distinguishes macOS acceptance from confirmed presentation and preserves diagnostics when storage fails after submission. Ownership/recovery and quiet hours remain separate follow-ups.
+[#20](https://github.com/cliffom/bambu-tui/issues/20) adds a read-only `N` activity view with the last 100 session decisions, per-printer incident subjects, outcome/reason details, repeat coalescing, and grouped-request membership. It distinguishes macOS acceptance from confirmed presentation and preserves diagnostics when storage fails after submission. Ownership and worker recovery are covered by v0.2.5 above; quiet hours remain a separate follow-up.
 
 ## v0.2.2 — complete configuration controls
 
@@ -43,7 +47,6 @@ macOS release archives include the universal helper beside the CLI. Tag/manual r
 
 | Follow-up work | Issue |
 | --- | --- |
-| Expose cross-session notification ownership | [#18](https://github.com/cliffom/bambu-tui/issues/18) |
 | Add quiet hours and timed grouping across reports | [#22](https://github.com/cliffom/bambu-tui/issues/22) |
 | Complete clean-install, hardware, and unsupported-environment validation | [#23](https://github.com/cliffom/bambu-tui/issues/23) |
 

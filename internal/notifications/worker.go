@@ -10,16 +10,17 @@ import (
 	"time"
 
 	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 )
 
 const workerQueueCapacity = 256
 
 type (
 	Ledger interface {
-		ObserveActivity(farm.NotificationSnapshot) (notificationstate.Observation, error)
+		AcquireOwner() (*notification_state.Owner, error)
+		ObserveActivity(farm.NotificationSnapshot) (notification_state.Observation, error)
 		ReserveBatch([]string) ([]string, error)
-		RecordResult(string, notificationstate.Attempt) error
+		RecordResult(string, notification_state.Attempt) error
 	}
 	Policy struct {
 		PrinterName                         string
@@ -30,12 +31,15 @@ type (
 		Snapshot     farm.NotificationSnapshot
 		Policies     map[string]Policy
 		Active, Demo bool
+		ObserveOnly  bool
 	}
 	Status struct {
 		Revision, Accepted, Failed, Suppressed uint64
 		Last, Error                            string
 		Disabled, Pending                      bool
 		History                                []Activity
+		Ownership                              string
+		Recovering                             bool
 	}
 	frame struct {
 		sequence uint64
@@ -52,7 +56,7 @@ type (
 		status            Status
 		stopped           bool
 		working           bool
-		flight            []notificationstate.Candidate
+		flight            []notification_state.Candidate
 		flightSource      Input
 		cancelFlight      context.CancelFunc
 		queue             chan frame
@@ -66,6 +70,12 @@ type (
 		requestSequence   uint64
 		activitySeen      map[string]string
 		activitySeenOrder []string
+		owner             *notification_state.Owner
+		previousOwner     *notification_state.Owner
+		observationGap    bool
+		forceFrame        bool
+		awaitFresh        bool
+		changed           chan struct{}
 	}
 )
 
@@ -75,7 +85,7 @@ func NewWorker(ctx context.Context, ledger Ledger, send func(context.Context, Me
 
 func newWorker(ctx context.Context, ledger Ledger, send func(context.Context, Message) error, now func() time.Time) *Worker {
 	ctx, cancel := context.WithCancel(ctx)
-	w := &Worker{ctx: ctx, cancel: cancel, ledger: ledger, send: send, queue: make(chan frame, workerQueueCapacity), done: make(chan struct{}), now: now}
+	w := &Worker{ctx: ctx, cancel: cancel, ledger: ledger, send: send, queue: make(chan frame, workerQueueCapacity), done: make(chan struct{}), now: now, changed: make(chan struct{}, 1)}
 	go w.run()
 	return w
 }
@@ -85,10 +95,18 @@ func newWorker(ctx context.Context, ledger Ledger, send func(context.Context, Me
 func (w *Worker) Submit(input Input) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.stopped || w.status.Disabled || reflect.DeepEqual(w.latest.Input, input) {
+	if w.stopped || w.ctx.Err() != nil {
 		return
 	}
+	if !w.forceFrame && reflect.DeepEqual(w.latest.Input, input) {
+		return
+	}
+	w.forceFrame = false
+	w.awaitFresh = false
 	w.latest = frame{sequence: w.latest.sequence + 1, Input: input}
+	if w.status.Disabled {
+		return
+	}
 	for _, candidate := range w.flight {
 		if !eligible(candidate, w.flightSource, input) {
 			w.cancelFlight()
@@ -99,11 +117,14 @@ func (w *Worker) Submit(input Input) {
 	case w.queue <- w.latest:
 	default:
 		w.status.Disabled = true
-		w.status.Error = "Desktop notifications paused: update queue full; restart to retry"
+		w.status.Recovering = false
+		w.status.Error = "Desktop notifications paused: " + ReasonText(ReasonQueue)
 		w.status.Last = w.status.Error
 		w.status.Revision++
 		w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomePaused, Reason: ReasonQueue}, "worker/queue")
-		w.cancel()
+		if w.cancelFlight != nil {
+			w.cancelFlight()
+		}
 	}
 }
 
@@ -114,7 +135,7 @@ func (w *Worker) Status() Status {
 	defer w.mu.Unlock()
 	status := w.status
 	status.History = slices.Clone(w.status.History)
-	status.Pending = w.working || (w.ctx.Err() == nil && len(w.queue) > 0)
+	status.Pending = w.working || (w.ctx.Err() == nil && !w.status.Disabled && len(w.queue) > 0)
 	return status
 }
 
@@ -143,41 +164,72 @@ func (w *Worker) disable(message, reason string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.status.Disabled, w.status.Last, w.status.Error = true, message, message
+	w.status.Recovering = false
 	w.status.Revision++
 	w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomePaused, Reason: reason}, "worker/"+reason)
-	w.cancel()
+	if w.cancelFlight != nil {
+		w.cancelFlight()
+	}
 }
 
 func (w *Worker) run() {
 	defer close(w.done)
+	defer w.releaseOwner()
+	poll := time.NewTicker(ownershipPollInterval)
+	defer poll.Stop()
 	defer func() { w.mu.Lock(); w.working = false; w.mu.Unlock() }()
 	defer w.cancel()
 	for {
 		select {
 		case <-w.ctx.Done():
 			return
+		case <-poll.C:
+			w.requestOwnershipCheck()
 		case input := <-w.queue:
 			if w.ctx.Err() != nil {
 				return
 			}
 			w.mu.Lock()
+			if w.status.Disabled || w.awaitFresh {
+				w.mu.Unlock()
+				// Overflow can pause an idle owner between process calls. The
+				// serialized loop releases its lease even when every queued frame
+				// is skipped; any in-flight sender has already returned here.
+				w.releaseInactiveOwner()
+				w.mu.Lock()
+				w.notifyChangedLocked()
+				w.mu.Unlock()
+				continue
+			}
 			w.working = true
 			w.mu.Unlock()
-			keepRunning := w.process(input)
+			w.process(input)
 			w.mu.Lock()
 			w.working = false
+			w.notifyChangedLocked()
 			w.mu.Unlock()
-			if !keepRunning {
-				return
-			}
 		}
 	}
 }
 
 func (w *Worker) process(input frame) bool {
+	defer w.releaseInactiveOwner()
+	if !w.acquireOwner(input) {
+		w.mu.Lock()
+		paused := w.status.Disabled
+		w.mu.Unlock()
+		return !paused
+	}
 	observation, err := w.ledger.ObserveActivity(input.Snapshot)
 	if err != nil {
 		w.disable("Desktop notifications paused: "+ReasonText(storageReason(err)), storageReason(err))
+		return false
+	}
+	w.mu.Lock()
+	paused := w.status.Disabled
+	w.status.Recovering = false
+	w.mu.Unlock()
+	if paused {
 		return false
 	}
 	for _, decision := range observation.Suppressed {
@@ -193,7 +245,7 @@ func (w *Worker) process(input frame) bool {
 		if current.sequence != input.sequence {
 			return true
 		}
-		var allowed []notificationstate.Candidate
+		var allowed []notification_state.Candidate
 		for _, candidate := range group {
 			if eligible(candidate, input.Input, current.Input) {
 				allowed = append(allowed, candidate)
@@ -232,7 +284,8 @@ func (w *Worker) process(input frame) bool {
 		w.mu.Lock()
 		current = w.latest
 		closing := w.stopped || w.ctx.Err() != nil
-		valid := !closing
+		paused = w.status.Disabled
+		valid := !closing && !paused
 		for _, candidate := range group {
 			valid = valid && eligible(candidate, input.Input, current.Input)
 		}
@@ -242,6 +295,8 @@ func (w *Worker) process(input frame) bool {
 				reason := suppressionReason(candidate, current.Input)
 				if closing {
 					reason = ReasonClosing
+				} else if paused {
+					reason = ReasonPaused
 				}
 				w.recordSuppression(candidate, input.Input, reason)
 			}
@@ -259,7 +314,7 @@ func (w *Worker) process(input frame) bool {
 		if len(group) > 1 {
 			body = fmt.Sprintf("%s needs attention (%d notices). Open Bambu TUI to inspect them.", policy.PrinterName, len(group))
 		}
-		if first.Kind == notificationstate.Completion {
+		if first.Kind == notification_state.Completion {
 			body = policy.PrinterName + " reports that the print finished."
 		}
 		if current.Demo {
@@ -280,9 +335,9 @@ func (w *Worker) process(input frame) bool {
 			w.report("Desktop notification outcome unconfirmed", "Desktop notification outcome unconfirmed; attempt will not be retried", false, false, false)
 			continue
 		}
-		outcome := notificationstate.Accepted
+		outcome := notification_state.Accepted
 		if err != nil {
-			outcome = notificationstate.Failed
+			outcome = notification_state.Failed
 		}
 		if err != nil {
 			w.recordGroup(group, input.Input, OutcomeFailed, deliveryReason(err), request)
@@ -303,24 +358,24 @@ func (w *Worker) process(input frame) bool {
 
 // Group only co-reported intervention occurrences on the same printer. Keep
 // notice identities independent, and never merge printers or job completion.
-func deliveryGroups(candidates []notificationstate.Candidate) [][]notificationstate.Candidate {
-	var groups [][]notificationstate.Candidate
+func deliveryGroups(candidates []notification_state.Candidate) [][]notification_state.Candidate {
+	var groups [][]notification_state.Candidate
 	printers := map[string]int{}
 	for _, candidate := range candidates {
-		if candidate.Kind == notificationstate.Intervention {
+		if candidate.Kind == notification_state.Intervention {
 			if index, present := printers[candidate.PrinterID]; present {
 				groups[index] = append(groups[index], candidate)
 				continue
 			}
 			printers[candidate.PrinterID] = len(groups)
 		}
-		groups = append(groups, []notificationstate.Candidate{candidate})
+		groups = append(groups, []notification_state.Candidate{candidate})
 	}
 	return groups
 }
 
-func eligible(candidate notificationstate.Candidate, source, current Input) bool {
-	if !current.Active {
+func eligible(candidate notification_state.Candidate, source, current Input) bool {
+	if !current.Active || current.ObserveOnly {
 		return false
 	}
 	p, live := current.Snapshot[candidate.PrinterID]
@@ -329,7 +384,7 @@ func eligible(candidate notificationstate.Candidate, source, current Input) bool
 	if !live || !policy.Desktop || policy.Snoozed {
 		return false
 	}
-	if candidate.Kind == notificationstate.Completion {
+	if candidate.Kind == notification_state.Completion {
 		return policy.Completion && p.Job == before.Job && p.Job.State == farm.StateFinished
 	}
 	condition, present := p.Conditions[candidate.ConditionKey]

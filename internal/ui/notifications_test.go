@@ -12,19 +12,29 @@ import (
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 	"github.com/cliffom/bambu-tui/internal/notifications"
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
 )
 
 type notificationStub struct {
-	inputs  []notifications.Input
-	status  notifications.Status
-	stopped bool
+	inputs     []notifications.Input
+	status     notifications.Status
+	stopped    bool
+	retries    int
+	retryInput notifications.Input
 }
 
 func (n *notificationStub) Submit(input notifications.Input) { n.inputs = append(n.inputs, input) }
 func (n *notificationStub) Status() notifications.Status     { return n.status }
 func (n *notificationStub) Stop()                            { n.stopped = true }
+
+func (n *notificationStub) Retry() bool {
+	n.retries++
+	if len(n.inputs) > 0 {
+		n.retryInput = n.inputs[len(n.inputs)-1]
+	}
+	return true
+}
 
 func notificationModel(t *testing.T) (Model, *notificationStub, string) {
 	t.Helper()
@@ -137,7 +147,7 @@ func TestNotificationStatusFitsSupportedLayoutsAndDialogs(t *testing.T) {
 func TestTelemetryAndSnoozeRemainResponsiveDuringNativeDelivery(t *testing.T) {
 	m, _, _ := notificationModel(t)
 	started, canceled := make(chan struct{}), make(chan struct{})
-	worker := notifications.NewWorker(context.Background(), notificationstate.Store{Path: filepath.Join(t.TempDir(), "ledger.json")}, func(ctx context.Context, _ notifications.Message) error {
+	worker := notifications.NewWorker(context.Background(), notification_state.Store{Path: filepath.Join(t.TempDir(), "ledger.json")}, func(ctx context.Context, _ notifications.Message) error {
 		close(started)
 		<-ctx.Done()
 		close(canceled)

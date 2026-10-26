@@ -22,8 +22,8 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
 	"github.com/cliffom/bambu-tui/internal/noticestore"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 	"github.com/cliffom/bambu-tui/internal/notifications"
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
 	"github.com/cliffom/bambu-tui/internal/ui"
 )
 
@@ -262,7 +262,7 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, api *c
 	}
 	{ // Prepare the client; the UI starts ledger observation only after opt-in.
 		var worker *notifications.Worker
-		var ledger notificationstate.Store
+		var ledger notification_state.Store
 		setupErr := notifications.Available()
 		cleanup := func() {}
 		if setupErr == nil {
@@ -270,11 +270,11 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, api *c
 				var dir string
 				dir, setupErr = os.MkdirTemp("", "bambu-tui-demo-notifications-*")
 				if setupErr == nil {
-					ledger = notificationstate.Store{Path: filepath.Join(dir, "state.json")}
+					ledger = notification_state.Store{Path: filepath.Join(dir, "state.json")}
 					cleanup = func() { _ = os.RemoveAll(dir) }
 				}
 			} else {
-				ledger, setupErr = notificationstate.New(cfg.Region, session.Username)
+				ledger, setupErr = notification_state.New(cfg.Region, session.Username)
 			}
 		}
 		if setupErr == nil {

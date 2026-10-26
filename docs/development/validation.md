@@ -16,6 +16,12 @@ Regression tests cover immediate delivery policies, initial opt-out without ledg
 
 A follow-up user screenshot showed that Config's footer contained only the TOML save note. The footer now shows close/select/toggle keys, and retains close/retry keys during save failure; the TOML note moved into the body. On the same host/date, actual demo PTY captures were inspected at 120×32 (normal footer), 60×18 (normal, save failure, and restored layout), and 59×17 (resize fallback). Both processes exited normally. Regression tests cover footer close keys and failure/retry text at 60 and 120 columns. Formatting, pinned lint, UI/CLI race tests, vet, build, and docs checks passed. Color appearance was not separately reviewed.
 
+### Config notification test action
+
+On 2026-10-25 (PDT), development version 0.1.15 plus the Test Notification action on base `52cbb7925bbd` was checked on the same macOS 27.0.1 arm64 host with Go 1.27.3. Actual synthetic demo PTYs were inspected at 120×32 (selected action and accepted result), 60×18 (accepted result and resize restoration), and 59×17 (fallback and blocked hidden activation). Each test used sound Off and automatic desktop delivery Off; both requests were accepted by macOS, and both processes exited normally. Config files remained unchanged. No account/printer/firmware was involved. Banner/audio presentation, first-run permission prompting, color appearance, and actual long-running/failure layout were not separately inspected.
+
+Race tests cover global sound snapshots, asynchronous invocation while opted out, no settings changes, duplicate activation blocking, pending/failure/accepted text, telemetry updates during a blocked probe, close cancellation, stale-result protection, size bounds, and blocked hidden activation. `make fmt-check lint test check build docs-check` passed with the pinned lint tool. The explicit action reuses doctor's bounded native probe; it does not consume persisted live notification identities or increment live delivery counts.
+
 ### Printer-name titles and preview diagnosis
 
 The user requested the triggering printer name in notification text. Live requests now carry the printer name as a bounded plain-text title, prefixed Demo in synthetic sessions; the name remains in the body. Worker regressions cover intervention/completion/demo titles and text bounds, and the universal helper built successfully. A silent synthetic `Demo: X2D · Studio` request was accepted; native validation rejected empty, oversized, and wrong-type titles.

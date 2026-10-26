@@ -233,7 +233,7 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, api *c
 	state := farm.New(cfg.LowFilamentPercent)
 	model := ui.New(state, events, refresh, demo).WithAlertPreferences(cfg.Alerts).WithConfigPersistence(configPath, func(rules config.AlertRules) error {
 		return config.SaveNotificationDefaults(configPath, rules)
-	})
+	}).WithNotificationTest(ctx, notifications.Test)
 	if !demo {
 		notices, loadErr := noticestore.New(cfg.Region, session.Username)
 		var reviews map[string]farm.Review

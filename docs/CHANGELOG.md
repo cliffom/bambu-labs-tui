@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a selectable Test Notification action to Config, with current sound preference, explicit permission prompting, asynchronous results, duplicate-test prevention, and cancellation on close.
+
 - Add a separate Config modal (`,`) for immediate global desktop notification, sound, and completion toggles, with asynchronous saving to the active config file, explicit save-failure retry, and shutdown protection. Preserve printer overrides.
 
 - Show the triggering printer name in desktop notification titles, with an explicit Demo prefix for synthetic sessions. Keep the name in the body and bound/sanitize both text fields.

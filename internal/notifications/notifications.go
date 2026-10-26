@@ -1,5 +1,4 @@
-// Package notifications provides an explicit synthetic desktop delivery probe.
-// Automatic monitoring notifications are not wired into the TUI yet.
+// Package notifications provides macOS delivery and explicit synthetic probes.
 package notifications
 
 import (

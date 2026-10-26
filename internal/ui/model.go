@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -32,63 +33,69 @@ type (
 	endMsg struct{}
 
 	Model struct {
-		Farm                     *farm.State
-		Events                   <-chan monitor.Event
-		Refresh                  chan<- struct{}
-		Demo                     bool
-		width, height, selection int
-		focus                    dashboardPanel
-		now                      time.Time
-		ended                    bool
-		toast                    string
-		toastAt                  time.Time
-		details, notices         viewport.Model
-		noticeKey                string
-		noticeIndex              int
-		noticeFocused            bool
-		noticeSpans              []noticeSpan
-		inspected                *noticeItem
-		inspection               viewport.Model
-		dialog                   dialogState
-		saveReviews              func(map[string]farm.Review) error
-		reviewWrites             persistence
-		snoozeWrites             persistence
-		snoozeRevision           uint64
-		quitting                 bool
-		quitProblem              bool
-		quitGeneration           uint64
-		noticeStorageError       string
-		attention                *attentionDialog
-		attentionSeen            map[attentionOccurrence]bool
-		attentionPending         time.Time
-		filament                 *filamentDialog
-		decisions                *decisionsDialog
-		alertDialog              *alertDialog
-		alertPrefs               config.AlertPreferences
-		snoozes                  map[string]time.Time
-		saveSnoozes              func(map[string]time.Time) error
-		snoozesDirty             bool
-		alertStorageError        string
-		notificationClient       notificationClient
-		notificationStarted      bool
-		notificationSetupError   string
-		configSelection          int
-		configPath               string
-		saveConfig               func(config.AlertRules) error
-		configRevision           uint64
-		configWrites             persistence
-		configStorageError       string
-		notificationError        string
-		notificationRevision     uint64
-		printersDiscovered       bool
-		printerIDs               []string
-		printerMetrics           map[string]printerOverview
-		printerFilter            printerFilter
-		printerSort              printerSort
-		overview                 farmOverview
-		diagnostics              diagnostics.Recorder
-		exportDialog             *exportDialog
-		clearNotices             *clearNoticesDialog
+		Farm                       *farm.State
+		Events                     <-chan monitor.Event
+		Refresh                    chan<- struct{}
+		Demo                       bool
+		width, height, selection   int
+		focus                      dashboardPanel
+		now                        time.Time
+		ended                      bool
+		toast                      string
+		toastAt                    time.Time
+		details, notices           viewport.Model
+		noticeKey                  string
+		noticeIndex                int
+		noticeFocused              bool
+		noticeSpans                []noticeSpan
+		inspected                  *noticeItem
+		inspection                 viewport.Model
+		dialog                     dialogState
+		saveReviews                func(map[string]farm.Review) error
+		reviewWrites               persistence
+		snoozeWrites               persistence
+		snoozeRevision             uint64
+		quitting                   bool
+		quitProblem                bool
+		quitGeneration             uint64
+		noticeStorageError         string
+		attention                  *attentionDialog
+		attentionSeen              map[attentionOccurrence]bool
+		attentionPending           time.Time
+		filament                   *filamentDialog
+		decisions                  *decisionsDialog
+		alertDialog                *alertDialog
+		alertPrefs                 config.AlertPreferences
+		snoozes                    map[string]time.Time
+		saveSnoozes                func(map[string]time.Time) error
+		snoozesDirty               bool
+		alertStorageError          string
+		notificationClient         notificationClient
+		notificationStarted        bool
+		testNotification           func(context.Context, bool) error
+		notificationTestContext    context.Context
+		notificationTestCancel     context.CancelFunc
+		notificationTestPending    bool
+		notificationTestGeneration uint64
+		notificationTestStatus     string
+		notificationSetupError     string
+		configSelection            int
+		configPath                 string
+		saveConfig                 func(config.AlertRules) error
+		configRevision             uint64
+		configWrites               persistence
+		configStorageError         string
+		notificationError          string
+		notificationRevision       uint64
+		printersDiscovered         bool
+		printerIDs                 []string
+		printerMetrics             map[string]printerOverview
+		printerFilter              printerFilter
+		printerSort                printerSort
+		overview                   farmOverview
+		diagnostics                diagnostics.Recorder
+		exportDialog               *exportDialog
+		clearNotices               *clearNoticesDialog
 	}
 )
 
@@ -147,6 +154,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch v := msg.(type) {
+	case notificationTestResultMsg:
+		m.notificationTestResult(v)
 	case configResultMsg:
 		m.configResult(v)
 	case persistenceResultMsg:

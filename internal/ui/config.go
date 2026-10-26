@@ -8,7 +8,11 @@ import (
 	"github.com/cliffom/bambu-tui/internal/config"
 )
 
-const notificationSettingCount = 3
+const (
+	notificationSettingCount = 3
+	notificationTestAction   = notificationSettingCount
+	configActionCount        = notificationSettingCount + 1
+)
 
 type configResultMsg struct {
 	revision uint64
@@ -27,10 +31,13 @@ func (m *Model) configKey(key string, _ tea.Msg) tea.Cmd {
 	case keyEscape, keyConfig:
 		m.closeDialog()
 	case keyUp, keyVimUp:
-		m.configSelection = (m.configSelection + notificationSettingCount - 1) % notificationSettingCount
+		m.configSelection = (m.configSelection + configActionCount - 1) % configActionCount
 	case keyDown, keyVimDown:
-		m.configSelection = (m.configSelection + 1) % notificationSettingCount
+		m.configSelection = (m.configSelection + 1) % configActionCount
 	case keyEnter, " ":
+		if m.configSelection == notificationTestAction {
+			return m.startNotificationTest()
+		}
 		settings := []*bool{&m.alertPrefs.DesktopNotifications, &m.alertPrefs.NotificationSound, &m.alertPrefs.CompletedPrints}
 		value := settings[m.configSelection]
 		*value = !*value
@@ -67,7 +74,7 @@ func (m *Model) configResult(msg configResultMsg) {
 }
 
 func (m Model) configView() string {
-	lines := []string{accent.Bold(true).Render("CONFIG / NOTIFICATIONS"), "↑/↓ select · Space/Enter toggle · , / Esc close", ""}
+	lines := []string{accent.Bold(true).Render("CONFIG / NOTIFICATIONS"), "↑/↓ select · Space/Enter change/test · , / Esc close", ""}
 	settings := []struct {
 		name    string
 		enabled bool
@@ -91,6 +98,14 @@ func (m Model) configView() string {
 		}
 		lines = append(lines, line)
 	}
+	action := "  Test Notification"
+	if m.configSelection == notificationTestAction {
+		action = selected.Render("> Test Notification")
+	}
+	lines = append(lines, action)
+	if m.notificationTestStatus != "" {
+		lines = append(lines, m.notificationTestStatus)
+	}
 	status := "Saved"
 	if m.saveConfig == nil {
 		status = "Session only"
@@ -99,14 +114,14 @@ func (m Model) configView() string {
 	} else if m.configStorageError != "" {
 		status = "Save failed · r retry"
 	}
-	lines = append(lines, "", status, "Global defaults; printer overrides still apply.", "Changes take effect immediately. macOS only.", "Permission: run bambu-tui doctor --notify.", "Saving normalizes TOML and removes comments.")
+	lines = append(lines, "", status, "Global defaults; printer overrides still apply.", "Changes take effect immediately. macOS only.", "Test may request macOS notification permission.", "Saving normalizes TOML and removes comments.")
 	if m.configPath != "" {
 		lines = append(lines, "File: "+safe(m.configPath))
 	}
 	if len(m.alertPrefs.Printers) > 0 {
 		lines = append(lines, fmt.Sprintf("%d printer overrides configured; s shows effective values.", len(m.alertPrefs.Printers)))
 	}
-	hints := "Esc / , close  ↑/↓ select  Space/Enter toggle"
+	hints := "Esc / , close  ↑/↓ select  Space/Enter change/test"
 	if message := m.storageWarning(); message != "" {
 		hints = "Esc / , close  " + message
 		if m.configStorageError != "" {

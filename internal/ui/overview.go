@@ -149,9 +149,15 @@ func (m Model) attentionRank(id string) attentionPriority {
 	}
 }
 
-// comparePrinters provides deterministic name/ID ties for every live sort.
+// comparePrinters groups online printers first, with deterministic name/ID ties for every sort.
 func (m Model) comparePrinters(aID, bID string) int {
 	a, b := m.Farm.Printers[aID], m.Farm.Printers[bID]
+	if a.Online != b.Online {
+		if a.Online {
+			return -1
+		}
+		return 1
+	}
 	comparison := 0
 	switch m.printerSort {
 	case sortAttention:

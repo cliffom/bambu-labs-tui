@@ -520,6 +520,9 @@ func (m Model) printerRow(i int) string {
 	state := stateLabel(p.State)
 	left := duration(p.Remaining)
 	connection := p.Connection(m.now, m.Farm.Connected)
+	if !p.Online {
+		connection = farm.ConnectionOffline
+	}
 	if connection == farm.ConnectionCloudDisconnected {
 		connection = "No cloud"
 	}
@@ -541,6 +544,9 @@ func (m Model) printerRow(i int) string {
 	}
 	var row string
 	if m.width < compactTableWidth {
+		if !p.Online {
+			state = farm.ConnectionOffline
+		}
 		row = cell(name, c.name) + cell(state, c.state) + cell(percent(p.Progress), c.progress) + left
 	} else if m.width < fullTableWidth {
 		row = cell(name, c.name) + cell(connection, c.link) + cell(state, c.state) + cell(percent(p.Progress), c.progress) + cell(left, c.remaining) + eta
@@ -554,10 +560,14 @@ func (m Model) printerRow(i int) string {
 		row = cell(name, c.name) + cell(connection, c.link) + cell(state, c.state) + cell(bar+" "+percent(p.Progress), c.progress) + cell(left, c.remaining) + cell(eta, c.finish) + cell(fmt.Sprint(notices), c.notices) + safe(p.Job)
 	}
 	row = cell(row, m.width)
+	style := white
 	if i == m.selection {
-		return selected.Render(row)
+		style = selected
 	}
-	return white.Render(row)
+	if !p.Online {
+		style = style.Foreground(warning.GetForeground())
+	}
+	return style.Render(row)
 }
 
 func wrapLines(lines []string, w int) string {

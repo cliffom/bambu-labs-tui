@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.12 — Offline printer visibility
+
+- Group online printers before offline printers in every farm view sort, keeping the chosen sort within each group and selection attached to the printer during status changes.
+- Color offline printer rows amber, including the selected row, and show an explicit Offline label in compact layouts.
+
 ## 0.1.11 — Named domain and protocol values
 
 - Replace embedded printer states, severities, alert categories, condition identities, telemetry keys, protocol fields, and timing/size policies with named definitions in their owning packages.

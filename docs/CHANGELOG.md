@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Sign and notarize tag/manual release builds using repository secrets and a temporary runner Keychain, with credential cleanup and no unsigned fallback. Manual runs verify artifacts without creating a draft release; ordinary PR CI uses no signing credentials.
+
 - Add opt-in Developer ID release signing for both macOS CLIs and the universal helper, plus Keychain-profile notarization, helper ticket stapling, and extracted-archive verification. Local development and unconfigured CI retain ad-hoc candidate builds.
 
 - Add a selectable Test Notification action to Config, with current sound preference, explicit permission prompting, asynchronous results, duplicate-test prevention, and cancellation on close.

@@ -75,6 +75,15 @@ class MacOSSigningTests(unittest.TestCase):
         self.assertLess(staple, validate)
         self.assertTrue((self.dist / 'notarization' / 'submission.json').is_file())
 
+    def test_ci_keychain_is_used_for_submission_and_failure_log(self):
+        self.status, self.notary_exit = 'Invalid', 65
+        with patch.object(release, 'command', side_effect=self.command), self.assertRaises(ValueError):
+            release.prepare(self.dist, 'synthetic-identity', 'synthetic-profile', '/synthetic/ci.keychain-db')
+        notary = [args for args in self.calls if args[:2] == ['xcrun', 'notarytool']]
+        self.assertEqual(len(notary), 2)
+        for args in notary:
+            self.assertEqual(args[args.index('--keychain') + 1], '/synthetic/ci.keychain-db')
+
     def test_incomplete_or_ad_hoc_signatures_are_rejected(self):
         for metadata in [METADATA.replace('Developer ID Application:', 'Apple Development:'),
                          METADATA.replace('Timestamp=', 'Signed Time='),

@@ -44,7 +44,7 @@ def sign(path, identity, identifier):
              '--timestamp', '--identifier', identifier, str(path)])
 
 
-def prepare(dist, identity, profile):
+def prepare(dist, identity, profile, keychain=''):
     if profile and not identity:
         raise ValueError('MACOS_NOTARY_PROFILE requires MACOS_SIGN_IDENTITY; refusing unsigned notarization')
     if not identity:
@@ -73,7 +73,10 @@ def prepare(dist, identity, profile):
         upload = Path(temporary) / 'submission.zip'
         command(['ditto', '-c', '-k', '--keepParent', str(staging), str(upload)])
         print('Submitting helper and both macOS CLIs to Apple; waiting up to 20 minutes.', flush=True)
-        result = command(['xcrun', 'notarytool', 'submit', str(upload), '--keychain-profile', profile,
+        credentials = ['--keychain-profile', profile]
+        if keychain:
+            credentials += ['--keychain', keychain]
+        result = command(['xcrun', 'notarytool', 'submit', str(upload), *credentials,
                           '--wait', '--timeout', '20m', '--output-format', 'json'], capture=True, check=False)
         (reports / 'submission.json').write_text(result.stdout)
         (reports / 'submission-stderr.txt').write_text(result.stderr)
@@ -86,7 +89,7 @@ def prepare(dist, identity, profile):
         if result.returncode != 0 or report.get('status') != 'Accepted':
             submission = report.get('id')
             if submission:
-                log = command(['xcrun', 'notarytool', 'log', submission, '--keychain-profile', profile], capture=True, check=False)
+                log = command(['xcrun', 'notarytool', 'log', submission, *credentials], capture=True, check=False)
                 (reports / 'log.json').write_text(log.stdout)
             raise ValueError('Apple did not accept notarization; see dist/notarization/ for the report/log')
     command(['xcrun', 'stapler', 'staple', str(helper)])
@@ -104,7 +107,8 @@ def main():
         if args.action == 'verify':
             verify_all(args.paths)
         elif len(args.paths) == 1:
-            prepare(args.paths[0], os.environ.get('MACOS_SIGN_IDENTITY', ''), os.environ.get('MACOS_NOTARY_PROFILE', ''))
+            prepare(args.paths[0], os.environ.get('MACOS_SIGN_IDENTITY', ''),
+                    os.environ.get('MACOS_NOTARY_PROFILE', ''), os.environ.get('MACOS_NOTARY_KEYCHAIN', ''))
         else:
             parser.error('prepare requires one dist directory')
     except (ValueError, OSError, subprocess.CalledProcessError) as error:

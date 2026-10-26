@@ -12,6 +12,7 @@ if [[ $(uname -s) != Darwin ]]; then
 fi
 python3 -m unittest discover -s tools -p 'test_check_release.py'
 python3 -m unittest discover -s tools -p 'test_prepare_macos_release.py'
+python3 -m unittest discover -s tools -p 'test_setup_macos_ci_signing.py'
 python3 tools/check-docs.py
 
 release_stage=$(mktemp -d)

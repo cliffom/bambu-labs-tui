@@ -247,3 +247,53 @@ func TestScheduledPollRequiresFreshSubmit(t *testing.T) {
 		t.Fatal("fresh snapshot did not deliver due batch")
 	}
 }
+
+func TestQuietOverlapPreservesExclusionReasonAndPendingOccurrence(t *testing.T) {
+	for _, tc := range []struct {
+		name, reason string
+		completion   bool
+		exclude      func(*Input)
+	}{
+		{name: "snooze", reason: ReasonSnoozed, exclude: func(input *Input) { p := input.Policies["TEST"]; p.Snoozed = true; input.Policies["TEST"] = p }},
+		{name: "category", reason: ReasonCategoryOff, exclude: func(input *Input) { input.Policies["TEST"].Allowed["TEST/fault/0700_8011"] = false }},
+		{name: "desktop", reason: ReasonDesktopOff, exclude: func(input *Input) { p := input.Policies["TEST"]; p.Desktop = false; input.Policies["TEST"] = p }},
+		{name: "observe only", reason: ReasonDesktopOff, exclude: func(input *Input) { input.ObserveOnly = true }},
+		{name: "completion", reason: ReasonCompletionOff, completion: true, exclude: func(input *Input) { p := input.Policies["TEST"]; p.Completion = false; input.Policies["TEST"] = p }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			now := time.Unix(100, 0)
+			var messages []Message
+			ledger := testLedger(t)
+			w := scheduledWorker(t, ledger, &now, &messages)
+			input := incidentFrame()
+			if tc.completion {
+				printer := input.Snapshot["TEST"]
+				printer.Conditions = nil
+				printer.Job = farm.NotificationJob{Task: "synthetic-overlap", State: farm.StateRunning}
+				input.Snapshot["TEST"] = printer
+				step(t, w, input)
+				printer.Job.State = farm.StateFinished
+				input.Snapshot["TEST"] = printer
+			}
+			input.Quiet = true
+			tc.exclude(&input)
+			step(t, w, input)
+			history := withoutOwnership(w.Status()).History
+			if len(messages) != 0 || len(history) != 1 || history[0].Reason != tc.reason {
+				t.Fatal("wrong overlapping-policy decision", messages, history)
+			}
+			pending, err := ledger.Observe(input.Snapshot)
+			if err != nil || len(pending) != 1 {
+				t.Fatal("excluded occurrence should remain pending", pending, err)
+			}
+			// Quiet hours exit and the independent exclusion ends. The same pending
+			// occurrence can deliver, matching the activity's non-permanent reason.
+			resumed := incidentFrame()
+			resumed.Snapshot = input.Snapshot
+			step(t, w, resumed)
+			if len(messages) != 1 {
+				t.Fatal("pending occurrence did not deliver after exclusions ended", messages)
+			}
+		})
+	}
+}

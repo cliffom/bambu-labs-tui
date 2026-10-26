@@ -85,7 +85,7 @@ func ReasonText(reason string) string {
 	case ReasonUnavailable:
 		return "Printer telemetry is unavailable or stale; no current delivery."
 	case ReasonChanged:
-		return "The reported condition or job changed before delivery."
+		return "The reported condition, job, or delivery policy changed before delivery."
 	case ReasonAccepted:
 		return "macOS accepted the request; banner and sound are unconfirmed."
 	case ReasonCanceled:
@@ -240,12 +240,11 @@ func (w *Worker) recordGroup(group []notification_state.Candidate, source Input,
 	}
 }
 
+// Quiet consumption is reported only after its ledger result is saved. This
+// policy-only explanation cannot establish that an occurrence was consumed.
 func suppressionReason(candidate notification_state.Candidate, current Input) string {
 	if !current.Active {
 		return ReasonClosing
-	}
-	if current.Quiet {
-		return ReasonQuiet
 	}
 	if current.ObserveOnly {
 		return ReasonDesktopOff

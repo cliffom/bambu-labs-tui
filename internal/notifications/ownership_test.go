@@ -423,3 +423,71 @@ func TestOptOutDrainsQueuedClearAndRecurrenceBeforeReleasingOwner(t *testing.T) 
 		t.Fatal("confirmed recurrence was not delivered after re-enabling")
 	}
 }
+
+func TestMutedObserverPreservesUncontendedQueuedRecurrence(t *testing.T) {
+	for _, competing := range []bool{false, true} {
+		t.Run(fmt.Sprint("competing=", competing), func(t *testing.T) {
+			ledger := testLedger(t)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			var calls int
+			worker := &Worker{
+				ctx: ctx, cancel: cancel, ledger: ledger,
+				send:  func(context.Context, Message) error { calls++; return nil },
+				queue: make(chan frame, workerQueueCapacity), now: time.Now, changed: make(chan struct{}, 1),
+			}
+			defer worker.releaseOwner()
+			// Drive the serialized processor directly so the complete burst is queued
+			// before processing resumes, without scheduler timing or artificial sleeps.
+			processNext := func() { t.Helper(); worker.process(<-worker.queue) }
+			worker.Submit(incidentFrame())
+			processNext()
+			muted := incidentFrame()
+			muted.ObserveOnly = true
+			policy := muted.Policies["TEST"]
+			policy.Desktop = false
+			muted.Policies["TEST"] = policy
+			worker.Submit(muted)
+			processNext()
+			owner, err := ledger.AcquireOwner()
+			if err != nil {
+				t.Fatal("muted observer retained ownership", err)
+			}
+			defer func(held *notification_state.Owner) { _ = held.Close() }(owner)
+			if competing {
+				// Observing contention breaks continuity: subsequent takeover must use
+				// fresh state rather than applying old clears over another owner's work.
+				worker.process(worker.latest)
+			} else {
+				_ = owner.Close()
+			}
+			clear := incidentFrame()
+			clear.ObserveOnly = true
+			printer := clear.Snapshot["TEST"]
+			printer.Conditions = nil
+			clear.Snapshot["TEST"] = printer
+			worker.Submit(clear)
+			worker.Submit(muted)
+			_ = owner.Close()
+			processNext()
+			processNext()
+			if calls != 1 {
+				t.Fatal("muted observer delivered", calls)
+			}
+			owner, err = ledger.AcquireOwner()
+			if err != nil {
+				t.Fatal("observer retained ownership after draining", err)
+			}
+			_ = owner.Close()
+			worker.Submit(incidentFrame())
+			processNext()
+			expected := 2
+			if competing {
+				expected = 1
+			}
+			if calls != expected {
+				t.Fatalf("delivery calls = %d, want %d", calls, expected)
+			}
+		})
+	}
+}

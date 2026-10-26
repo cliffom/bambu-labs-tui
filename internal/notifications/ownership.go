@@ -57,6 +57,7 @@ func (w *Worker) Retry() bool {
 	w.status.Disabled, w.status.Error = false, ""
 	w.status.Recovering = w.status.Ownership != OwnershipStandby
 	w.forceFrame, w.awaitFresh = true, true
+	w.observationGap = true
 	// Discard only paused/standby frames. They are not authoritative owner
 	// lifecycle observations, and a resumed owner must use fresh state.
 	draining := true
@@ -90,16 +91,19 @@ func (w *Worker) acquireOwner(input frame) bool {
 		return true
 	}
 	current := w.latest
+	continuousObserver := input.ObserveOnly && !w.observationGap
 	w.mu.Unlock()
-	// A takeover starts only from the newest incoming snapshot. The established
-	// owner still records every queued lifecycle frame while rechecking delivery.
-	if input.sequence != current.sequence || !input.Active {
+	// Delivery takeover and observation after contention require the newest
+	// snapshot. Uncontended muted observers preserve queued lifecycle frames;
+	// they cannot send and retain their temporary lease until the queue drains.
+	if (!continuousObserver && input.sequence != current.sequence) || !input.Active {
 		return false
 	}
 	owner, err := w.ledger.AcquireOwner()
 	if err != nil {
 		if errors.Is(err, notification_state.ErrBusy) {
 			w.mu.Lock()
+			w.observationGap = true
 			role, reason := OwnershipStandby, ReasonStandby
 			if input.ObserveOnly {
 				role, reason = OwnershipObserver, ReasonObserver
@@ -119,6 +123,7 @@ func (w *Worker) acquireOwner(input frame) bool {
 	}
 	w.mu.Lock()
 	w.owner = owner
+	w.observationGap = false
 	role, reason := OwnershipOwner, ReasonOwner
 	if input.ObserveOnly {
 		role, reason = OwnershipObserver, ReasonObserver

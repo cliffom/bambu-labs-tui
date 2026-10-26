@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.7 — Saved farm views
+
+- Save and restore the last farm filter and sort order in the active TOML configuration, across accounts/regions and demo sessions using that path. Use stable named values and fall back independently to All / Name for missing, unknown, or non-string choices. Startup restoration does not write the configuration.
+- Add dashboard `0` to reset and save All printers / Name sorting, with guidance in the list status, empty view, and help. Preserve live identity-based selection, dialog ownership, and below-minimum input guards.
+- Reuse asynchronous Config saves, independent field merging, coalescing, visible failures, explicit retry, and bounded shutdown. Persist only view choices without cached telemetry, selected identities, or changes to notice reviews and snoozes.
+
 ## 0.2.6 — Quiet hours and burst grouping
 
 - Add opt-in quiet hours configured in TOML with an explicit timezone, weekday selection, overnight periods, and documented daylight-saving behavior. Suppress automatic desktop banners and sound without changing modal policy, telemetry, or local notice reviews. There is no urgent bypass, exit summary, or backlog replay; otherwise eligible quiet occurrences are durably consumed. Independent snooze/category/desktop exclusions remain pending and retain their activity reasons.

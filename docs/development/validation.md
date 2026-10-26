@@ -4,7 +4,9 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
-## Saved farm views (#24)
+## v0.2.7 — saved farm views (#24)
+
+Release preparation on 2026-10-26 (PDT), macOS arm64/Go 1.27.3, passed documentation/formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, all race tests, vet, and default `make release` for all four platforms. Local ad-hoc archives passed inventory, installation README, universal helper architecture/signature checks, and checksum generation. VERSION and the direct-build fallback are 0.2.7; the tag workflow builds final signed/notarized assets separately. Existing live-account, hardware, clean-Mac, and Intel-runtime limitations remain.
 
 On 2026-10-26 (PDT), a v0.2.6-based working tree on local macOS arm64/Go 1.27.3 passed formatting, pinned Go lint, all race tests including UI/CLI PTY, vet, native build, and documentation checks. New synthetic tests cover all filter/sort round trips, independent invalid/non-string fallbacks, external config merges, restart restoration, empty saved filters, reset/dialog/size guards, coalesced snapshots, write failures, and explicit retries. The real demo CLI PTY regression saves Attention/Attention, exits, restarts with the same config, and resets/saves All/Name at 60×18.
 

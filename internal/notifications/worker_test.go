@@ -21,21 +21,26 @@ type workerLedger struct {
 	observeGate func()
 	reserveGate func()
 	observeErr  error
+	reserveErr  error
+	recordErr   error
 }
 
-func (l *workerLedger) Observe(s farm.NotificationSnapshot) ([]notificationstate.Candidate, error) {
+func (l *workerLedger) ObserveActivity(s farm.NotificationSnapshot) (notificationstate.Observation, error) {
 	if l.observeGate != nil {
 		l.observeGate()
 	}
 	if l.observeErr != nil {
-		return nil, l.observeErr
+		return notificationstate.Observation{}, l.observeErr
 	}
-	result, err := l.Store.Observe(s)
+	result, err := l.Store.ObserveActivity(s)
 	l.observed <- struct{}{}
 	return result, err
 }
 
 func (l *workerLedger) ReserveBatch(ids []string) ([]string, error) {
+	if l.reserveErr != nil {
+		return nil, l.reserveErr
+	}
 	if l.reserveGate != nil {
 		l.reserveGate()
 	}
@@ -43,6 +48,9 @@ func (l *workerLedger) ReserveBatch(ids []string) ([]string, error) {
 }
 
 func (l *workerLedger) RecordResult(id string, a notificationstate.Attempt) error {
+	if l.recordErr != nil {
+		return l.recordErr
+	}
 	err := l.Store.RecordResult(id, a)
 	l.recorded <- a
 	return err
@@ -168,7 +176,7 @@ func TestQueueOverflowDisablesWithoutBlockingUI(t *testing.T) {
 		input.Policies["TEST"] = p
 		w.Submit(input)
 	}
-	if !w.Status().Disabled || !strings.Contains(w.Status().Error, "queue full") {
+	if !w.Status().Disabled || !strings.Contains(w.Status().Error, "queue full") || len(w.Status().History) != 1 || w.Status().History[0].Reason != ReasonQueue {
 		t.Fatal(w.Status())
 	}
 	close(release)
@@ -302,7 +310,7 @@ func TestCoReportedIncidentsProduceOneOSSubmission(t *testing.T) {
 		t.Fatal("incident burst produced another submission", extra)
 	default:
 	}
-	if pending, err := ledger.Store.Observe(input.Snapshot); err != nil || len(pending) != 0 {
+	if pending, err := ledger.Observe(input.Snapshot); err != nil || len(pending) != 0 {
 		t.Fatal("group did not preserve individual deduplication", pending, err)
 	}
 }
@@ -321,7 +329,7 @@ func TestGroupedDeliveryKeepsMutedNoticePending(t *testing.T) {
 		await(t, ledger.recorded)
 	}
 	stopWorker(t, w)
-	pending, err := ledger.Store.Observe(input.Snapshot)
+	pending, err := ledger.Observe(input.Snapshot)
 	if err != nil || len(pending) != 1 || pending[0].ConditionKey != "TEST/state" {
 		t.Fatal("muted notice identity was consumed", pending, err)
 	}

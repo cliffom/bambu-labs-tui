@@ -24,6 +24,7 @@ func TestDialogOwnerRoutesInputViewAndAttentionDeferral(t *testing.T) {
 		{"reset", "n", "RESET NOTICE DECISIONS?", dialogDecisions},
 		{"config", ",", "CONFIG / GENERAL", dialogConfig},
 		{"alerts", "s", "PRINTER ALERTS / SNOOZE", dialogAlerts},
+		{"notification activity", "N", "NOTIFICATION ACTIVITY", dialogNotificationActivity},
 		{"diagnostics", "D", "LOCAL DIAGNOSTIC EXPORT", dialogExport},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

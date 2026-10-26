@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add a keyboard-accessible Notification activity view (`N`) with the last 100 session decisions, stable selection, incident/channel/outcome/reason details, repeat coalescing, and grouped-request membership. Explain reviews, preferences, snoozes, prior attempts, completion baselines, native failures, and storage pauses. Keep macOS acceptance separate from confirmed presentation and preserve accepted outcomes when saving their result fails. Activity is memory-only and does not change delivery identities or retry policy.
+
 ## 0.2.2 — Complete configuration controls
 
 - Expand Config into General, Alerts, and Printers sections with all TOML settings, a validated percentage editor, all nine global alert defaults, and per-printer On/Off/Inherit/effective-value controls plus confirmed reset. Apply alert/threshold edits immediately and save region edits for restart/login. Merge edited fields into valid TOML asynchronously while preserving untouched settings, private atomic writes, silent success, and red failures. Keep Test Notification and footer feedback.

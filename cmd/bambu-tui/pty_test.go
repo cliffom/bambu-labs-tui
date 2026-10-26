@@ -436,6 +436,23 @@ func TestPTYConfigEditsPersistToLaunchFile(t *testing.T) {
 	}
 }
 
+func TestPTYNotificationActivityKeepsFocusThroughResize(t *testing.T) {
+	child := startPTYChild(t, "demo")
+	child.expect(t, 0, "Gridfinity baseplate")
+	mark := child.send(t, "N")
+	child.expect(t, mark, "NOTIFICATION ACTIVITY")
+	child.expect(t, mark, "No live notification decisions yet.")
+	child.send(t, "q") // Quit remains dashboard-only.
+	mark = child.resize(t, 59, 17)
+	child.expect(t, mark, "Resize to at least 60 columns")
+	mark = child.resize(t, 60, 18)
+	child.expect(t, mark, "NOTIFICATION ACTIVITY")
+	mark = child.send(t, "\x03N") // Raw Ctrl+C stays inside; N closes.
+	child.expect(t, mark, "PRINTERS")
+	child.send(t, "q")
+	child.exited(t, 0)
+}
+
 func TestPTYClearAllNoticesRemainsResponsive(t *testing.T) {
 	child := startPTYChild(t, "demo")
 	child.expect(t, 0, "Gridfinity baseplate")

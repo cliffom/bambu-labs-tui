@@ -27,7 +27,7 @@ type (
 		Level, Code, State string
 		Since              time.Time
 		Family             string
-		Eligible           bool
+		Eligible, Reviewed bool
 	}
 )
 
@@ -60,7 +60,7 @@ func (s *State) NotificationSnapshot(now time.Time) NotificationSnapshot {
 			if !ok || printer != id {
 				continue
 			}
-			nc := NotificationCondition{Level: c.Level, Code: c.Code, Since: c.Since, Eligible: eligible[key]}
+			nc := NotificationCondition{Level: c.Level, Code: c.Code, Since: c.Since, Eligible: eligible[key], Reviewed: c.Acknowledged || c.Dismissed}
 			switch {
 			case family == ConditionState:
 				nc.Family, nc.State = NotificationStateFamily, p.State

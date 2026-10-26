@@ -32,6 +32,7 @@ const (
 	dialogDecisions
 	dialogAlerts
 	dialogConfig
+	dialogNotificationActivity
 	dialogExport
 	dialogShutdown
 )
@@ -56,6 +57,8 @@ func routeFor(kind dialogKind) dialogRoute {
 		return dialogRoute{key: (*Model).decisionsKey, view: Model.decisionsView, sync: (*Model).syncDecisions, clear: func(m *Model) { m.decisions = nil }}
 	case dialogAlerts:
 		return dialogRoute{key: (*Model).alertKey, view: Model.alertView, sync: (*Model).syncAlertDialog, clear: func(m *Model) { m.alertDialog = nil }}
+	case dialogNotificationActivity:
+		return dialogRoute{key: (*Model).notificationActivityKey, view: Model.notificationActivityView, sync: (*Model).syncNotificationActivity, clear: func(m *Model) { m.notificationActivity = nil }}
 	case dialogConfig:
 		return dialogRoute{key: (*Model).configKey, view: Model.configView, sync: (*Model).syncConfig, clear: (*Model).clearConfig}
 	case dialogExport:

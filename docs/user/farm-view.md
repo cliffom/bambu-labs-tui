@@ -1,6 +1,6 @@
 # Farm summary, filters, and sorting
 
-[Back to the README](../README.md)
+[Back to the README](../../README.md)
 
 The dashboard summary always describes the **whole account farm**. Filtering changes only the printer list and its selected details. Notices, event history, saved reviews, snoozes, and automatic alert eligibility are unchanged.
 

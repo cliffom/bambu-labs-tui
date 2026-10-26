@@ -1,6 +1,6 @@
 # Alert preferences and snoozing
 
-[Back to the README](../README.md)
+[Back to the README](../../README.md)
 
 Bambu TUI separates **what the printer reports** from **when an automatic modal interrupts you**. Preferences and snoozes change only interruptions. Printer state, faults, notice counts, and event history remain visible. No printer controls are sent.
 

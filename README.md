@@ -8,13 +8,15 @@
 
 Monitor your Bambu Lab print farm from the terminal: printer status, print progress, time remaining, temperatures, filament, and faults in one dashboard.
 
-Built for H2D and X2D printers connected through **Bambu Cloud**, with displayed telemetry validated on both models. Bambu TUI is read-only: it monitors your printers and does not control them. You can try a simulated farm without an account or printer.
+Bambu TUI connects through **Bambu Cloud**, with displayed telemetry validated on **H2D and X2D**. It is a read-only monitor: printer control and LAN connections are not supported. Try a simulated farm without an account or printer.
 
 ## Get started
 
+You need macOS or Linux and a terminal of at least **60 columns × 18 rows**. To monitor real printers, use a Bambu account with your printers already bound to it. Saved login sessions use macOS Keychain or Linux Secret Service; Linux needs `secret-tool` (usually in `libsecret-tools`) and a running Secret Service session.
+
 ### 1. Install
 
-Download an archive and the checksums file from the [latest release](https://github.com/cliffom/bambu-tui/releases/latest). Choose the archive for your machine:
+Download your archive and the checksums file from the [latest release](https://github.com/cliffom/bambu-tui/releases/latest):
 
 | Machine | Archive suffix |
 | --- | --- |
@@ -23,16 +25,18 @@ Download an archive and the checksums file from the [latest release](https://git
 | Linux with x86-64 processor | `linux_amd64.tar.gz` |
 | Linux with ARM64 processor | `linux_arm64.tar.gz` |
 
-For example, on an Apple silicon Mac with v0.1.12 downloaded:
+From your download directory, set the release version below to the one you downloaded. This example uses the Apple silicon archive; change the suffix for your machine.
 
 ```sh
-shasum -a 256 bambu-tui_v0.1.12_darwin_arm64.tar.gz
-# Compare the output with the matching line in bambu-tui_v0.1.12_checksums.txt.
-tar -xzf bambu-tui_v0.1.12_darwin_arm64.tar.gz
+release_version=vX.Y.Z # Replace with the downloaded release's version.
+archive="bambu-tui_${release_version}_darwin_arm64.tar.gz"
+shasum -a 256 "$archive"
+# Compare with the matching line in bambu-tui_${release_version}_checksums.txt.
+tar -xzf "$archive"
 ./bambu-tui --version
 ```
 
-Run these commands from the download directory, using your archive's filename. You can keep the executable there or move it to a directory on your `PATH`.
+On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executable here or move it to a directory on your `PATH`.
 
 ### 2. Try the demo
 
@@ -40,71 +44,36 @@ Run these commands from the download directory, using your archive's filename. Y
 ./bambu-tui --demo
 ```
 
-The demo includes two printers, multiple AMS units, and an external spool. Press `m` to browse filament. An action-needed alert demonstrates a simulated runout about 15 seconds after launch. Close dialogs with `Esc`, then press `q` to quit.
+Browse a simulated farm with AMS units and an external spool. Press `m` to inspect filament and `?` for help. A simulated runout demonstrates an action-needed alert about 15 seconds after launch. Close dialogs with `Esc`, then press `q` to quit.
 
 ### 3. Connect your printers
-
-Use the email for the Bambu account that already has your printers bound to it:
 
 ```sh
 ./bambu-tui login --email-code
 ./bambu-tui
 ```
 
-Enter the emailed code when prompted. This also works for **Google-linked accounts** using the email bound to the Bambu account; it uses Bambu's email verification rather than opening Google sign-in. For password login, use `./bambu-tui login`.
+Enter your Bambu account email and the emailed code when prompted. This also works for **Google-linked accounts** using the email bound to Bambu. For password login, use `./bambu-tui login`.
 
-Login saves your session in macOS Keychain or Linux Secret Service. Linux requires `secret-tool` (usually in `libsecret-tools`) and a running Secret Service session. If saving is unavailable, login opens a dashboard for the current session instead. See [login troubleshooting](docs/usage.md#login-and-saved-sessions).
-
-All printers on the account appear automatically. If you use Bambu's China region, [set `region = "china"`](docs/usage.md#configuration) before logging in.
+All printers on the account appear automatically. If saving the login session is unavailable, login opens a dashboard for the current session instead; see [login troubleshooting](docs/user/usage.md#login-and-saved-sessions). For Bambu's China region, [set `region = "china"`](docs/user/usage.md#configuration) before logging in.
 
 ## Using the dashboard
 
-The dashboard header reads `BAMBU TUI vX.Y.Z / CLOUD CONNECTED / FARM`, reflecting the running version and connection state. Dialog headings also show the version. Use a terminal of at least **60 columns × 18 rows**; a wider window shows printer details and notices side by side. Press `?` for help.
+Use arrows or `j` / `k` to select a printer, `Tab` to switch panels, and `?` for all controls. These shortcuts cover the main tasks:
 
 | Key | Action |
 | --- | --- |
-| `↑` / `↓` or `j` / `k` | Select a printer or notice; scroll details |
-| `Tab` / `Shift+Tab` | Switch panels |
-| `D` | Preview and confirm a local diagnostic export |
 | `F` / `S` | Cycle printer filters / sorting |
-| `m` | Browse the selected printer's AMS units and filament |
-| `Enter` | Inspect a selected notice |
-| `f` | Inspect the selected printer's first active fault |
+| `m` | Browse AMS units and filament |
+| `Enter` / `f` | Inspect a selected notice / the printer's first active fault |
 | `a` / `c` | Acknowledge / dismiss a notice locally |
-| `s` | View alert preferences; snooze or resume the selected printer |
-| `n` | Manage local notice decisions: restore, mark unreviewed, or reset |
-| `X` | Clear all notices locally after confirmation (Notices panel) |
-| `!` | Reopen unreviewed action-needed alerts |
-| `r` | Refresh printer status and firmware information |
+| `n` | Manage saved notice decisions |
+| `s` | View alert preferences and snooze/resume controls |
+| `D` | Preview and confirm a local diagnostic export |
 | `Esc` | Close a dialog |
-| `q` / `Ctrl+C` | Quit from the dashboard after closing dialogs |
+| `q` / `Ctrl+C` | Quit after closing dialogs |
 
-The farm summary counts printing, paused/failed, idle/finished, attention-needed, and unavailable printers. Use `F` to find actionable, printing, or unavailable printers; `S` sorts by name, attention, state, or finish time. Selection follows the printer during updates. See the [farm view guide](docs/farm-view.md) for definitions and ETA handling.
-
-In the **AMS/filament browser**, use `Tab` or left/right to switch units and up/down to select a slot. Each material has a color chip; selected-slot details show its color, remaining estimate, and nozzle assignment. Press `m` or `Esc` to return to the dashboard.
-
-**Action-needed alerts** open for supported faults requiring intervention, failed prints, and some stopped-printer conditions. Acknowledging or dismissing a notice affects only the TUI; it does not clear the printer's fault or resume a print. These decisions survive restarts. Press `n` to inspect and reverse them, or reset all decisions for the current account and region after confirmation. Recent event history lasts only for the current session.
-
-Press `s` to snooze a printer for 15 minutes, 1 hour, or 4 hours, or resume alerts early. Global and per-printer [alert preferences](docs/alerts.md) control automatic interruptions while keeping printer state and notices visible. Snoozes survive restarts until their deadline.
-
-Filament quantities are printer estimates; **Unknown**, **Empty**, and **0%** mean different things. External spool quantities are unavailable. Firmware status reflects the printer's reported assessment and may be unknown or out of date. The [user guide](docs/usage.md) explains these fields, all keyboard controls, and notice behavior.
-
-For troubleshooting, use the local diagnostic export via `D`. The preview shows what is included and where the file will go; Enter writes it locally. Unknown/private fields and free-form messages are omitted, and nothing is uploaded. See [diagnostic exports](docs/diagnostics.md).
-
-## Configuration
-
-Defaults work for global accounts. To change the region or low-filament threshold, create a file at the path printed by:
-
-```sh
-./bambu-tui --config-path
-```
-
-```toml
-region = "global" # or "china"
-low_filament_percent = 10
-```
-
-You can also use `--config /path/to/config.toml`. Configuration contains no credentials. See the [configuration reference](docs/usage.md#configuration) for details.
+Action-needed alerts highlight faults requiring intervention. Acknowledging or dismissing a notice changes only the TUI; it does not clear a printer fault or resume a print. Filament quantities are estimates, and firmware information reflects what the printer reports. See the [user guide](docs/user/usage.md) for controls, configuration, saved sessions, and telemetry details.
 
 ## Build from source
 
@@ -118,19 +87,14 @@ make auth   # build and log in with an email code
 make run    # build and open your farm dashboard
 ```
 
-The executable is built at `bin/bambu-tui`. See the [development guide](docs/development.md) for tests, formatting, linting, and release tooling.
+The executable is built at `bin/bambu-tui`. See [contributing](docs/development/contributing.md) for development setup, tests, formatting, and linting.
 
 ## More information
 
-- [User guide](docs/usage.md): login, keyboard controls, saved notices, and telemetry details
-- [Diagnostic export](docs/diagnostics.md): local export scope, inspection, and synthetic fixtures
-- [v0.1.0 readiness](docs/v0.1.0-readiness.md): feature coverage and remaining operational checks
-- [Farm view](docs/farm-view.md): summary definitions, filters, sorting, and selection
-- [Alert preferences and snoozing](docs/alerts.md): per-printer interruption controls
-- [Roadmap](ROADMAP.md): upcoming work and tracked issues
-- [Changelog](CHANGELOG.md): release history
-- [Validation record](docs/validation.md): tested hardware and outstanding checks
-- [Protocol sources](docs/protocol-sources.md): Bambu protocol references and fault coverage
+- [Documentation index](docs/README.md): user guides, development, and references
+- [Troubleshooting and diagnostic exports](docs/user/diagnostics.md)
+- [Hardware validation and known gaps](docs/development/validation.md)
+- [Roadmap](docs/ROADMAP.md) and [changelog](docs/CHANGELOG.md)
 - [Report a bug or request a feature](https://github.com/cliffom/bambu-tui/issues)
 
-Licensed under [MIT](LICENSE). Release archives include dependency licenses.
+Licensed under [MIT](LICENSE). Release archives include dependency licenses. This project is not affiliated with Bambu Lab.

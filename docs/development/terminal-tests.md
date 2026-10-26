@@ -1,6 +1,6 @@
 # Terminal smoke tests
 
-[Development guide](development.md) · [Live-validation record](validation.md)
+[Development guide](contributing.md) · [Live-validation record](validation.md)
 
 The PTY suite in `cmd/bambu-tui/pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
 

@@ -1,0 +1,33 @@
+# Architecture and conventions
+
+[Contributing](contributing.md) · [Documentation index](../README.md)
+
+Follow [UI direction](ui-direction.md) for visual and interaction contracts and [documentation direction](documentation-direction.md) for keeping guidance current.
+
+## State and persistence
+
+Packages separate cloud authentication/discovery, the MQTT transport, the monitor worker, normalized farm state, credential storage, configuration, and the terminal UI. The UI reducer alone mutates farm state. Transports communicate through messages and stop on context cancellation. Notice and snooze persistence commands receive immutable snapshots and report completion through messages. Each store permits one write in flight; changes during that write coalesce into a complete latest snapshot after completion. Attempted, successfully saved, and failed revisions stay distinct, with no tick-driven retry of failed revisions. Normal quit waits up to five seconds, then requires an explicit exit or cancellation on failure/timeout; external cancellation reports unconfirmed saves after the terminal is restored.
+
+## Dialogs
+
+Dialog focus is owned by `dialogState` in `internal/ui/dialogs.go`. Its route catalog supplies keyboard handling, rendering, synchronization, and payload cleanup for each dialog; open/close transitions use that owner rather than pointer priority. Snooze controls opened from attention explicitly suspend and return to that prompt. Reset confirmation stays inside the decisions dialog, preserving selection and scroll state. Automatic attention waits until the owner releases focus, including during persistence shutdown.
+
+## Telemetry
+
+Within `internal/farm`, `telemetry.go` owns report decoding, job-field invalidation, and flexible delta merging; `normalize.go` interprets the merged snapshot. `telemetry_presence.go` records condition-family and per-slot knowledge, distinguishing omitted data from explicit empty collections or reported unknown estimates. Review lifetime decisions consume that knowledge in `reviews.go`, while `state.go` and `conditions.go` handle lifecycle, history, and reconciliation. `Printer.Raw` remains the merged input for telemetry interpretation and allowlisted diagnostic snapshots; diagnostics still sanitize and re-normalize their own independent snapshot rather than serializing the live printer or its internal knowledge.
+
+## Monitor workers
+
+The monitor resets reconnect backoff after two minutes following successful subscription, initial refresh, and the connected event. Short failures retain exponential delays from one to sixty seconds, plus up to 25% jitter; failed discovery/dial/bootstrap time does not establish a healthy session. Periodic discovery runs in one cancellable worker, and one outbound worker serializes subscriptions, refresh batches, and pings. Pending refreshes coalesce, new subscriptions are retained, and due pings take the next write slot. Device discovery events precede subscribing to added printers; received reports retain their read order.
+
+Initial subscription/refresh stays ahead of connected/report events and must complete within ten seconds. With the event consumer draining its channel, slow discovery does not block report forwarding or the 25-second keepalive schedule. Refresh writes also leave report forwarding responsive, subject to MQTT's shared packet mutex for QoS acknowledgements. Each whole outbound batch (including waiting for that mutex) has a ten-second deadline: a due ping starts after at most the current batch, or the stalled connection closes within that bound. With the default intervals, a continuing connection starts a ping within about 35 seconds of the previous scheduled ping; a ping that itself stalls is also terminated after ten seconds, below the 60-second MQTT keepalive. These are operation deadlines rather than real-time scheduler guarantees. On cancellation, the monitor cancels discovery, closes the transport, and joins its reader/discovery/writer workers before returning. API implementations must honor context cancellation, and transport `Close` must release pending reads and writes. Slow-operation tests inject poll/ping ticks and block operations behind channels; the transport packet-framing test also exercises concurrent QoS acknowledgements and partial writes.
+
+## Shared types and storage
+
+Monitor messages use `monitor.EventKind` and the `EventDevices`, `EventConnection`, `EventReport`, and `EventProblem` constants. The private UI reducer returns a concrete `Model`; its public `Update` method adapts that result to Bubble Tea. Notice and snooze stores share `internal/atomicfile.Replace` for same-directory temporary-file creation, sync/close, rename, and cleanup. Each store still owns encoding, loading/validation, account paths, and contextual errors. Files remain private (0600), newly created directories use 0700, and existing directory permissions are unchanged. UI persistence commands retain ordering, failed-load protections, and the shutdown policy described above.
+
+## Code conventions
+
+Meaningful domain and protocol values belong to their owning packages. Reuse farm state, severity, category, condition-key, and inventory constants across consumers. Keep unrelated policies separate even when their numeric values match (for example ETA age, firmware age, and active print telemetry age). Use structs for records with distinct fields, including notice line spans, table columns, regional endpoints, request bodies, and fault classification rules. Flexible telemetry maps preserve unknown keys and omitted-field semantics.
+
+Declarative catalogues and schemas intentionally retain literal code-to-description entries, allowlist keys/enumerations, regular expressions, serialization tags, palette definitions, and fixed command arguments: each definition states the value's meaning at its point of declaration. Ordinary first-element access, loop/count arithmetic, standard numeric bases/word sizes, and one-off display prose also stay inline. Synthetic demo payloads and literal test wire/persistence fixtures remain independent examples of the external formats; do not rewrite fixtures to derive expected wire values from implementation constants. Name new behavioral thresholds or positional meanings rather than adding another unexplained literal.

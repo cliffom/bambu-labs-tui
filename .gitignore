@@ -30,3 +30,6 @@ Thumbs.db
 
 # Local diagnostic artifacts copied from the export directory
 bambu-tui-diagnostics-*.json
+
+# Python documentation-check tooling
+__pycache__/

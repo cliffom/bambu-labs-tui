@@ -1,6 +1,6 @@
 # User guide
 
-[Back to the README](../README.md)
+[Back to the README](../../README.md)
 
 ## Login and saved sessions
 
@@ -78,6 +78,8 @@ The configuration contains no credentials. Each region uses a separate saved ses
 
 Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color.
 
+When the terminal is smaller than 60 columns × 18 rows, the resize screen blocks hidden navigation, review/snooze actions, exports, and confirmations. `Esc` still closes the current dialog or returns to its parent; `q` / `Ctrl+C` still quit from the dashboard. Telemetry and asynchronous saves/results continue. Resize back to resume the same dialog and any pending confirmation. The compact persistence shutdown screen retains its exit/cancel controls.
+
 ### Diagnostic export
 
 Press `D` on the dashboard to preview a local JSON export for the selected printer. Enter creates the file; Esc cancels. The export includes classified telemetry and structure, sanitized partial reports, app/platform/model/firmware metadata, connection state, and fault codes. Unknown/private fields and free-form values are omitted. No upload occurs. Inspect the file before attaching it voluntarily; see [diagnostic exports](diagnostics.md) for scope, limitations, and fixture creation.
@@ -141,7 +143,7 @@ To preview the modal without a printer, run `make demo`: the X2D simulates runou
 - The **Nozzle** column shows a slot's reported right/left nozzle assignment. The temperature panel separately marks the active nozzle.
 - **Stale** means no print status has arrived for more than ten minutes while the last reported state is idle or finished, or two minutes for any other state. A new printing report immediately restores the two-minute threshold. Connection labels, unavailable filtering, and stale notices use this same policy; missing initial telemetry still shows Waiting for data. Device availability is refreshed every 60 seconds, and offline/cloud-disconnected status takes effect independently of the grace period. `~` beside time estimates marks data that is stale, offline, or disconnected.
 - ETA uses the timestamp of the last remaining-time update. Temperature-only updates do not move ETA. Paused prints have no finish ETA, and elapsed time never implies completion.
-- Known printer errors and maintenance notices have readable descriptions, including verified standard AMS/AMS HT and external-spool runout, empty-slot reports, feed/retract failures, possible tangles, and nozzle clogs. Runout recovery stages remain distinct from faults requiring replacement filament. HMS severity follows the reported code, and printer-supplied messages take precedence. A known empty-message internal code is suppressed; other unmapped HMS notices retain their codes and troubleshooting links. [Protocol sources](protocol-sources.md#filament-fault-catalogue-expansion) document exact coverage and remaining gaps.
+- Known printer errors and maintenance notices have readable descriptions, including verified standard AMS/AMS HT and external-spool runout, empty-slot reports, feed/retract failures, possible tangles, and nozzle clogs. Runout recovery stages remain distinct from faults requiring replacement filament. HMS severity follows the reported code, and printer-supplied messages take precedence. A known empty-message internal code is suppressed; other unmapped HMS notices retain their codes and troubleshooting links. [Protocol sources](../reference/protocol-sources.md#filament-fault-catalogue-expansion) document exact coverage and remaining gaps.
 - A paused-state notice remains separate from the fault that may have caused it. HMS and print-error reports also retain their individual codes; acknowledgement or dismissal applies to each notice independently, preserving visibility of distinct faults.
 - Standard AMS and AMS HT units have separate readable labels; internal IDs are preserved for filament-path assignments.
 - Notices disappear when their condition resolves or you dismiss them locally; the event panel retains up to 500 events until you quit.
@@ -151,6 +153,3 @@ Monitoring requests only: the MQTT client can subscribe to reports and request f
 ### Firmware
 
 Printer details also show the installed printer **Firmware** and **FW Status**. Status is the printer's reported assessment: **Current (printer reported)**, **Update available** with the offered OTA version, or **Unknown (not confirmed)**. Component-only updates do not imply a printer firmware update. Old assessments or disconnected/stale printers show **Last known**; press `r` to request fresh status and firmware metadata. This is not a live comparison against a public release catalogue, and no firmware installation is performed.
-
-
-When the terminal is smaller than 60 columns × 18 rows, the resize screen blocks hidden navigation, review/snooze actions, exports, and confirmations. `Esc` still closes the current dialog or returns to its parent; `q` / `Ctrl+C` still quit from the dashboard. Telemetry and asynchronous saves/results continue. Resize back to resume the same dialog and any pending confirmation. The compact persistence shutdown screen retains its exit/cancel controls.

@@ -1,4 +1,4 @@
-.PHONY: build auth run demo test check fmt fmt-check lint lint-actions lint-make audit-faults cross release
+.PHONY: build auth run demo test check fmt fmt-check lint lint-actions lint-make docs-check audit-faults cross release
 
 GOLANGCI_LINT ?= golangci-lint
 GOFUMPT ?= go run mvdan.cc/gofumpt@$(shell cat .gofumpt-version)
@@ -50,6 +50,10 @@ lint-actions:
 
 lint-make:
 	$(CHECKMAKE) --config checkmake.ini Makefile
+
+docs-check:
+	python3 -m unittest discover -s tools -p 'test_check_docs.py'
+	python3 tools/check-docs.py
 
 audit-faults:
 	BAMBU_AUDIT_UPSTREAM=1 go test ./internal/farm -run '^TestUpstreamFaultCatalogue$$' -count=1 -v

@@ -1,0 +1,43 @@
+# Contributing
+
+[Back to the README](../../README.md)
+
+Read [UI direction](ui-direction.md) before UI changes and [documentation direction](documentation-direction.md) for documentation ownership and required PR evidence.
+
+Requires Go 1.26 or newer and Python 3.10+ for documentation checks. Bubble Tea v1, Bubbles, and Lip Gloss are pinned in `go.mod`.
+
+```sh
+make docs-check # documentation policy, links, and checker regression tests
+make test    # tests with the race detector
+make check   # go vet
+make fmt     # format Go source
+make fmt-check # check formatting without changing files
+make lint    # golangci-lint
+make lint-actions # actionlint for GitHub Actions workflows
+make lint-make # checkmake for the Makefile
+make audit-faults # verify fault codes against pinned upstream catalogues (network required)
+make build   # bin/bambu-tui
+make auth    # build and log in using an email code
+make run     # build and open the dashboard
+make demo    # build and open the simulated farm without login
+make cross   # macOS/Linux, arm64/amd64 binaries in dist/
+make release # versioned archives, SHA-256 checksums, and dependency licenses
+```
+
+`VERSION` is the release version. Make injects version, commit, and UTC build date into `--version`; a source build without Git metadata reports `unknown` for its commit. CI runs race tests and vet on Linux/macOS, checks native credential persistence on macOS, and packages release candidates on Linux. A pushed version tag creates a **draft** release for review; it does not publish automatically.
+
+The separate **Formatting and lint** workflow checks Go formatting, type declaration grouping, error handling, vet diagnostics, ineffective assignments, static analysis, unused code, GitHub Actions syntax, and Makefile rules on pull requests and pushes to `main`. It reports formatting problems without rewriting source. Run `make fmt` locally to fix Go formatting. Checkmake validates the Makefile; it does not format or rewrite it.
+
+`make fmt` and `make fmt-check` use gofumpt pinned in `.gofumpt-version`, running it through `go run` without requiring a global installation. The first run may download the formatter and its dependencies. Override `GOFUMPT` to use an installed binary. Gofumpt adds spacing between multiline top-level declarations and groups adjacent declarations. Keep a blank line between functions, including short helpers, and collect each file's package-level types in one `type (...)` block when it declares multiple types. The `decorder` linter enforces the single type declaration; type grouping itself requires a manual edit. Separate constant blocks remain allowed so independent `iota` sequences retain their meaning.
+
+For VS Code, enable `"gopls": { "gofumpt": true }` in your settings to use gofumpt formatting on save. The version bundled with gopls may differ from the project pin; `make fmt-check` is the authoritative formatting check.
+
+Install the versions in `.golangci-lint-version` and `.actionlint-version` to reproduce the lint checks locally. Get golangci-lint from its [official releases](https://github.com/golangci/golangci-lint/releases), and install actionlint with `go install "github.com/rhysd/actionlint/cmd/actionlint@$(cat .actionlint-version)"`. `make lint` and `make lint-actions` use tools on `PATH`; override `GOLANGCI_LINT` or `ACTIONLINT` when installed elsewhere. Workflow lint also uses ShellCheck when it is available.
+
+Install the pinned [checkmake](https://github.com/checkmake/checkmake) version with `go install "github.com/checkmake/checkmake/cmd/checkmake@$(cat .checkmake-version)"`. Run `make lint-make`, or override `CHECKMAKE` if the binary is installed elsewhere. `checkmake.ini` requires the project's build, auth, run, test, and check targets to exist and be declared phony; other lint rules use their defaults.
+
+## Test evidence
+
+On Linux/macOS, `make test` also runs the [PTY smoke suite](terminal-tests.md), which exercises the real demo CLI and terminal lifecycle without account access. Tests use fake HTTP/native credential processes, an in-memory MQTT broker connection, and **synthetic** H2D/X2D telemetry fixtures. Displayed telemetry has been validated on H2D and X2D, and the native credential-store probe has passed in a normal terminal. Remaining hardware and real-account restart checks are tracked in [the validation record](validation.md). Captured regression fixtures must have tokens, account identifiers, serials, job names, and spool identifiers removed.
+
+See [architecture and conventions](architecture.md) for state ownership, concurrency, persistence, and code conventions. Protocol references are maintained in [protocol sources](../reference/protocol-sources.md).

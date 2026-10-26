@@ -6,12 +6,14 @@ if [[ ! "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; the
   echo 'Invalid release version' >&2
   exit 1
 fi
+python3 tools/check-docs.py
+
 release_stage=$(mktemp -d)
 trap 'rm -rf "$release_stage"' EXIT
 
-cp README.md LICENSE CHANGELOG.md ROADMAP.md config.example.toml "$release_stage/"
-mkdir -p "$release_stage/docs" "$release_stage/third_party" "$release_stage/assets/branding"
-cp docs/*.md "$release_stage/docs/"
+cp README.md AGENTS.md LICENSE config.example.toml "$release_stage/"
+mkdir -p "$release_stage/third_party" "$release_stage/assets/branding"
+cp -R docs "$release_stage/docs"
 cp assets/branding/hero.png "$release_stage/assets/branding/"
 go_root=$(go env GOROOT)
 if [[ -f "$go_root/LICENSE" ]]; then
@@ -43,7 +45,8 @@ archives=()
 for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
   cp "dist/bambu-tui-$target" "$release_stage/bambu-tui"
   archive="bambu-tui_v${release_version}_${target//-/_}.tar.gz"
-  COPYFILE_DISABLE=1 tar -czf "dist/$archive" -C "$release_stage" bambu-tui README.md LICENSE CHANGELOG.md ROADMAP.md config.example.toml docs assets third_party
+  COPYFILE_DISABLE=1 tar -czf "dist/$archive" -C "$release_stage" bambu-tui README.md AGENTS.md LICENSE config.example.toml docs assets third_party
+  python3 tools/check-docs.py --archive "dist/$archive"
   archives+=("$archive")
 done
 (

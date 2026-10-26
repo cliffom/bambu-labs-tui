@@ -24,4 +24,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" dist/*.tar.gz dist/*checksums.txt --draft --title "$RELEASE_TAG" --notes-file CHANGELOG.md
+        run: gh release create "$RELEASE_TAG" dist/*.tar.gz dist/*checksums.txt --draft --title "$RELEASE_TAG" --notes-file docs/CHANGELOG.md

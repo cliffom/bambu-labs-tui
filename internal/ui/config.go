@@ -117,7 +117,7 @@ func (m Model) configView() string {
 	lines = append(lines, "")
 	lines = append(lines, "Global defaults; printer overrides still apply.", "Changes take effect immediately. macOS only.", "Test may request macOS notification permission.", "Saving normalizes TOML and removes comments.")
 	if m.configPath != "" {
-		lines = append(lines, "File: "+safe(m.configPath))
+		lines = append(lines, "Config file location: "+safe(m.configPath))
 	}
 	if len(m.alertPrefs.Printers) > 0 {
 		lines = append(lines, fmt.Sprintf("%d printer overrides configured; s shows effective values.", len(m.alertPrefs.Printers)))

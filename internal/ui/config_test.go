@@ -157,3 +157,31 @@ func TestConfigFooterKeepsCloseKeysWithStorageWarnings(t *testing.T) {
 		}
 	}
 }
+
+func TestConfigFooterExplainsSelectedOption(t *testing.T) {
+	for _, size := range [][2]int{{60, 18}, {120, 32}} {
+		m := key(resizeModel(demoModel(), size[0], size[1]), ",")
+		for _, description := range []string{
+			"Show macOS alerts while this TUI runs.",
+			"Request sound on desktop notifications.",
+			"Notify on confirmed print completion.",
+			"Test delivery using the current sound.",
+		} {
+			rows := strings.Split(ansi.Strip(m.View()), "\n")
+			last := rows[len(rows)-1]
+			if !strings.Contains(last, description) || !strings.Contains(last, "Esc / , close") {
+				t.Fatalf("selected option helper missing at %v: %q", size, last)
+			}
+			if !strings.Contains(rows[1], "Space/Enter") {
+				t.Fatal("header must retain activation keys")
+			}
+			m = key(m, "down")
+		}
+		m = key(m, "up")
+		m.notificationTestPending = true
+		rows := strings.Split(ansi.Strip(m.View()), "\n")
+		if !strings.Contains(rows[len(rows)-1], "closing cancels") {
+			t.Fatal("pending test helper missing")
+		}
+	}
+}

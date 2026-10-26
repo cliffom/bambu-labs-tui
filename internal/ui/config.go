@@ -74,7 +74,12 @@ func (m *Model) configResult(msg configResultMsg) {
 }
 
 func (m Model) configView() string {
-	lines := []string{accent.Bold(true).Render("CONFIG / NOTIFICATIONS"), "↑/↓ select · Space/Enter change/test · , / Esc close", ""}
+	bindings := []string{
+		white.Bold(true).Render("↑/↓") + muted.Render(" select"),
+		white.Bold(true).Render("Space/Enter") + muted.Render(" change/test"),
+		white.Bold(true).Render("Esc / ,") + muted.Render(" close"),
+	}
+	lines := []string{accent.Bold(true).Render("CONFIG / NOTIFICATIONS"), strings.Join(bindings, muted.Render(" · ")), ""}
 	settings := []struct {
 		name    string
 		enabled bool
@@ -121,15 +126,28 @@ func (m Model) configView() string {
 	if len(m.alertPrefs.Printers) > 0 {
 		lines = append(lines, fmt.Sprintf("%d printer overrides configured; s shows effective values.", len(m.alertPrefs.Printers)))
 	}
-	hints := "Esc / , close  ↑/↓ select  Space/Enter change/test"
+	hints := footerHints("Esc / , close") + footer.Render(" · "+m.configHelp())
 	if message := m.storageWarning(); message != "" {
-		hints = "Esc / , close  " + message
+		hints = footerHints("Esc / , close") + warning.Render(" · "+message)
 		if m.configStorageError != "" {
-			hints = "Esc / , close  r retry  Config save failed"
+			hints = footerHints("Esc / , close  r retry") + warning.Render(" · Config save failed")
 		}
 	}
 	rows := strings.Split(m.fullView(strings.Split(wrapLines(lines, max(1, m.width-2)), "\n"), hints), "\n")
 	// Keep close keys visible even when fullView prioritizes a storage warning.
-	rows[len(rows)-1] = m.footerRow(footerHints(hints))
+	rows[len(rows)-1] = m.footerRow(hints)
 	return strings.Join(rows, "\n")
+}
+
+func (m Model) configHelp() string {
+	help := [...]string{
+		"Show macOS alerts while this TUI runs.",
+		"Request sound on desktop notifications.",
+		"Notify on confirmed print completion.",
+		"Test delivery using the current sound.",
+	}
+	if m.configSelection == notificationTestAction && m.notificationTestPending {
+		return "Sending test; closing cancels it."
+	}
+	return help[m.configSelection]
 }

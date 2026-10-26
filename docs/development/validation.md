@@ -22,6 +22,12 @@ On 2026-10-25 (PDT), development version 0.1.15 plus the Test Notification actio
 
 Race tests cover global sound snapshots, asynchronous invocation while opted out, no settings changes, duplicate activation blocking, pending/failure/accepted text, telemetry updates during a blocked probe, close cancellation, stale-result protection, size bounds, and blocked hidden activation. `make fmt-check lint test check build docs-check` passed with the pinned lint tool. The explicit action reuses doctor's bounded native probe; it does not consume persisted live notification identities or increment live delivery counts.
 
+### Config selected-option helper text
+
+After the user confirmed the Config test worked, they requested selected-option explanations in the status bar and noted that header key hints were easy to miss. Config now emphasizes header navigation/activation keys and uses its single-row footer for the selected option's purpose, retaining close keys. Save failures still take priority with retry/close controls. Pending test helper text explains cancellation on close.
+
+On 2026-10-25 (PDT), development version 0.1.15 plus these changes on base `da6f4fc5a308` was inspected on the same macOS host using actual demo PTYs. Plain captures at 60×18 and 120×32 showed all four selected/unselected rows and their complete helper text; 59×17 showed resize fallback, and returning to 60×18 retained Test Notification selection and its helper. Both processes exited normally. No tests were sent in this layout run. UI/CLI race tests, formatting, pinned lint, vet, build, and docs checks passed. Regression coverage verifies each option's helper at both widths, pending-test help, retained header/close keys, and failure priority. Color appearance remains unverified separately.
+
 ### Printer-name titles and preview diagnosis
 
 The user requested the triggering printer name in notification text. Live requests now carry the printer name as a bounded plain-text title, prefixed Demo in synthetic sessions; the name remains in the body. Worker regressions cover intervention/completion/demo titles and text bounds, and the universal helper built successfully. A silent synthetic `Demo: X2D · Studio` request was accepted; native validation rejected empty, oversized, and wrong-type titles.

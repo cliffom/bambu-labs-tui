@@ -112,23 +112,12 @@ func (m Model) configView() string {
 	if m.notificationTestStatus != "" {
 		lines = append(lines, m.notificationTestStatus)
 	}
-	status := ""
-	if m.saveConfig == nil {
-		if m.configRevision != 0 {
-			status = "Session only"
-		}
-	} else if m.configWrites.inFlight || m.configWrites.attempted != m.configRevision {
-		status = "Saving…"
-	} else if m.configStorageError != "" {
-		status = "Save failed · r retry"
-	}
-	if message := m.storageWarning(); message != "" {
+	if m.configStorageError != "" {
+		lines = append(lines, danger.Render("Save failed · r retry; settings apply this session."))
+	} else if message := m.storageWarning(); message != "" {
 		lines = append(lines, ansi.Truncate(warning.Render(message), max(1, m.width-2), "…"))
 	}
 	lines = append(lines, "")
-	if status != "" {
-		lines = append(lines, status)
-	}
 	lines = append(lines, "Global defaults; printer overrides still apply.", "Changes take effect immediately. macOS only.", "Test may request macOS notification permission.", "Saving normalizes TOML and removes comments.")
 	if m.configPath != "" {
 		lines = append(lines, "File: "+safe(m.configPath))

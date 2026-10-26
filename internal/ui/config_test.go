@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/config"
+	"github.com/muesli/termenv"
 )
 
 func TestConfigTogglesStartAndStopDeliveryImmediately(t *testing.T) {
@@ -72,8 +74,8 @@ func TestConfigSaveCoalescesAndBlocksQuit(t *testing.T) {
 	if len(saved) != 0 || !m.configWrites.inFlight {
 		t.Fatal("save ran in reducer or was not queued")
 	}
-	if !strings.Contains(ansi.Strip(m.View()), "Saving…") {
-		t.Fatal("pending save status missing")
+	if strings.Contains(ansi.Strip(m.View()), "Saving…") {
+		t.Fatal("pending saves should remain silent")
 	}
 	first := m.configRevision
 	m = key(m, "enter") // Newer value waits behind the first snapshot.
@@ -95,6 +97,9 @@ func TestConfigSaveCoalescesAndBlocksQuit(t *testing.T) {
 }
 
 func TestConfigSaveFailureIsVisibleAndExplicitlyRetried(t *testing.T) {
+	profile := lipgloss.ColorProfile()
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
 	m := demoModel()
 	writes := 0
 	m = m.WithConfigPersistence("synthetic.toml", func(config.AlertRules) error {
@@ -108,6 +113,9 @@ func TestConfigSaveFailureIsVisibleAndExplicitlyRetried(t *testing.T) {
 	m = persistenceKey(m, "enter")
 	if writes != 1 || !m.alertPrefs.DesktopNotifications || !strings.Contains(ansi.Strip(m.View()), "Save failed") || !m.HasUnsavedPersistence() {
 		t.Fatal("failed save did not preserve session setting and warning")
+	}
+	if !strings.Contains(m.View(), danger.Render("Save failed · r retry; settings apply this session.")) || !strings.Contains(m.View(), "38;2;255;128;135") {
+		t.Fatal("save failure should use the shared red failure style")
 	}
 	m = persistenceKey(m, "down")
 	if writes != 1 {
@@ -156,7 +164,7 @@ func TestConfigFooterUsesOnlyHelpWithStorageWarnings(t *testing.T) {
 			if !strings.Contains(rows[1], "Esc / ,") {
 				t.Fatal("header hides close keys")
 			}
-			if failed && !strings.Contains(strings.Join(rows[:len(rows)-1], "\n"), "Config save failed") {
+			if failed && !strings.Contains(strings.Join(rows[:len(rows)-1], "\n"), "Save failed") {
 				t.Fatal("body hides save failure")
 			}
 			if !strings.Contains(strings.Join(rows[:len(rows)-1], "\n"), "removes comments") {

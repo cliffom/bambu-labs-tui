@@ -52,7 +52,7 @@ low_filament_percent = 10
 
 The configuration contains no credentials. Each region uses a separate saved session. All printers discovered on the account appear in the dashboard.
 
-Press `,` in the dashboard to edit all supported settings. `Tab` / `Shift+Tab` switches General, Alerts, and Printers; arrows select rows. In General, use `Enter` or `←` / `→` to switch Cloud region. Region edits are saved for the next launch: **restart and log in for the selected region**. The current cloud connection, credential lookup, notice store, snoozes, and notification ledger keep their original region until exit.
+Press `,` in the dashboard to edit general settings and the nine boolean alert defaults/overrides. Quiet-hour schedules and burst windows use [TOML configuration](alerts.md#quiet-hours-and-burst-grouping). `Tab` / `Shift+Tab` switches General, Alerts, and Printers; arrows select rows. In General, use `Enter` or `←` / `→` to switch Cloud region. Region edits are saved for the next launch: **restart and log in for the selected region**. The current cloud connection, credential lookup, notice store, snoozes, and notification ledger keep their original region until exit.
 
 For Low filament threshold, use `←` / `→` to adjust by one percentage point, or `Enter` to type a whole number from 0 to 100. Typing replaces the initial value; `Ctrl+U` clears input, `Backspace` edits it, `Enter` validates/applies, and `Esc` cancels the input before closing Config. Invalid input stays visible with a red error and does not change settings. Threshold edits immediately re-evaluate reported remaining estimates; they do not establish physical fault resolution or create intervention alerts from unknown estimates.
 

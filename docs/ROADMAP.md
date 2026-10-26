@@ -25,11 +25,11 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 
 ## Notification activity
 
-[#20](https://github.com/cliffom/bambu-tui/issues/20) adds a read-only `N` activity view with the last 100 session decisions, per-printer incident subjects, outcome/reason details, repeat coalescing, and grouped-request membership. It distinguishes macOS acceptance from confirmed presentation and preserves diagnostics when storage fails after submission. Ownership and worker recovery are covered by v0.2.5 above; quiet hours remain a separate follow-up.
+[#20](https://github.com/cliffom/bambu-tui/issues/20) adds a read-only `N` activity view with the last 100 session decisions, per-printer incident subjects, outcome/reason details, repeat coalescing, and grouped-request membership. It distinguishes macOS acceptance from confirmed presentation and preserves diagnostics when storage fails after submission. Ownership and worker recovery are covered by v0.2.5 above; quiet scheduling and timed grouping are implemented below.
 
 ## v0.2.2 — complete configuration controls
 
-Config now exposes General, Alerts, and Printers sections: region/restart guidance, a validated live percentage threshold, all nine alert defaults, per-printer On/Off/Inherit/effective values, and confirmed reset. Edits merge into valid TOML asynchronously with private atomic writes and visible failures. This implements [#65](https://github.com/cliffom/bambu-tui/issues/65) and the notification controls in [#21](https://github.com/cliffom/bambu-tui/issues/21); notification activity and quiet hours remain separate work.
+Config now exposes General, Alerts, and Printers sections: region/restart guidance, a validated live percentage threshold, all nine alert defaults, per-printer On/Off/Inherit/effective values, and confirmed reset. Edits merge into valid TOML asynchronously with private atomic writes and visible failures. This implements [#65](https://github.com/cliffom/bambu-tui/issues/65) and the notification controls in [#21](https://github.com/cliffom/bambu-tui/issues/21); notification activity and quiet scheduling are described in their own sections.
 
 ## v0.2.1 — distribution polish
 
@@ -41,13 +41,12 @@ The v0.2.x notification scope is macOS desktop delivery only. Linux notification
 
 [Notification tracking issue #11](https://github.com/cliffom/bambu-tui/issues/11) covers opt-in intervention-required and telemetry-confirmed completion notifications with configurable sound. v0.2.0 connects the live-session worker to the branded helper, reuses verified classifications/reviews/snoozes, and persists incident/job identities to avoid duplicate attempts after reconnect or restart. Missing or ambiguous telemetry cannot establish resolution or completion. The identity foundation and explicit test workflow are tracked in [#18](https://github.com/cliffom/bambu-tui/issues/18) and [#19](https://github.com/cliffom/bambu-tui/issues/19).
 
-Config exposes all supported TOML settings through General, Alerts, and Printers, including per-printer inheritance/reset and Test Notification. The alert dialog shows effective settings and session activity. Co-reported intervention notices are grouped per printer; timed grouping across separate reports remains follow-up work.
+Config exposes the nine boolean alert defaults and general settings through General, Alerts, and Printers, including per-printer inheritance/reset and Test Notification. Quiet schedules and burst windows are configured in TOML. The alert dialog shows effective settings and session activity. Co-reported intervention notices group per printer by default. [#22](https://github.com/cliffom/bambu-tui/issues/22) adds opt-in timezone/weekday quiet hours, fixed burst windows across reports/printers/completions, and bounded automatic submission rates. Quiet occurrences are consumed without an exit summary or replay; notice reviews and modal policy stay independent.
 
 macOS release archives include the universal helper beside the CLI. Tag/manual release builds sign and notarize both programs; source builds and ordinary PR/main CI use ad-hoc candidates. Local and GitHub-hosted signing, Apple acceptance, and helper stapling have passed. Clean-Mac browser-download/first-run, Intel runtime, real-printer notification/job lifecycle, and broader environment validation remain open in the [validation record](development/validation.md). Successful submission or synthetic tests do not establish those outcomes.
 
 | Follow-up work | Issue |
 | --- | --- |
-| Add quiet hours and timed grouping across reports | [#22](https://github.com/cliffom/bambu-tui/issues/22) |
 | Complete clean-install, hardware, and unsupported-environment validation | [#23](https://github.com/cliffom/bambu-tui/issues/23) |
 
 Notifications apply only while the TUI session is running. Quitting ends monitoring and notification delivery; v0.2.x does not introduce a background service. Persisted occurrence/job identity still prevents duplicate delivery when the TUI restarts.

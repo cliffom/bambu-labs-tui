@@ -111,3 +111,36 @@ func TestEveryAlertFieldRoundTripsAndClonesIndependently(t *testing.T) {
 		}
 	}
 }
+
+func TestScheduleRoundTripAndExternalScheduleSurvivesUIEdit(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	before, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := before.Clone()
+	after.Alerts.QuietHours = QuietHours{Enabled: true, Timezone: "America/Los_Angeles", Start: "22:00", End: "07:00", Days: "mon,tue,wed,thu,fri"}
+	after.Alerts.BurstWindowSeconds = 3
+	if err := SaveChanges(path, before, after); err != nil {
+		t.Fatal(err)
+	}
+	// The UI baseline predates the external schedule edit.
+	edited := before.Clone()
+	edited.Alerts.NotificationSound = true
+	if err := SaveChanges(path, before, edited); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Alerts.QuietHours != after.Alerts.QuietHours || loaded.Alerts.BurstWindowSeconds != 3 || !loaded.Alerts.NotificationSound {
+		t.Fatal(loaded)
+	}
+	for _, seconds := range []int{-1, 61} {
+		loaded.Alerts.BurstWindowSeconds = seconds
+		if loaded.Validate() == nil {
+			t.Fatal("accepted invalid window", seconds)
+		}
+	}
+}

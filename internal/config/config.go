@@ -46,6 +46,12 @@ func (c Config) Validate() error {
 	if c.LowFilamentPercent < 0 || c.LowFilamentPercent > maxPercent {
 		return fmt.Errorf("low_filament_percent must be between 0 and 100")
 	}
+	if err := c.Alerts.QuietHours.Validate(); err != nil {
+		return err
+	}
+	if c.Alerts.BurstWindowSeconds < 0 || c.Alerts.BurstWindowSeconds > 60 {
+		return fmt.Errorf("burst_window_seconds must be between 0 and 60")
+	}
 	for id := range c.Alerts.Printers {
 		if strings.TrimSpace(id) == "" {
 			return fmt.Errorf("alert printer ID must not be empty")

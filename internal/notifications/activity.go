@@ -28,6 +28,7 @@ const (
 	ReasonDesktopOff    = "desktop_off"
 	ReasonCategoryOff   = "category_off"
 	ReasonCompletionOff = "completion_off"
+	ReasonQuiet         = "quiet_suppressed"
 	ReasonSnoozed       = "snoozed"
 	ReasonClosing       = "session_closing"
 	ReasonUnavailable   = "telemetry_unavailable"
@@ -59,6 +60,8 @@ type Activity struct {
 // telemetry, credentials, or protocol job identifiers.
 func ReasonText(reason string) string {
 	switch reason {
+	case ReasonQuiet:
+		return "Quiet hours: desktop banner and sound suppressed permanently for this occurrence; no replay or summary."
 	case ReasonOwner:
 		return "This TUI owns automatic delivery for this account and region."
 	case ReasonStandby:
@@ -82,7 +85,7 @@ func ReasonText(reason string) string {
 	case ReasonUnavailable:
 		return "Printer telemetry is unavailable or stale; no current delivery."
 	case ReasonChanged:
-		return "The reported condition or job changed before delivery."
+		return "The reported condition, job, or delivery policy changed before delivery."
 	case ReasonAccepted:
 		return "macOS accepted the request; banner and sound are unconfirmed."
 	case ReasonCanceled:
@@ -237,6 +240,8 @@ func (w *Worker) recordGroup(group []notification_state.Candidate, source Input,
 	}
 }
 
+// Quiet consumption is reported only after its ledger result is saved. This
+// policy-only explanation cannot establish that an occurrence was consumed.
 func suppressionReason(candidate notification_state.Candidate, current Input) string {
 	if !current.Active {
 		return ReasonClosing

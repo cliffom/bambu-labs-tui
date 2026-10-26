@@ -14,6 +14,18 @@ extrusion = true
 printer_faults = true
 failed_prints = true
 unknown_pauses = true
+# Optional farm-wide grouping across reports, printers, and completions (0 disables).
+burst_window_seconds = 0 # 0..60; automatic attempts always limited to 12/minute
+
+# Optional quiet schedule: desktop banners and sound only, no urgent bypass.
+# No exit summary or replay; modals, monitoring, and reviews are independent.
+# Days identify the START day of an overnight period. Restart after file edits.
+[alerts.quiet_hours]
+enabled = false
+timezone = "America/Los_Angeles" # explicit IANA timezone, never host Local
+start = "22:00" # inclusive local wall time
+end = "07:00" # exclusive; must differ from start
+days = "mon,tue,wed,thu,fri,sat,sun"
 
 # Optional per-printer overrides inherit every unspecified global value.
 # Use Config (,) > Printers for On / Off / Inherit and reset controls.

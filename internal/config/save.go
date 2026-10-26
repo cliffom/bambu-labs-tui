@@ -30,6 +30,12 @@ func SaveChanges(path string, before, after Config) error {
 			cfg.Alerts.Set(field, after.Alerts.Value(field))
 		}
 	}
+	if before.Alerts.QuietHours != after.Alerts.QuietHours {
+		cfg.Alerts.QuietHours = after.Alerts.QuietHours
+	}
+	if before.Alerts.BurstWindowSeconds != after.Alerts.BurstWindowSeconds {
+		cfg.Alerts.BurstWindowSeconds = after.Alerts.BurstWindowSeconds
+	}
 	ids := map[string]bool{}
 	for id := range before.Alerts.Printers {
 		ids[id] = true

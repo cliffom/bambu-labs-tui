@@ -13,6 +13,8 @@ const (
 
 func attemptReason(attempt Attempt) string {
 	switch attempt {
+	case QuietSuppressed:
+		return string(QuietSuppressed)
 	case Accepted:
 		return SuppressedAccepted
 	case Failed:

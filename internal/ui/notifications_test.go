@@ -184,3 +184,24 @@ func TestTelemetryAndSnoozeRemainResponsiveDuringNativeDelivery(t *testing.T) {
 		t.Fatal("snooze did not cancel in-flight delivery")
 	}
 }
+
+func TestNotificationScheduleIndependentOfModalsAndNotices(t *testing.T) {
+	m, client, key := notificationModel(t)
+	m.alertPrefs.QuietHours = config.QuietHours{Enabled: true, Timezone: "UTC", Start: "00:00", End: "23:59", Days: "sun,mon,tue,wed,thu,fri,sat"}
+	m.alertPrefs.BurstWindowSeconds = 3
+	m.now = time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
+	m.syncNotifications()
+	input := client.inputs[len(client.inputs)-1]
+	if !input.Quiet || input.BurstWindow != 3*time.Second {
+		t.Fatal(input)
+	}
+	if !m.alertPrefs.RulesFor("TEST").AutomaticModals || m.Farm.Printers["TEST"] == nil {
+		t.Fatal("quiet hours changed monitoring/modal policy")
+	}
+	for _, item := range m.Farm.Attention() {
+		if item.Key == key {
+			return
+		}
+	}
+	t.Fatal("quiet hours removed visible notice")
+}

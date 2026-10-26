@@ -32,7 +32,9 @@ type (
 	// AlertPreferences contains non-secret global defaults and stable printer-ID overrides.
 	AlertPreferences struct {
 		AlertRules
-		Printers map[string]AlertOverride `toml:"printers"`
+		QuietHours         QuietHours               `toml:"quiet_hours"`
+		BurstWindowSeconds int                      `toml:"burst_window_seconds"`
+		Printers           map[string]AlertOverride `toml:"printers"`
 	}
 )
 

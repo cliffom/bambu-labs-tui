@@ -37,6 +37,7 @@ const (
 	keyFault              = "f"
 	keyFilament           = "m"
 	keyAlerts             = "s"
+	keyConfig             = ","
 	keyAcknowledge        = "a"
 	keyClear              = "c"
 	keyClearHistory       = "C"

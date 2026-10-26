@@ -52,7 +52,7 @@ func (m *Model) persist() tea.Cmd {
 		save := m.saveSnoozes
 		snoozes = m.snoozeWrites.start(m.snoozeRevision, func() error { return save(snapshot) }, true)
 	}
-	return tea.Batch(reviews, snoozes)
+	return tea.Batch(reviews, snoozes, m.persistConfig())
 }
 
 func (m *Model) persistenceResult(msg persistenceResultMsg) {
@@ -76,7 +76,7 @@ func (m *Model) persistenceResult(msg persistenceResultMsg) {
 }
 
 func (m Model) persistencePending() bool {
-	return m.reviewWrites.inFlight || m.snoozeWrites.inFlight || (m.notificationClient != nil && m.notificationClient.Status().Pending)
+	return m.configWrites.inFlight || m.reviewWrites.inFlight || m.snoozeWrites.inFlight || (m.notificationClient != nil && m.notificationClient.Status().Pending)
 }
 
 // beginShutdown bounds the wait without pretending a synchronous filesystem
@@ -93,6 +93,7 @@ func (m *Model) beginShutdown() tea.Cmd {
 // HasUnsavedPersistence lets the caller report interrupted/forced shutdowns after
 // the terminal is restored. Session-only stores have no outstanding disk writes.
 func (m Model) HasUnsavedPersistence() bool {
-	return (m.saveReviews != nil && m.reviewWrites.saved != m.Farm.ReviewRevision()) ||
+	return (m.saveConfig != nil && m.configWrites.saved != m.configRevision) ||
+		(m.saveReviews != nil && m.reviewWrites.saved != m.Farm.ReviewRevision()) ||
 		(m.saveSnoozes != nil && (m.snoozesDirty || m.snoozeWrites.saved != m.snoozeRevision))
 }

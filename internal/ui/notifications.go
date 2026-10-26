@@ -13,15 +13,27 @@ type notificationClient interface {
 func (m Model) WithNotifications(client notificationClient, setupErr error) Model {
 	m.notificationClient = client
 	if setupErr != nil {
-		m.notificationError = "Desktop notifications unavailable; requires local macOS and writable identity storage"
+		m.notificationSetupError = "Desktop notifications unavailable; requires local macOS and writable identity storage"
+		if m.alertPrefs.DesktopEnabled() {
+			m.notificationError = m.notificationSetupError
+		}
 	}
 	return m
 }
 
 func (m *Model) syncNotifications() {
+	enabled := m.alertPrefs.DesktopEnabled()
 	if m.notificationClient == nil {
+		m.notificationError = ""
+		if enabled {
+			m.notificationError = m.notificationSetupError
+		}
 		return
 	}
+	if !enabled && !m.notificationStarted {
+		return
+	}
+	m.notificationStarted = true
 	snapshot := m.Farm.NotificationSnapshot(m.now)
 	policies := map[string]notifications.Policy{}
 	allowed := map[string]bool{}

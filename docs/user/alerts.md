@@ -4,6 +4,16 @@
 
 Bambu TUI separates **what the printer reports** from **when automatic modals or opt-in desktop notifications interrupt you**. Preferences and snoozes change only interruptions. Printer state, faults, notice counts, and event history remain visible. No printer controls are sent.
 
+## Change notifications in the TUI
+
+Press `,` from any dashboard panel to open **Config / Notifications**. Use `↑` / `↓` (or `j` / `k`) to select Desktop notifications, Notification sound, or Completed prints, then `Space` / `Enter` to toggle. Changes take effect immediately and save in the background. `,` / `Esc` closes the modal; close it before quitting.
+
+These are global defaults. Existing per-printer overrides still win, including an explicit desktop `true` when the global default is off. Use `s` to check the selected printer's effective settings. Edit TOML and restart for per-printer overrides, modal preferences, or category switches.
+
+The modal shows the active file: the path passed with `--config`, or the default OS configuration path. A missing file is created, including when using demo mode. Saving reloads the file to retain unrelated settings and printer overrides, then writes a private atomic TOML replacement; formatting is normalized and comments are removed. Avoid editing the file in another process during a save. Invalid or unknown configuration keys cause a save failure without replacing the file.
+
+Saving / Saved / Save failed states remain distinct. A failed save leaves the new settings active for this session and displays a persistent warning. Press `r` in Config to retry; navigation and ticks do not retry writes. Normal quit waits for pending settings saves and requires an explicit exit choice after failure or timeout. The modal does not request macOS permission; run `bambu-tui doctor --notify` first.
+
 ## Configure automatic alerts
 
 Add these settings to the file printed by `bambu-tui --config-path`, or your custom `--config` file. Restart the TUI after editing. Existing configurations retain these defaults:
@@ -88,7 +98,7 @@ Write failures produce a persistent warning and the current session continues wi
 
 ## Live desktop notifications
 
-On a local macOS desktop, first run `bambu-tui doctor --notify` to allow notifications and verify the helper. Then set `desktop_notifications = true` under `[alerts]` (or a printer override) and restart. Set `notification_sound = true` to request sound, and `completed_prints = false` to disable completion alerts. Defaults preserve existing behavior: desktop delivery and sound are off. No notification permissions are requested automatically while monitoring.
+On a local macOS desktop, first run `bambu-tui doctor --notify` to allow notifications and verify the helper. Then open Config with `,` and enable Desktop notifications. Toggle Notification sound or Completed prints there as needed, or edit `[alerts]` / a printer override in TOML and restart. Defaults preserve existing behavior: desktop delivery and sound are off. No notification permissions are requested automatically while monitoring.
 
 The live TUI sends intervention-required and telemetry-confirmed completion notifications through the branded helper while its session runs. Acknowledged/dismissed incidents, disabled categories, and snoozed printers are suppressed. A pending unreviewed incident or still-finished job may become eligible after snooze expiry. Fresh, connected telemetry is required; missing or stale data cannot establish resolution or completion. Job names, ETA, and 100% progress are not completion evidence. Missing/zero or reused job identities can conservatively suppress completion. Eligible intervention notices co-reported for the same printer are included in one desktop notification, with a notice count when several are included. Their review and deduplication identities remain separate. Other printers and completion notifications stay separate; timed grouping across separate reports is not implemented yet.
 

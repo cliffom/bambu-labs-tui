@@ -52,6 +52,8 @@ low_filament_percent = 10
 
 The configuration contains no credentials. Each region uses a separate saved session. All printers discovered on the account appear in the dashboard.
 
+Press `,` in the dashboard to change and save global notification settings immediately. See [notification controls](alerts.md#change-notifications-in-the-tui) for file saving, printer overrides, and failure recovery.
+
 ## Keyboard and navigation
 
 | Key | Action |
@@ -66,6 +68,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `F` / `S` | Cycle the printer filter / sort without changing panel focus |
 | `m` | Open the selected printer's AMS/filament browser |
 | `s` | View effective printer alert settings and snooze/resume controls |
+| `,` | Configure and save global desktop notification, sound, and completion settings |
 | `n` | Manage local notice decisions, including dismissals |
 | `!` | Reopen unreviewed action-needed alerts |
 | `a` | Toggle local acknowledgement of the selected active notice |

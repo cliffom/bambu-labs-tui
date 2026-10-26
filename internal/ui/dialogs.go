@@ -31,6 +31,7 @@ const (
 	dialogFilament
 	dialogDecisions
 	dialogAlerts
+	dialogConfig
 	dialogExport
 	dialogShutdown
 )
@@ -55,6 +56,8 @@ func routeFor(kind dialogKind) dialogRoute {
 		return dialogRoute{key: (*Model).decisionsKey, view: Model.decisionsView, sync: (*Model).syncDecisions, clear: func(m *Model) { m.decisions = nil }}
 	case dialogAlerts:
 		return dialogRoute{key: (*Model).alertKey, view: Model.alertView, sync: (*Model).syncAlertDialog, clear: func(m *Model) { m.alertDialog = nil }}
+	case dialogConfig:
+		return dialogRoute{key: (*Model).configKey, view: Model.configView}
 	case dialogExport:
 		return dialogRoute{key: (*Model).exportKey, view: Model.exportView, sync: (*Model).syncExport, clear: func(m *Model) { m.exportDialog = nil }}
 	case dialogShutdown:
@@ -164,7 +167,7 @@ func (m *Model) shutdownKey(key string, _ tea.Msg) tea.Cmd {
 
 func (m Model) shutdownView() string {
 	if m.quitting {
-		return fit("Saving notices/snoozes and stopping notifications (up to 5 seconds).\nEsc cancels quitting; saves continue in the background.", m.width, m.height)
+		return fit("Saving settings/notices/snoozes and stopping notifications (up to 5 seconds).\nEsc cancels quitting; saves continue in the background.", m.width, m.height)
 	}
 	return fit("Storage failed or did not finish within 5 seconds; changes may be lost.\nPress q / Ctrl+C to exit anyway, or Esc to keep using the app.\n"+m.storageWarning(), m.width, m.height)
 }

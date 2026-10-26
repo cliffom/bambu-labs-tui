@@ -6,6 +6,14 @@ This is the ongoing record of observed hardware behavior and remaining operation
 
 ## Unreleased — Synthetic macOS notification probe
 
+### Config modal and immediate notification preferences
+
+On 2026-10-25 (PDT), development version 0.1.15 plus Config changes on base commit `0031e6f78db7` was checked on the same macOS 27.0.1 arm64 host, using Go 1.27.3 and actual synthetic demo PTYs. No account, printer, or firmware was involved. Plain terminal captures were inspected at 120×32 (initial Off, toggled On/Saved, and session activity), 60×18 (selected/unselected toggles, Off/On, Saved, and an injected save failure), and 59×17 (resize fallback). Returning to 60×18 preserved selection and settings; Enter while undersized did not toggle. Both processes exited normally, including the explicit exit choice after save failure. Color appearance and empty/disconnected farm layouts were not separately inspected in this run.
+
+The demo began with desktop delivery off, enabled it through Config, disabled/re-enabled it, and showed one accepted intervention submission with zero failures after the synthetic runout. This establishes startup-off/live-enable integration and macOS acceptance, not visible banner/audio presentation or hardware behavior. The active synthetic config file contained the saved global values and retained automatic_modals=false. A separate 60×18 process replaced its config path with a directory after startup; toggling then showed Save failed / r retry and a persistent footer warning while retaining the session value.
+
+Regression tests cover immediate delivery policies, initial opt-out without ledger observation, sound/completion navigation, override precedence, dialog ownership/deferred attention, size bounds/hidden toggles, asynchronous immutable snapshots, serialization/coalescing, failed-save retry, and pending/failed-save quit handling. Config store tests cover missing files/private permissions, preservation of unrelated values and override inheritance, and refusal to overwrite malformed/unknown-key files. `make fmt-check lint test check build docs-check` passed; lint used the pinned v2.15.0 through go run. Slow-save display duration, automatic completion/audio after an interactive toggle, real-printer behavior, and separate color review remain unverified. Saving normalizes TOML formatting and removes comments as disclosed in the modal/user guide.
+
 ### Printer-name titles and preview diagnosis
 
 The user requested the triggering printer name in notification text. Live requests now carry the printer name as a bounded plain-text title, prefixed Demo in synthetic sessions; the name remains in the body. Worker regressions cover intervention/completion/demo titles and text bounds, and the universal helper built successfully. A silent synthetic `Demo: X2D · Studio` request was accepted; native validation rejected empty, oversized, and wrong-type titles.

@@ -168,7 +168,7 @@ func (m *Model) syncAlertDialog() {
 		field("Desktop", label(rules.DesktopNotifications)), field("Sound", label(rules.NotificationSound)), field("Completion", label(rules.CompletedPrints)),
 		field("Auto Modals", label(rules.AutomaticModals)), field("Filament", label(rules.Filament)), field("Extrusion", label(rules.Extrusion)),
 		field("Printer Faults", label(rules.PrinterFaults)), field("Failed Prints", label(rules.FailedPrints)), field("Unknown Pauses", label(rules.UnknownPauses)), "",
-		"Edit [alerts] / [alerts.printers.\"PRINTER_ID\"] in config.toml and restart to change these defaults.",
+		", opens global notification settings from the dashboard. Edit TOML and restart for printer overrides and alert categories.",
 		"1: snooze 15 minutes · 2: 1 hour · 3: 4 hours", "u: end snooze and re-arm eligible alerts", "Snoozing keeps all printer state and notices visible.",
 		"Expiry re-arms eligible unreviewed alerts, including new faults during the snooze.", "!: manually inspect alerts from the dashboard, even while muted or snoozed.", "Desktop delivery is macOS-only and requires this TUI session. Sound follows notification_sound.",
 	}
@@ -189,10 +189,13 @@ func (m Model) alertView() string {
 
 // storageWarning keeps storage and desktop delivery failures visible in every view.
 func (m Model) storageWarning() string {
-	if m.noticeStorageError != "" && m.alertStorageError != "" && m.notificationError == "" {
+	if m.noticeStorageError != "" && m.alertStorageError != "" && m.notificationError == "" && m.configStorageError == "" {
 		return "Notice and snooze storage unavailable; changes may not persist"
 	}
 	var warnings []string
+	if m.configStorageError != "" {
+		warnings = append(warnings, m.configStorageError)
+	}
 	if m.noticeStorageError != "" {
 		warnings = append(warnings, m.noticeStorageError)
 	}

@@ -121,7 +121,7 @@ func run(args []string) error {
 		return nil
 	}
 	if *demo {
-		return dashboard(ctx, cfg, nil, cloud.Session{}, true)
+		return dashboard(ctx, *configPath, cfg, nil, cloud.Session{}, true)
 	}
 	if command == commandLogin {
 		session, err := authenticate(ctx, api, *token, *code)
@@ -137,13 +137,13 @@ func run(args []string) error {
 			}
 			fmt.Fprintln(os.Stderr, "OS credential store unavailable. Opening a session-only dashboard; the token will not be saved.")
 		}
-		return dashboard(ctx, cfg, api, session, false)
+		return dashboard(ctx, *configPath, cfg, api, session, false)
 	}
 	session, err := store.Load()
 	if err != nil {
 		return fmt.Errorf("%w; run bambu-tui login (or bambu-tui --demo)", err)
 	}
-	return dashboard(ctx, cfg, api, session, false)
+	return dashboard(ctx, *configPath, cfg, api, session, false)
 }
 
 func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode bool) (cloud.Session, error) {
@@ -216,7 +216,7 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 	return api.Session(ctx, token)
 }
 
-func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, session cloud.Session, demo bool) error {
+func dashboard(ctx context.Context, configPath string, cfg config.Config, api *cloud.Client, session cloud.Session, demo bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	events := make(chan monitor.Event, eventBufferSize)
@@ -231,7 +231,9 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 		}
 	}()
 	state := farm.New(cfg.LowFilamentPercent)
-	model := ui.New(state, events, refresh, demo).WithAlertPreferences(cfg.Alerts)
+	model := ui.New(state, events, refresh, demo).WithAlertPreferences(cfg.Alerts).WithConfigPersistence(configPath, func(rules config.AlertRules) error {
+		return config.SaveNotificationDefaults(configPath, rules)
+	})
 	if !demo {
 		notices, loadErr := noticestore.New(cfg.Region, session.Username)
 		var reviews map[string]farm.Review
@@ -253,7 +255,7 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 		}
 		model = model.WithSnoozePersistence(snoozes, snoozeStore.Save, snoozeErr)
 	}
-	if cfg.Alerts.DesktopEnabled() {
+	{ // Prepare the client; the UI starts ledger observation only after opt-in.
 		var worker *notifications.Worker
 		var ledger notificationstate.Store
 		setupErr := notifications.Available()
@@ -296,7 +298,7 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 	// a quit message after cancellation has stopped Bubble Tea's event loop.
 	result, err := runTerminalProgram(ctx, model, tea.WithAltScreen())
 	if final, ok := result.(ui.Model); ok && final.HasUnsavedPersistence() {
-		fmt.Fprintln(os.Stderr, "Notice or snooze changes were not confirmed saved before exit; changes may be lost.")
+		fmt.Fprintln(os.Stderr, "Config, notice, or snooze changes were not confirmed saved before exit; changes may be lost.")
 	}
 	return finishDashboard(ctx, cancel, done, err)
 }

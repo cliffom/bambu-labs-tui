@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add a separate Config modal (`,`) for immediate global desktop notification, sound, and completion toggles, with asynchronous saving to the active config file, explicit save-failure retry, and shutdown protection. Preserve printer overrides.
+
 - Show the triggering printer name in desktop notification titles, with an explicit Demo prefix for synthetic sessions. Keep the name in the body and bound/sanitize both text fields.
 
 - Group co-reported intervention notices per printer into one desktop notification so HMS, print-error, and paused-state banners do not immediately crowd one another out. Reserve all included identities atomically; keep reviews, other printers, and completion notifications separate.

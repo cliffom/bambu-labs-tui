@@ -4,6 +4,10 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## v0.2.2 release preparation
+
+On 2026-10-26 (PDT), VERSION and the direct-build fallback were updated to 0.2.2 and the changelog finalized for complete Config controls. Local macOS arm64/Go 1.27.3 passed documentation/formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, all race tests (including the Config CLI PTY test), vet, and default `make release` for all four targets. Archive inventory, installation README, helper architecture/signature checks, and checksums passed. The tagged workflow will build and verify final Developer ID-signed/notarized assets. The preceding UI inspection evidence and its hardware/real-account limitations remain unchanged.
+
 ## Unreleased — complete Config controls (v0.2.2 scope)
 
 On 2026-10-26 (PDT), macOS 27.0 arm64 with Go 1.27.3 passed documentation/formatting checks, pinned Go lint, all race tests, vet, native build, vulnerability scanning, and default `make release` for all four targets. Archive inventory, installation guide, helper architectures/signatures, and checksum validation passed. VERSION remains 0.2.1 until release preparation; these checks validate the new configuration code, not a published v0.2.2 release. Signing/notarization was not repeated for this UI change.

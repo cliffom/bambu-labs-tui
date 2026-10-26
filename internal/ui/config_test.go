@@ -63,11 +63,17 @@ func TestConfigSaveCoalescesAndBlocksQuit(t *testing.T) {
 	var saved []config.AlertRules
 	m = m.WithConfigPersistence("synthetic.toml", func(rules config.AlertRules) error { saved = append(saved, rules); return nil })
 	m = key(m, ",")
+	if strings.Contains(ansi.Strip(m.View()), "Saved") {
+		t.Fatal("idle Config should not show Saved")
+	}
 	// Dispatch explicitly: persistence must not call the writer in the reducer.
 	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(Model)
 	if len(saved) != 0 || !m.configWrites.inFlight {
 		t.Fatal("save ran in reducer or was not queued")
+	}
+	if !strings.Contains(ansi.Strip(m.View()), "Saving…") {
+		t.Fatal("pending save status missing")
 	}
 	first := m.configRevision
 	m = key(m, "enter") // Newer value waits behind the first snapshot.
@@ -80,6 +86,9 @@ func TestConfigSaveCoalescesAndBlocksQuit(t *testing.T) {
 		t.Fatal("quit skipped pending config")
 	}
 	m = completePersistence(m, cmd)
+	if view := ansi.Strip(m.configView()); strings.Contains(view, "Saved") || strings.Contains(view, "Saving…") {
+		t.Fatal("successful save should clear status")
+	}
 	if len(saved) != 2 || !saved[0].DesktopNotifications || saved[1].DesktopNotifications || m.HasUnsavedPersistence() {
 		t.Fatal("latest config did not follow immutable first snapshot")
 	}

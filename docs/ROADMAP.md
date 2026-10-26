@@ -31,6 +31,7 @@ macOS release archives include the universal helper beside the CLI. Tag/manual r
 
 | Follow-up work | Issue |
 | --- | --- |
+| Expose cross-session notification ownership | [#18](https://github.com/cliffom/bambu-tui/issues/18) |
 | Extend delivery activity and suppression history | [#20](https://github.com/cliffom/bambu-tui/issues/20) |
 | Extend per-printer notification controls in the TUI | [#21](https://github.com/cliffom/bambu-tui/issues/21) |
 | Expose all configuration options in Config | [#65](https://github.com/cliffom/bambu-tui/issues/65) |

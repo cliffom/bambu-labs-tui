@@ -122,6 +122,17 @@ func (w *Worker) acquireOwner(input frame) bool {
 		return false
 	}
 	w.mu.Lock()
+	// Only a token read and rotated under the acquired lease establishes
+	// continuity. An intervening owner need not have caused visible contention.
+	if continuousObserver && !owner.Continues(w.previousOwner) {
+		w.observationGap = true
+		if input.sequence != w.latest.sequence {
+			w.mu.Unlock()
+			_ = owner.Close()
+			return false
+		}
+	}
+	w.previousOwner = owner
 	w.owner = owner
 	w.observationGap = false
 	role, reason := OwnershipOwner, ReasonOwner

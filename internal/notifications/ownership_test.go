@@ -425,8 +425,8 @@ func TestOptOutDrainsQueuedClearAndRecurrenceBeforeReleasingOwner(t *testing.T) 
 }
 
 func TestMutedObserverPreservesUncontendedQueuedRecurrence(t *testing.T) {
-	for _, competing := range []bool{false, true} {
-		t.Run(fmt.Sprint("competing=", competing), func(t *testing.T) {
+	for _, competing := range []string{"none", "busy", "unseen"} {
+		t.Run(competing, func(t *testing.T) {
 			ledger := testLedger(t)
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
@@ -449,17 +449,8 @@ func TestMutedObserverPreservesUncontendedQueuedRecurrence(t *testing.T) {
 			muted.Policies["TEST"] = policy
 			worker.Submit(muted)
 			processNext()
-			owner, err := ledger.AcquireOwner()
-			if err != nil {
-				t.Fatal("muted observer retained ownership", err)
-			}
-			defer func(held *notification_state.Owner) { _ = held.Close() }(owner)
-			if competing {
-				// Observing contention breaks continuity: subsequent takeover must use
-				// fresh state rather than applying old clears over another owner's work.
-				worker.process(worker.latest)
-			} else {
-				_ = owner.Close()
+			if worker.owner != nil {
+				t.Fatal("muted observer retained ownership")
 			}
 			clear := incidentFrame()
 			clear.ObserveOnly = true
@@ -468,13 +459,25 @@ func TestMutedObserverPreservesUncontendedQueuedRecurrence(t *testing.T) {
 			clear.Snapshot["TEST"] = printer
 			worker.Submit(clear)
 			worker.Submit(muted)
-			_ = owner.Close()
+			if competing != "none" {
+				other := NewWorker(context.Background(), sameLedger(t, ledger), func(context.Context, Message) error { return nil })
+				activeClear := clear
+				activeClear.ObserveOnly = false
+				other.Submit(activeClear)
+				awaitWorkerStatus(t, other, func(s Status) bool { return s.Ownership == OwnershipOwner && !s.Pending })
+				other.Submit(incidentFrame())
+				awaitWorkerStatus(t, other, func(s Status) bool { return s.Accepted == 1 && !s.Pending })
+				if competing == "busy" {
+					worker.process(worker.latest)
+				}
+				stopWorker(t, other)
+			}
 			processNext()
 			processNext()
 			if calls != 1 {
 				t.Fatal("muted observer delivered", calls)
 			}
-			owner, err = ledger.AcquireOwner()
+			owner, err := ledger.AcquireOwner()
 			if err != nil {
 				t.Fatal("observer retained ownership after draining", err)
 			}
@@ -482,7 +485,7 @@ func TestMutedObserverPreservesUncontendedQueuedRecurrence(t *testing.T) {
 			worker.Submit(incidentFrame())
 			processNext()
 			expected := 2
-			if competing {
+			if competing != "none" {
 				expected = 1
 			}
 			if calls != expected {

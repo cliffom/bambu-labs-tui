@@ -1,8 +1,10 @@
 package notification_state
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -35,8 +37,8 @@ func TestOwnerIsExclusivePrivateAndScopedToLedger(t *testing.T) {
 		t.Fatal("owner acquisition blocked")
 	}
 	info, err := os.Stat(store.Path + ".owner.lock")
-	if err != nil || info.Mode().Perm() != 0o600 || info.Size() != 0 {
-		t.Fatal("owner file is not empty/private", err)
+	if err != nil || info.Mode().Perm() != 0o600 || info.Size() != nonceBytes {
+		t.Fatal("owner token is not bounded/private", err)
 	}
 	directory, err := os.Stat(filepath.Dir(store.Path))
 	if err != nil || directory.Mode().Perm() != 0o700 {
@@ -166,5 +168,55 @@ func TestOwnershipHelperProcess(t *testing.T) {
 	_ = ready.Close()
 	if _, err := io.Copy(io.Discard, os.Stdin); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestOwnerContinuityDetectsInterveningAcquisition(t *testing.T) {
+	store := Store{Path: filepath.Join(t.TempDir(), "state.json")}
+	first, err := store.AcquireOwner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = first.Close()
+	next, err := store.AcquireOwner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !next.Continues(first) || next.Continues(nil) {
+		t.Fatal("uninterrupted reacquisition not identified")
+	}
+	_ = next.Close()
+	intervening, err := store.AcquireOwner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = intervening.Close()
+	last, err := store.AcquireOwner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = last.Close() }()
+	if last.Continues(next) || !last.Continues(intervening) {
+		t.Fatal("unseen handoff did not break continuity")
+	}
+}
+
+func TestOwnerRejectsMalformedContinuityTokenWithoutOverwriting(t *testing.T) {
+	for _, size := range []int{1, nonceBytes - 1, nonceBytes + 1, 1024} {
+		t.Run(fmt.Sprint(size), func(t *testing.T) {
+			store := Store{Path: filepath.Join(t.TempDir(), "state.json")}
+			original := bytes.Repeat([]byte{'x'}, size)
+			if err := os.WriteFile(store.Path+".owner.lock", original, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if owner, err := store.AcquireOwner(); err == nil {
+				_ = owner.Close()
+				t.Fatal("malformed token allowed ownership")
+			}
+			after, err := os.ReadFile(store.Path + ".owner.lock")
+			if err != nil || !bytes.Equal(original, after) {
+				t.Fatal("malformed token overwritten", err)
+			}
+		})
 	}
 }

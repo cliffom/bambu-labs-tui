@@ -71,6 +71,7 @@ type (
 		activitySeen      map[string]string
 		activitySeenOrder []string
 		owner             *notification_state.Owner
+		previousOwner     *notification_state.Owner
 		observationGap    bool
 		forceFrame        bool
 		awaitFresh        bool

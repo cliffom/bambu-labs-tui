@@ -391,7 +391,7 @@ func TestPTYNavigationResizeAndNormalQuit(t *testing.T) {
 	mark = child.resize(t, 120, 40)
 	child.expect(t, mark, "Unit 3 / 4")
 	mark = child.send(t, "\x1b")
-	child.expect(t, mark, "01  PRINTERS")
+	child.expect(t, mark, "› PRINTERS")
 	child.send(t, "q")
 	child.exited(t, 0)
 }
@@ -419,11 +419,11 @@ func TestPTYClearAllNoticesRemainsResponsive(t *testing.T) {
 	mark = child.send(t, "?")
 	child.expect(t, mark, "KEYBOARD")
 	mark = child.send(t, "\x1b")
-	child.expect(t, mark, "01  PRINTERS")
+	child.expect(t, mark, "› PRINTERS")
 	mark = child.send(t, "m")
 	child.expect(t, mark, "AMS / FILAMENT")
 	mark = child.send(t, "\x1b")
-	child.expect(t, mark, "01  PRINTERS")
+	child.expect(t, mark, "› PRINTERS")
 	child.send(t, "q")
 	child.exited(t, 0)
 }

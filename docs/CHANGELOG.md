@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.3 — Notification activity
 
 - Add a keyboard-accessible Notification activity view (`N`) with the last 100 session decisions, stable selection, incident/channel/outcome/reason details, repeat coalescing, and grouped-request membership. Explain reviews, preferences, snoozes, prior attempts, completion baselines, native failures, and storage pauses. Keep macOS acceptance separate from confirmed presentation and preserve accepted outcomes when saving their result fails. Activity is memory-only and does not change delivery identities or retry policy.
 

@@ -4,6 +4,10 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## v0.2.3 release preparation
+
+On 2026-10-26 (PDT), VERSION and the direct-build fallback were updated to 0.2.3 and the changelog finalized for Notification activity. Local macOS arm64/Go 1.27.3 passed documentation/formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, all race tests, vet, and default `make release` for all four targets. Archive inventory, installation README, helper architecture/signature checks, and checksums passed. The tagged workflow will build and verify the final Developer ID-signed/notarized assets. The preceding activity layout/interaction evidence and deferred hardware/real-account limitations remain unchanged.
+
 ## Unreleased — notification activity (#20)
 
 On 2026-10-26 (PDT), macOS 27.0 arm64/Go 1.27.3 passed `make docs-check fmt-check lint test check build` with the pinned Go linter, vulnerability scanning, and `git diff --check`. VERSION remains 0.2.2 until release preparation. New tests cover reviewed/non-actionable conditions, baselines/missing job identity, persisted accepted/failed/reserved attempts, preference/category/snooze suppression, grouping, native failure/timeout classification, storage failures before/after submission, bounded retention/coalescing, immutable status snapshots, restart-empty history, and backend-data privacy. The persistent ledger schema and reservation rules are unchanged.

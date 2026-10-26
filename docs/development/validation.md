@@ -4,6 +4,14 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## v0.2.6 — quiet hours and burst grouping (#22)
+
+On 2026-10-26 (PDT), local macOS arm64/Go 1.27.3 passed documentation/formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, all race tests (including UI/PTY), vet, and default `make release` for all four targets. Local ad-hoc candidates passed archive inventories, installation README checks, universal helper architecture/signature checks, and checksum generation. VERSION and the direct-build fallback are 0.2.6. The tag workflow builds final signed/notarized assets separately.
+
+Controllable-clock synthetic tests cover weekday/overnight and DST boundaries, quiet-hours exit/restart/recurrence, quiet completions, queued quiet frames crossing exit, grouping across reports/printers/completions, changed eligibility, rolling rate boundaries, and fresh-snapshot polling. Overlapping snooze/category/desktop/completion exclusions retain their own activity reasons and pending identities, and can deliver after the exclusions end. Configuration round-trip/merge and reducer/modal independence tests passed. ANSI-stripped synthetic quiet-suppression activity views were inspected at 60×18 and 120×32; the explanation fits at both sizes. Existing 59×17 hidden-input/resize guards passed. No new interactive color/demo inspection was performed.
+
+Live macOS banner/audio presentation, real-printer events, live timezone transitions, clean-Mac installation, and Intel runtime were not validated. Quiet suppression adds a saved attempt value older readers reject safely; do not delete the ledger to downgrade. The per-owner session rate window resets on restart/takeover while durable occurrence deduplication remains. Existing hardware and clean-machine limitations remain open.
+
 ## v0.2.5 — notification ownership and recovery (#18)
 
 On 2026-10-26 (PDT), local macOS arm64/Go 1.27.3 passed `make docs-check fmt-check lint test check build` with the pinned Go linter, vulnerability scanning, and `git diff --check`. Default `make release` produced all four local v0.2.5 candidates and passed archive inventory, installation README, and helper architecture/signature checks. VERSION and the direct-build fallback are 0.2.5; no tag or release was created during this preparation.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6 — Quiet hours and burst grouping
+
+- Add opt-in quiet hours configured in TOML with an explicit timezone, weekday selection, overnight periods, and documented daylight-saving behavior. Suppress automatic desktop banners and sound without changing modal policy, telemetry, or local notice reviews. There is no urgent bypass, exit summary, or backlog replay; otherwise eligible quiet occurrences are durably consumed. Independent snooze/category/desktop exclusions remain pending and retain their activity reasons.
+- Add an optional fixed burst window across reports, printers, and completions while preserving every member's identity, reservation, result, and activity row. Limit automatic submissions to twelve attempts per rolling minute per running owner, recheck waiting events against fresh snapshots, and retain the no-automatic-retry policy. Schedule/window edits require restart; Config saves preserve them.
+- Add a saved `quiet_suppressed` attempt state. Older readers fail closed after this state is written; use this version or newer rather than deleting delivery history to downgrade.
+
 ## 0.2.5 — Notification ownership and recovery
 
 - Elect one automatic notification owner per account/region using a private OS file lock. Show ownership and standby status without interrupting secondary monitoring; take over from a fresh UI snapshot after owner exit/crash or desktop opt-out. Muted sessions release delivery ownership while preserving identity observation when available.

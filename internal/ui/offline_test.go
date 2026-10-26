@@ -16,6 +16,8 @@ func TestOfflineRowsRemainDistinctAcrossLayoutsAndSelection(t *testing.T) {
 	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
 	warningSGR := strings.SplitN(warning.Render("Offline"), "m", 2)[0]
 	m := overviewModel(t)
+	m = attentionReport(t, m, "O", runoutReport)
+	m.Farm.Printers["O"].Job = "Previous job"
 	for _, width := range []int{60, 80, 120} {
 		m.width = width
 		for _, connected := range []bool{true, false} {
@@ -39,6 +41,15 @@ func TestOfflineRowsRemainDistinctAcrossLayoutsAndSelection(t *testing.T) {
 					}
 					if strings.Contains(ansi.Strip(row), "Offline") == online {
 						t.Fatalf("wrong offline label: %q", row)
+					}
+					if !online {
+						want := []string{"Device", "Offline"}
+						if selected {
+							want = append([]string{"›"}, want...)
+						}
+						if !slices.Equal(strings.Fields(ansi.Strip(row)), want) {
+							t.Fatalf("offline row contains telemetry: %q", row)
+						}
 					}
 					if ansi.StringWidth(row) != width {
 						t.Fatalf("row width=%d, want %d", ansi.StringWidth(row), width)

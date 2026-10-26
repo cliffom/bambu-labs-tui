@@ -520,9 +520,6 @@ func (m Model) printerRow(i int) string {
 	state := stateLabel(p.State)
 	left := duration(p.Remaining)
 	connection := p.Connection(m.now, m.Farm.Connected)
-	if !p.Online {
-		connection = farm.ConnectionOffline
-	}
 	if connection == farm.ConnectionCloudDisconnected {
 		connection = "No cloud"
 	}
@@ -543,10 +540,9 @@ func (m Model) printerRow(i int) string {
 		eta = "~" + eta
 	}
 	var row string
-	if m.width < compactTableWidth {
-		if !p.Online {
-			state = farm.ConnectionOffline
-		}
+	if !p.Online {
+		row = cell(name, c.name) + farm.ConnectionOffline
+	} else if m.width < compactTableWidth {
 		row = cell(name, c.name) + cell(state, c.state) + cell(percent(p.Progress), c.progress) + left
 	} else if m.width < fullTableWidth {
 		row = cell(name, c.name) + cell(connection, c.link) + cell(state, c.state) + cell(percent(p.Progress), c.progress) + cell(left, c.remaining) + eta

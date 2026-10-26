@@ -7,7 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
@@ -88,7 +88,7 @@ func (d *attentionDialog) add(items []farm.Attention) {
 		group.name = item.Printer
 		replaced := false
 		for i, old := range group.items {
-			if old.Key == item.Key {
+			if old.Key == item.Key && old.Since.Equal(item.Since) {
 				group.items[i] = item
 				replaced = true
 				break
@@ -177,52 +177,97 @@ func (m *Model) attentionKey(key string, msg tea.Msg) tea.Cmd {
 	return nil
 }
 
+// observationTime describes the app's observation, never a printer-side start time.
+func observationTime(since, now time.Time) string {
+	if since.IsZero() {
+		return "First observed: unavailable"
+	}
+	age := "just now"
+	elapsed := now.Sub(since)
+	switch {
+	case elapsed < 0:
+		age = "clock skew; observation is in the future"
+	case elapsed >= 24*time.Hour:
+		age = observationAge(int(elapsed/(24*time.Hour)), "day")
+	case elapsed >= time.Hour:
+		age = observationAge(int(elapsed/time.Hour), "hour")
+	case elapsed >= time.Minute:
+		age = observationAge(int(elapsed/time.Minute), "minute")
+	}
+	return "First observed: " + since.Local().Format("2006-01-02 15:04:05 MST (Z07:00)") + " (" + age + ")"
+}
+
+func observationAge(count int, unit string) string {
+	if count != 1 {
+		unit += "s"
+	}
+	return fmt.Sprintf("%d %s ago", count, unit)
+}
+
 // syncAttentionView refreshes reported state and marks resolved notices in place.
 func (m *Model) syncAttentionView() {
 	d := m.attention
 	group := d.groups[d.index]
-	lines := []string{accent.Bold(true).Render(safe(group.name))}
+	var lines []string
 	if p := m.Farm.Printers[group.id]; p != nil {
-		lines = append(lines, "Reported state: "+safe(stateLabel(p.State))+" · "+safe(p.Connection(m.now, m.Farm.Connected)), "Alerts: "+m.alertStatus(p.ID))
+		lines = append(lines, white.Bold(true).Render("Reported state: "+safe(stateLabel(p.State))+" · "+safe(p.Connection(m.now, m.Farm.Connected))))
 	}
+	lines = append(lines, muted.Render("Review each notice below. Actions apply to this printer's displayed active notices."))
 	relevant := map[attentionOccurrence]bool{}
 	for _, item := range m.Farm.Attention() {
 		relevant[attentionOccurrence{item.Key, item.Since}] = true
 	}
-	for _, item := range group.items {
+	for i, item := range group.items {
 		c, active := m.attentionActive(item)
 		status, text := "Resolved / no longer active", item.Text
+		if current, exists := m.Farm.Active[item.Key]; exists {
+			if !current.Since.Equal(item.Since) {
+				status = "Replaced by a new occurrence"
+			} else if current.Dismissed {
+				status = "Hidden locally"
+			}
+		}
 		if active {
-			status, text = "Needs review", c.Text
+			status, text = "Unreviewed", c.Text
 			if c.Acknowledged {
 				status = "Acknowledged locally"
 			} else if !relevant[attentionOccurrence{item.Key, item.Since}] {
 				status = "No longer requires an alert"
 			}
 		}
-		lines = append(lines, "", warning.Render(status), safe(text))
+		// Farm appends the canonical code to condition text; show it once as metadata.
 		if item.Code != "" {
-			lines = append(lines, "Code: "+safe(item.Code))
+			text = strings.TrimSuffix(text, " ["+item.Code+"]")
 		}
+		lines = append(lines, "", warning.Bold(true).Render(fmt.Sprintf("%d. %s", i+1, safe(text))))
 		if active && relevant[attentionOccurrence{item.Key, item.Since}] {
-			lines = append(lines, safe(item.Guidance))
+			lines = append(lines, white.Render("Next: "+safe(item.Guidance)))
+		}
+		lines = append(lines, muted.Render(status), muted.Render(observationTime(item.Since, m.now)))
+		if item.Code != "" {
+			lines = append(lines, muted.Render("Code: "+safe(item.Code)))
 		}
 		if url := hmsURL(item.Code); url != "" {
-			lines = append(lines, url)
+			lines = append(lines, muted.Render("HMS troubleshooting available (o opens first link; Enter for URL)"))
 		}
 	}
-	lines = append(lines, "", "a acknowledges only the notices shown here.", "c hides those notices locally; it does not resolve the printer fault.", "Esc closes all queued prompts for this session without acknowledging.", "Use the printer or Bambu app for physical intervention and printer controls.")
-	d.view.Width, d.view.Height = max(1, m.width-dialogInset), max(1, m.height-dialogInset)
-	d.view.SetContent(wrapLines(lines, d.view.Width))
+	if p := m.Farm.Printers[group.id]; p != nil {
+		lines = append(lines, "", muted.Render("Alerts: "+m.alertStatus(p.ID)))
+	}
+	lines = append(lines, "", "Local actions: acknowledge marks reviewed; hide removes notices locally.", "Snooze delays this printer's alerts; Esc closes all queued prompts for this session.", "Local review does not resolve a fault. Use the printer or Bambu app for physical intervention and printer controls.", "First observed is app observation time, not printer fault start or desktop delivery time.")
+	d.view.Width, d.view.Height = max(1, m.width), max(1, m.height-4)
+	offset := d.view.YOffset
+	d.view.SetContent(ansi.Wrap(strings.Join(lines, "\n"), d.view.Width, ""))
+	d.view.SetYOffset(offset)
 }
 
-// attentionView renders a centered keyboard-driven attention modal.
+// attentionView uses the shared full-screen notice layout and single-row footer.
 func (m Model) attentionView() string {
 	d := m.attention
-	lines := []string{versionedTitle(danger.Bold(true).Render("ACTION NEEDED"), max(1, m.width-dialogInset)), muted.Render(fmt.Sprintf("Printer %d / %d · Tab switches printer · ↑/↓ scroll", d.index+1, len(d.groups))), "", d.view.View(), "", "Enter notice · p printer · a ack · c hide · s snooze", "Esc close"}
-	if message := m.storageWarning(); message != "" {
-		lines[len(lines)-1] = message
+	hints := "a acknowledge  c hide  s snooze  Esc close"
+	if m.width >= 100 {
+		hints = "Enter notice  p printer  o link  " + hints
 	}
-	box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(warningColor)).Padding(0, 1).Width(max(1, m.width-dialogBorderInset)).Render(strings.Join(lines, "\n"))
-	return fit(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box), m.width, m.height)
+	lines := []string{danger.Bold(true).Render("ACTION NEEDED"), accent.Bold(true).Render(ansi.Truncate(fmt.Sprintf("Printer %d / %d · %s", d.index+1, len(d.groups), safe(d.groups[d.index].name)), max(1, m.width), "…")), muted.Render("Tab printer · ↑/↓ scroll · Enter notice · p printer · o link"), d.view.View()}
+	return m.fullView(lines, footerHints(hints))
 }

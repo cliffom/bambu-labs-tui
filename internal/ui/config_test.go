@@ -12,10 +12,18 @@ import (
 	"github.com/muesli/termenv"
 )
 
+func openAlertConfig(m Model) Model {
+	m = key(m, ",")
+	for m.configSection != configAlerts {
+		m = key(m, "tab")
+	}
+	return m
+}
+
 func TestConfigTogglesStartAndStopDeliveryImmediately(t *testing.T) {
 	m, client, _ := notificationModel(t)
 	m.alertPrefs.DesktopNotifications = false
-	m = key(m, ",")
+	m = openAlertConfig(m)
 	if m.dialog.active != dialogConfig || len(client.inputs) != 0 {
 		t.Fatal("disabled startup observed ledger")
 	}
@@ -62,9 +70,9 @@ func TestConfigTogglesStartAndStopDeliveryImmediately(t *testing.T) {
 
 func TestConfigSaveCoalescesAndBlocksQuit(t *testing.T) {
 	m := demoModel()
-	var saved []config.AlertRules
-	m = m.WithConfigPersistence("synthetic.toml", func(rules config.AlertRules) error { saved = append(saved, rules); return nil })
-	m = key(m, ",")
+	var saved []config.Config
+	m = m.WithConfigPersistence("synthetic.toml", func(rules config.Config) error { saved = append(saved, rules); return nil })
+	m = openAlertConfig(m)
 	if strings.Contains(ansi.Strip(m.View()), "Saved") {
 		t.Fatal("idle Config should not show Saved")
 	}
@@ -91,7 +99,7 @@ func TestConfigSaveCoalescesAndBlocksQuit(t *testing.T) {
 	if view := ansi.Strip(m.configView()); strings.Contains(view, "Saved") || strings.Contains(view, "Saving…") {
 		t.Fatal("successful save should clear status")
 	}
-	if len(saved) != 2 || !saved[0].DesktopNotifications || saved[1].DesktopNotifications || m.HasUnsavedPersistence() {
+	if len(saved) != 2 || !saved[0].Alerts.DesktopNotifications || saved[1].Alerts.DesktopNotifications || m.HasUnsavedPersistence() {
 		t.Fatal("latest config did not follow immutable first snapshot")
 	}
 }
@@ -102,19 +110,19 @@ func TestConfigSaveFailureIsVisibleAndExplicitlyRetried(t *testing.T) {
 	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
 	m := demoModel()
 	writes := 0
-	m = m.WithConfigPersistence("synthetic.toml", func(config.AlertRules) error {
+	m = m.WithConfigPersistence("synthetic.toml", func(config.Config) error {
 		writes++
 		if writes == 1 {
 			return errors.New("read-only")
 		}
 		return nil
 	})
-	m = persistenceKey(m, ",")
+	m = openAlertConfig(m)
 	m = persistenceKey(m, "enter")
 	if writes != 1 || !m.alertPrefs.DesktopNotifications || !strings.Contains(ansi.Strip(m.View()), "Save failed") || !m.HasUnsavedPersistence() {
 		t.Fatal("failed save did not preserve session setting and warning")
 	}
-	if !strings.Contains(m.View(), danger.Render("Save failed · r retry; settings apply this session.")) || !strings.Contains(m.View(), "38;2;255;128;135") {
+	if !strings.Contains(m.View(), danger.Render("Save failed · r retry; changes may be lost on exit.")) || !strings.Contains(m.View(), "38;2;255;128;135") {
 		t.Fatal("save failure should use the shared red failure style")
 	}
 	m = persistenceKey(m, "down")
@@ -127,7 +135,7 @@ func TestConfigSaveFailureIsVisibleAndExplicitlyRetried(t *testing.T) {
 		t.Fatal("quit silently discarded a failed config save")
 	}
 	m = key(m, "esc")
-	m = persistenceKey(m, ",")
+	m = openAlertConfig(m)
 	m = persistenceKey(m, "r")
 	if writes != 2 || m.HasUnsavedPersistence() || m.configStorageError != "" {
 		t.Fatal("explicit retry did not save")
@@ -138,12 +146,12 @@ func TestConfigGlobalTogglePreservesPrinterOverride(t *testing.T) {
 	m, client, _ := notificationModel(t)
 	desktop := true
 	m.alertPrefs.Printers = map[string]config.AlertOverride{"TEST": {DesktopNotifications: &desktop}}
-	m = key(m, ",")
+	m = openAlertConfig(m)
 	m = key(m, "enter")
 	if m.alertPrefs.DesktopNotifications || !client.inputs[len(client.inputs)-1].Policies["TEST"].Desktop {
 		t.Fatal("global toggle overwrote a printer override")
 	}
-	if !strings.Contains(ansi.Strip(m.View()), "printer overrides") {
+	if !strings.Contains(ansi.Strip(m.View()), "Printers") {
 		t.Fatal("override behavior is hidden")
 	}
 }
@@ -152,7 +160,7 @@ func TestConfigFooterUsesOnlyHelpWithStorageWarnings(t *testing.T) {
 	for _, width := range []int{60, 120} {
 		for _, failed := range []bool{false, true} {
 			m := resizeModel(demoModel(), width, 18)
-			m = key(m, ",")
+			m = openAlertConfig(m)
 			if failed {
 				m.configStorageError = "Config save failed"
 			}
@@ -180,11 +188,17 @@ func TestConfigFooterUsesOnlyHelpWithStorageWarnings(t *testing.T) {
 
 func TestConfigFooterExplainsSelectedOption(t *testing.T) {
 	for _, size := range [][2]int{{60, 18}, {120, 32}} {
-		m := key(resizeModel(demoModel(), size[0], size[1]), ",")
+		m := openAlertConfig(resizeModel(demoModel(), size[0], size[1]))
 		for _, description := range []string{
 			"Show macOS alerts while this TUI runs.",
 			"Request sound on desktop notifications.",
 			"Notify on confirmed print completion.",
+			"Open dialogs for actionable printer conditions.",
+			"Alert on verified filament intervention conditions.",
+			"Alert on verified extrusion intervention conditions.",
+			"Alert on other verified printer faults.",
+			"Alert on reported print failures.",
+			"Alert on pauses without a classified cause.",
 			"Test delivery using the current sound.",
 		} {
 			rows := strings.Split(ansi.Strip(m.View()), "\n")
@@ -192,7 +206,7 @@ func TestConfigFooterExplainsSelectedOption(t *testing.T) {
 			if strings.TrimSpace(last) != description {
 				t.Fatalf("selected option helper missing at %v: %q", size, last)
 			}
-			if !strings.Contains(rows[1], "Space/Enter") {
+			if !strings.Contains(rows[1], "Enter") {
 				t.Fatal("header must retain activation keys")
 			}
 			m = key(m, "down")

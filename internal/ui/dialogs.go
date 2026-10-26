@@ -57,7 +57,7 @@ func routeFor(kind dialogKind) dialogRoute {
 	case dialogAlerts:
 		return dialogRoute{key: (*Model).alertKey, view: Model.alertView, sync: (*Model).syncAlertDialog, clear: func(m *Model) { m.alertDialog = nil }}
 	case dialogConfig:
-		return dialogRoute{key: (*Model).configKey, view: Model.configView, clear: (*Model).cancelNotificationTest}
+		return dialogRoute{key: (*Model).configKey, view: Model.configView, sync: (*Model).syncConfig, clear: (*Model).clearConfig}
 	case dialogExport:
 		return dialogRoute{key: (*Model).exportKey, view: Model.exportView, sync: (*Model).syncExport, clear: func(m *Model) { m.exportDialog = nil }}
 	case dialogShutdown:

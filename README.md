@@ -53,7 +53,7 @@ Bambu TUI Notify.app/
 
 Keep these together, including when moving the CLI to a directory on your `PATH`. No Go, Swift, Xcode, signing certificate, or Apple Developer membership is needed to run these prebuilt files. Ordinary PR CI artifacts are development candidates; the signed release workflow produces the notarized builds.
 
-Notifications are **off by default**. In a running dashboard, press `,` to open Config, select **Test Notification**, and allow macOS permission when prompted. Then enable **Desktop notifications** and optionally sound. Delivery requires a live TUI session on a local Mac; Linux desktop notifications are not supported. See [notification setup and troubleshooting](docs/user/alerts.md#live-desktop-notifications).
+Notifications are **off by default**. In a running dashboard, press `,` to open Config, switch to **Alerts** with `Tab`, and select **Test Notification**, and allow macOS permission when prompted. Then enable **Desktop notifications** and optionally sound. Delivery requires a live TUI session on a local Mac; Linux desktop notifications are not supported. See [notification setup and troubleshooting](docs/user/alerts.md#live-desktop-notifications).
 
 ### 2. Try the demo
 
@@ -86,7 +86,7 @@ Use arrows or `j` / `k` to select a printer, `Tab` to switch panels, and `?` for
 | `a` / `c` | Acknowledge / dismiss a notice locally |
 | `n` | Manage saved notice decisions |
 | `s` | View alert preferences and snooze/resume controls |
-| `,` | Configure desktop notifications and send a test notification |
+| `,` | Edit general settings, global alerts, and printer overrides |
 | `D` | Preview and confirm a local diagnostic export |
 | `Esc` | Close a dialog |
 | `q` / `Ctrl+C` | Quit after closing dialogs |

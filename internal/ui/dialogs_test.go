@@ -22,7 +22,7 @@ func TestDialogOwnerRoutesInputViewAndAttentionDeferral(t *testing.T) {
 		{"filament", "m", "AMS / FILAMENT", dialogFilament},
 		{"decisions", "n", "NOTICE DECISIONS", dialogDecisions},
 		{"reset", "n", "RESET NOTICE DECISIONS?", dialogDecisions},
-		{"config", ",", "CONFIG / NOTIFICATIONS", dialogConfig},
+		{"config", ",", "CONFIG / GENERAL", dialogConfig},
 		{"alerts", "s", "PRINTER ALERTS / SNOOZE", dialogAlerts},
 		{"diagnostics", "D", "LOCAL DIAGNOSTIC EXPORT", dialogExport},
 	} {

@@ -52,7 +52,11 @@ low_filament_percent = 10
 
 The configuration contains no credentials. Each region uses a separate saved session. All printers discovered on the account appear in the dashboard.
 
-Press `,` in the dashboard to change and save global notification settings immediately. See [notification controls](alerts.md#change-notifications-in-the-tui) for file saving, printer overrides, and failure recovery.
+Press `,` in the dashboard to edit all supported settings. `Tab` / `Shift+Tab` switches General, Alerts, and Printers; arrows select rows. In General, use `Enter` or `←` / `→` to switch Cloud region. Region edits are saved for the next launch: **restart and log in for the selected region**. The current cloud connection, credential lookup, notice store, snoozes, and notification ledger keep their original region until exit.
+
+For Low filament threshold, use `←` / `→` to adjust by one percentage point, or `Enter` to type a whole number from 0 to 100. Typing replaces the initial value; `Ctrl+U` clears input, `Backspace` edits it, `Enter` validates/applies, and `Esc` cancels the input before closing Config. Invalid input stays visible with a red error and does not change settings. Threshold edits immediately re-evaluate reported remaining estimates; they do not establish physical fault resolution or create intervention alerts from unknown estimates.
+
+See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine alert defaults, per-printer On/Off/Inherit overrides, reset confirmation, Test Notification, and save failures.
 
 ## Keyboard and navigation
 
@@ -129,7 +133,7 @@ When quitting from the dashboard, the app waits up to five seconds for pending n
 
 ### Alert preferences and snoozing
 
-Press `s` on the dashboard or an action-needed prompt to snooze its printer for 15 minutes, 1 hour, or 4 hours; `u` in those controls ends a snooze early. Deadlines save across restarts, independently of acknowledgements and dismissals. All underlying notices stay visible. Global and per-printer category/master switches are configured under `[alerts]` in TOML; defaults preserve automatic alerts. `!` manually inspects unreviewed actionable notices even while muted or snoozed. See the [alert guide](alerts.md) for configuration, expiry, removed-printer behavior, and storage errors. Opt-in macOS desktop delivery and sound share category preferences and snoozes; see the alert guide for setup.
+Press `s` on the dashboard or an action-needed prompt to snooze its printer for 15 minutes, 1 hour, or 4 hours; `u` in those controls ends a snooze early. Deadlines save across restarts, independently of acknowledgements and dismissals. All underlying notices stay visible. Global and per-printer category/master switches are editable in Config (`,`), or under `[alerts]` in TOML; defaults preserve automatic alerts. `!` manually inspects unreviewed actionable notices even while muted or snoozed. See the [alert guide](alerts.md) for configuration, expiry, removed-printer behavior, and storage errors. Opt-in macOS desktop delivery and sound share category preferences and snoozes; see the alert guide for setup.
 
 ### Action-needed alerts
 

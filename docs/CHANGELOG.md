@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 — Complete configuration controls
+
+- Expand Config into General, Alerts, and Printers sections with all TOML settings, a validated percentage editor, all nine global alert defaults, and per-printer On/Off/Inherit/effective-value controls plus confirmed reset. Apply alert/threshold edits immediately and save region edits for restart/login. Merge edited fields into valid TOML asynchronously while preserving untouched settings, private atomic writes, silent success, and red failures. Keep Test Notification and footer feedback.
+
 ## 0.2.1 — Leaner release downloads
 
 - Trim binary release archives to the CLI, macOS notification helper, concise installation README, configuration example, and license notices. Keep full documentation online. Rename macOS download filenames from `darwin` to `macos`, retaining Go build targets and signed/notarized packaging verification.

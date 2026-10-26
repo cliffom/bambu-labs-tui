@@ -39,7 +39,7 @@ The view retains the last **100 decision records in memory**, including decision
 | Paused | Identity storage, capacity, or queue failure paused delivery; monitoring continues |
 | Status | Notification ownership changed or recovery was requested |
 
-Each selected row explains the applicable reason and recovery guidance. The ownership line identifies this TUI as the delivery owner, a standby behind another TUI, or a muted observer. An already-reserved attempt may come from an earlier session; its outcome remains uncertain. Failed and unconfirmed attempts have **no automatic retry**. Corrupt/busy storage and capacity exhaustion are distinguished; restarting does not free exhausted capacity. Activity cannot diagnose whether Focus hid an accepted banner. Quiet hours and grouping across separate reports are not implemented; co-reported intervention grouping is shown.
+Each selected row explains the applicable reason and recovery guidance. The ownership line identifies this TUI as the delivery owner, a standby behind another TUI, or a muted observer. An already-reserved attempt may come from an earlier session; its outcome remains uncertain. Failed and unconfirmed attempts have **no automatic retry**. Corrupt/busy storage and capacity exhaustion are distinguished; restarting does not free exhausted capacity. Activity cannot diagnose whether Focus hid an accepted banner. Quiet-hours suppression and optional grouping across reports are also shown; see [Quiet hours and burst grouping](#quiet-hours-and-burst-grouping).
 
 Accepted/Failed counters count OS submission outcomes, while Suppressed counts newly recorded per-incident decision transitions, not telemetry reports. Counters cover the entire session and may exceed the retained 100 rows. History contains no credentials, raw telemetry, backend stderr, or raw protocol job IDs, and is never written to disk. Config tests and doctor are separate explicit probes, outside this live activity history. Before desktop opt-in the worker remains idle; the empty view explains disabled or unsupported delivery rather than creating identity files to populate a log.
 
@@ -98,6 +98,34 @@ Preferences filter the existing verified actionable catalogue; enabling a catego
 
 The firmware/telemetry view and notice panels are never filtered by these settings. The printer details show alert status; press `s` to see the effective switches and stable printer ID. The overview counts snoozed printers and printers with all automatic modal interruptions disabled. Desktop delivery has its own master switch and does not require automatic modals to be enabled; category switches are shared.
 
+## Quiet hours and burst grouping
+
+These global policies are configured in TOML and require restart after file edits. Config continues to edit the nine boolean alert defaults and printer overrides; its background saves preserve externally edited schedules/windows.
+
+```toml
+[alerts]
+burst_window_seconds = 3 # 0 (default) disables; otherwise 1..60 seconds
+
+[alerts.quiet_hours]
+enabled = true # false by default
+timezone = "America/Los_Angeles"
+start = "22:00"
+end = "07:00"
+days = "mon,tue,wed,thu,fri"
+```
+
+Use an explicit IANA timezone (`UTC` is also supported), `HH:MM` times, and comma-separated lowercase weekday abbreviations. Start is inclusive and end is exclusive; equal times are rejected. An overnight period belongs to its **starting weekday**: Friday 22:00 through Saturday 07:00 is controlled by `fri`. For a same-day period, only the selected day applies. Daylight-saving changes follow local wall-clock minutes: skipped minutes never occur, and repeated minutes have the same quiet policy on both passes. The bundled timezone database supports hosts without zoneinfo.
+
+Quiet hours suppress only automatic macOS desktop banners and their sound. Printer state, notices, review decisions, and automatic modal preferences remain independent. There is **no urgent exception**, regardless of severity; every otherwise eligible automatic desktop event is quieted. Config Test Notification and doctor remain explicit tests and bypass this policy.
+
+An otherwise eligible occurrence observed during quiet hours is durably consumed, without marking its notice acknowledged, dismissed, or physically resolved. There is **no summary after quiet hours and no backlog replay**, including after restart. A confirmed clear followed by a new recurrence has a new identity and can notify normally. Events already excluded by categories, reviews, or snoozes retain those policies rather than being consumed by quiet hours. Observation requires the running TUI and fresh telemetry; events while monitoring is stopped cannot be reconstructed.
+
+With a nonzero burst window, the first eligible event opens a fixed window; subsequent reports do not extend it. Still-current interventions and completions across printers share one generic count notification. Each member retains its own printer, job/incident identity, reservation, result, and activity row with a shared request number. Sound is requested if any included member permits it. Grouping never reviews or resolves notices. Policy, review, connection, and identity changes are rechecked before reservation and submission; obsolete members are dropped. A change affecting an in-flight member can cancel the whole submission conservatively.
+
+All automatic delivery, including when the burst window is zero, is limited to **12 submission attempts per rolling minute per running owner**. Failed and uncertain submissions count and have no automatic retry. Excess unattempted events wait for a rate slot and are rechecked against fresh UI snapshots; resolved/changed events are not replayed. The session rate window resets on restart or owner takeover; persistent identity deduplication remains. Waiting windows/rate slots are checked about once per second through the reducer and never send from a timer's cached telemetry. Shutdown cancels waiting delivery without installing a background trigger.
+
+Quiet suppression adds a saved `quiet_suppressed` attempt state. Older binaries that cannot read it fail closed; use this version or newer after enabling quiet hours. Do not delete the ledger to downgrade, because that loses deduplication history.
+
 ## Snooze one printer
 
 Press `s` from a dashboard panel to open the selected printer's **Printer alerts / Snooze** view. From an **Action needed** prompt, `s` opens controls for the printer currently shown there.
@@ -139,7 +167,7 @@ Write failures produce a persistent warning and the current session continues wi
 
 On a local macOS desktop, first run `bambu-tui doctor --notify` to allow notifications and verify the helper. Then open Config with `,` and enable Desktop notifications. Adjust other defaults in Alerts or use Printers for overrides; external TOML edits require restart. Defaults preserve existing behavior: desktop delivery and sound are off. No notification permissions are requested automatically while monitoring.
 
-The live TUI sends intervention-required and telemetry-confirmed completion notifications through the branded helper while its session runs. Acknowledged/dismissed incidents, disabled categories, and snoozed printers are suppressed. A pending unreviewed incident or still-finished job may become eligible after snooze expiry. Fresh, connected telemetry is required; missing or stale data cannot establish resolution or completion. Job names, ETA, and 100% progress are not completion evidence. Missing/zero or reused job identities can conservatively suppress completion. Eligible intervention notices co-reported for the same printer are included in one desktop notification, with a notice count when several are included. Their review and deduplication identities remain separate. Other printers and completion notifications stay separate; timed grouping across separate reports is not implemented yet.
+The live TUI sends intervention-required and telemetry-confirmed completion notifications through the branded helper while its session runs. Acknowledged/dismissed incidents, disabled categories, and snoozed printers are suppressed. A pending unreviewed incident or still-finished job may become eligible after snooze expiry. Fresh, connected telemetry is required; missing or stale data cannot establish resolution or completion. Job names, ETA, and 100% progress are not completion evidence. Missing/zero or reused job identities can conservatively suppress completion. Eligible intervention notices co-reported for the same printer are included in one desktop notification, with a notice count when several are included. Their review and deduplication identities remain separate. By default, other printers and completion notifications stay separate. An optional burst window can group them across reports; see [Quiet hours and burst grouping](#quiet-hours-and-burst-grouping).
 
 Notification identity and delivery reservations persist per account/region under `bambu-tui/notifications/` in the OS configuration directory, independently of notice reviews and snoozes. Files are private and contain hashed identities, random occurrence IDs, and attempt states, not raw job IDs, printer names, or credentials. Accepted/failed/ambiguous attempts are not automatically resent after reconnect or restart. Reserving before the OS call favors avoiding duplicates: a crash in that gap can lose a notification. Corrupt/unsupported/full/unwritable storage, lock contention, or queue overflow pauses delivery with a persistent warning; monitoring continues. Fix the problem, then press `r` in Notification activity to recheck the existing ledger. No automatic retention purge is implemented.
 
@@ -178,4 +206,4 @@ Banner lifetime is controlled by macOS. For notifications that stay until dismis
 
 Test both commands with the terminal focused, then unfocused. To allow time to switch applications, use `sleep 3; ./bin/bambu-tui doctor --notify` (append `--sound` for audio). Record whether the banner appeared and whether audio played separately from command acceptance. The helper allows up to 60 seconds for permission/service access, and doctor bounds its execution to 65 seconds and cancels it on interruption. SSH sessions are explicitly unsupported, Linux delivery is not implemented, and headless delivery is unverified.
 
-This test does not enable automatic notifications or leave monitoring running. Configure live delivery separately as described above. Quiet hours and timed grouping across reports remain follow-up work in [#22](https://github.com/cliffom/bambu-tui/issues/22).
+This test does not enable automatic notifications or leave monitoring running. Configure live delivery separately as described above. Explicit tests bypass quiet hours, grouping, and automatic delivery rate limits.

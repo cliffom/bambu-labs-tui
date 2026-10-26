@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"time"
+
 	"github.com/cliffom/bambu-tui/internal/notifications"
 )
 
@@ -45,7 +47,7 @@ func (m *Model) syncNotifications() {
 		rules := m.alertPrefs.RulesFor(id)
 		policies[id] = notifications.Policy{PrinterName: m.Farm.Printers[id].Name, Desktop: rules.DesktopNotifications, Completion: rules.CompletedPrints, Sound: rules.NotificationSound, Snoozed: m.snoozed(id), Allowed: allowed}
 	}
-	m.notificationClient.Submit(notifications.Input{Snapshot: snapshot, Policies: policies, Active: !m.quitting && !m.quitProblem && !m.ended, Demo: m.Demo, ObserveOnly: !enabled})
+	m.notificationClient.Submit(notifications.Input{Snapshot: snapshot, Policies: policies, Quiet: m.alertPrefs.QuietHours.Active(m.now), BurstWindow: time.Duration(m.alertPrefs.BurstWindowSeconds) * time.Second, Active: !m.quitting && !m.quitProblem && !m.ended, Demo: m.Demo, ObserveOnly: !enabled})
 	status := m.notificationClient.Status()
 	m.notificationError = status.Error
 	if status.Revision != m.notificationRevision {

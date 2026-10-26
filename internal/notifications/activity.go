@@ -28,6 +28,7 @@ const (
 	ReasonDesktopOff    = "desktop_off"
 	ReasonCategoryOff   = "category_off"
 	ReasonCompletionOff = "completion_off"
+	ReasonQuiet         = "quiet_suppressed"
 	ReasonSnoozed       = "snoozed"
 	ReasonClosing       = "session_closing"
 	ReasonUnavailable   = "telemetry_unavailable"
@@ -59,6 +60,8 @@ type Activity struct {
 // telemetry, credentials, or protocol job identifiers.
 func ReasonText(reason string) string {
 	switch reason {
+	case ReasonQuiet:
+		return "Quiet hours: desktop banner and sound suppressed permanently for this occurrence; no replay or summary."
 	case ReasonOwner:
 		return "This TUI owns automatic delivery for this account and region."
 	case ReasonStandby:
@@ -240,6 +243,9 @@ func (w *Worker) recordGroup(group []notification_state.Candidate, source Input,
 func suppressionReason(candidate notification_state.Candidate, current Input) string {
 	if !current.Active {
 		return ReasonClosing
+	}
+	if current.Quiet {
+		return ReasonQuiet
 	}
 	if current.ObserveOnly {
 		return ReasonDesktopOff

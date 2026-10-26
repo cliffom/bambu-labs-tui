@@ -212,3 +212,23 @@ func TestActivityOwnershipAndRecoveryAreVisibleAndUseFreshPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestQuietActivityExplanationAtSupportedSizes(t *testing.T) {
+	for _, size := range [][2]int{{60, 18}, {120, 32}} {
+		m, client := activityModel(1)
+		client.status.History[0].Reason = notifications.ReasonQuiet
+		m = key(resizeModel(m, size[0], size[1]), "N")
+		view := ansi.Strip(m.View())
+		for _, text := range []string{"Quiet hours", "no replay or summary"} {
+			if !strings.Contains(strings.Join(strings.Fields(view), " "), text) {
+				t.Fatal(size, "missing quiet policy", view)
+			}
+		}
+		for _, line := range strings.Split(view, "\n") {
+			if ansi.StringWidth(line) > size[0] {
+				t.Fatal("quiet reason overflow")
+			}
+		}
+		t.Logf("%dx%d quiet activity:\n%s", size[0], size[1], view)
+	}
+}

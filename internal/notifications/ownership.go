@@ -74,12 +74,12 @@ func (w *Worker) Retry() bool {
 	return true
 }
 
-// requestOwnershipCheck schedules a new snapshot through the live UI. It does
+// requestOwnershipCheck requests fresh UI state for takeover or pending delivery. It does
 // not read disk, take a lease, or deliver from an old cached telemetry frame.
 func (w *Worker) requestOwnershipCheck() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if !w.status.Disabled && w.status.Ownership == OwnershipStandby && !w.latest.ObserveOnly && w.latest.Active {
+	if !w.status.Disabled && (w.status.Ownership == OwnershipStandby || w.scheduled) && !w.latest.ObserveOnly && w.latest.Active {
 		w.forceFrame = true
 	}
 }

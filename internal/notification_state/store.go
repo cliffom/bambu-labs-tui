@@ -83,12 +83,13 @@ type (
 )
 
 const (
-	Intervention Kind    = "intervention"
-	Completion   Kind    = "completion"
-	Pending      Attempt = "pending"
-	Reserved     Attempt = "reserved"
-	Accepted     Attempt = "accepted"
-	Failed       Attempt = "failed"
+	Intervention    Kind    = "intervention"
+	Completion      Kind    = "completion"
+	Pending         Attempt = "pending"
+	Reserved        Attempt = "reserved"
+	Accepted        Attempt = "accepted"
+	Failed          Attempt = "failed"
+	QuietSuppressed Attempt = "quiet_suppressed"
 )
 
 func New(region, username string) (Store, error) {
@@ -249,9 +250,10 @@ func (s Store) ReserveBatch(ids []string) ([]string, error) {
 }
 
 // RecordResult separates request acceptance from failure, never claiming that a
-// banner was seen. Failed/reserved occurrences remain deduplicated.
+// banner was seen. Quiet suppression consumes an occurrence without an OS call.
+// Failed/reserved/quiet-suppressed occurrences remain deduplicated.
 func (s Store) RecordResult(id string, result Attempt) error {
-	if result != Accepted && result != Failed {
+	if result != Accepted && result != Failed && result != QuietSuppressed {
 		return errors.New("invalid notification delivery result")
 	}
 	return s.changeOccurrence(id, func(o *occurrence, _ bool) (bool, error) {
@@ -387,7 +389,7 @@ func validate(d document) error {
 			return false
 		}
 		ids[o.ID] = true
-		return o.Attempt == Pending || o.Attempt == Reserved || o.Attempt == Accepted || o.Attempt == Failed
+		return o.Attempt == Pending || o.Attempt == Reserved || o.Attempt == Accepted || o.Attempt == Failed || o.Attempt == QuietSuppressed
 	}
 	for key, item := range d.Incidents {
 		if !validHex(key, digestBytes) || !validHex(item.Printer, digestBytes) || !validHex(item.Signature, digestBytes) || !knownFamily(item.Family) || !validOccurrence(item.occurrence) {

@@ -15,6 +15,11 @@ import (
 
 const workerQueueCapacity = 256
 
+const (
+	deliveryRateWindow = time.Minute
+	deliveryRateLimit  = 12
+)
+
 type (
 	Ledger interface {
 		AcquireOwner() (*notification_state.Owner, error)
@@ -31,6 +36,8 @@ type (
 		Snapshot     farm.NotificationSnapshot
 		Policies     map[string]Policy
 		Active, Demo bool
+		Quiet        bool
+		BurstWindow  time.Duration
 		ObserveOnly  bool
 	}
 	Status struct {
@@ -76,6 +83,10 @@ type (
 		forceFrame        bool
 		awaitFresh        bool
 		changed           chan struct{}
+		batchDue          time.Time
+		nextDelivery      time.Time
+		deliveryTimes     []time.Time
+		scheduled         bool
 	}
 )
 
@@ -235,7 +246,60 @@ func (w *Worker) process(input frame) bool {
 	for _, decision := range observation.Suppressed {
 		w.recordSuppression(decision.Candidate, input.Input, decision.Reason)
 	}
-	for _, group := range deliveryGroups(observation.Candidates) {
+	// Every lifecycle frame above is retained; only the newest policy can deliver.
+	w.mu.Lock()
+	currentFrame := w.latest
+	w.mu.Unlock()
+	var candidates []notification_state.Candidate
+	for _, candidate := range observation.Candidates {
+		policy := currentFrame.Input
+		if input.Quiet {
+			policy = input.Input
+		}
+		policy.Quiet = false
+		if (input.Quiet || currentFrame.Quiet) && eligible(candidate, input.Input, policy) {
+			// Persist consumption before leaving quiet hours, including across restart.
+			reserved, reserveErr := w.ledger.ReserveBatch([]string{candidate.ID})
+			if reserveErr != nil {
+				w.disable("Desktop notifications paused: "+ReasonText(storageReason(reserveErr)), storageReason(reserveErr))
+				return false
+			}
+			for _, id := range reserved {
+				if saveErr := w.ledger.RecordResult(id, notification_state.QuietSuppressed); saveErr != nil {
+					w.disable("Desktop notifications paused: "+ReasonText(storageReason(saveErr)), storageReason(saveErr))
+					return false
+				}
+			}
+			w.recordSuppression(candidate, input.Input, ReasonQuiet)
+		} else if eligible(candidate, input.Input, currentFrame.Input) {
+			candidates = append(candidates, candidate)
+		} else {
+			w.recordSuppression(candidate, input.Input, suppressionReason(candidate, currentFrame.Input))
+		}
+	}
+	if currentFrame.sequence != input.sequence {
+		return true
+	}
+	w.mu.Lock()
+	w.scheduled = len(candidates) > 0
+	w.mu.Unlock()
+	if len(candidates) == 0 {
+		w.batchDue = time.Time{}
+		return true
+	}
+	now := w.now()
+	if w.batchDue.IsZero() {
+		w.batchDue = now.Add(input.BurstWindow)
+	}
+	if now.Before(w.batchDue) || now.Before(w.nextDelivery) {
+		return true
+	}
+	w.batchDue = time.Time{}
+	groups := deliveryGroups(candidates)
+	if input.BurstWindow > 0 {
+		groups = [][]notification_state.Candidate{candidates}
+	}
+	for _, group := range groups {
 		if w.ctx.Err() != nil {
 			return false
 		}
@@ -317,6 +381,25 @@ func (w *Worker) process(input frame) bool {
 		if first.Kind == notification_state.Completion {
 			body = policy.PrinterName + " reports that the print finished."
 		}
+		if input.BurstWindow > 0 && len(group) > 1 {
+			printers := map[string]bool{}
+			policy.Sound = false
+			for _, member := range group {
+				printers[member.PrinterID] = true
+				policy.Sound = policy.Sound || current.Policies[member.PrinterID].Sound
+			}
+			title = "Bambu TUI"
+			body = fmt.Sprintf("%d events across %d printers. Open Notification activity in Bambu TUI for individual conditions and completions.", len(group), len(printers))
+		}
+		// At most twelve OS submissions in any rolling minute, including
+		// failures and ambiguous outcomes. The bounded timestamps are session-only.
+		sentAt := w.now()
+		w.deliveryTimes = slices.DeleteFunc(w.deliveryTimes, func(at time.Time) bool { return !sentAt.Before(at.Add(deliveryRateWindow)) })
+		w.deliveryTimes = append(w.deliveryTimes, sentAt)
+		w.nextDelivery = time.Time{}
+		if len(w.deliveryTimes) >= deliveryRateLimit {
+			w.nextDelivery = w.deliveryTimes[0].Add(deliveryRateWindow)
+		}
 		if current.Demo {
 			title = "Demo: " + title
 			body = "Demo: " + body
@@ -333,7 +416,7 @@ func (w *Worker) process(input frame) bool {
 			}
 			w.recordGroup(group, input.Input, OutcomeUnconfirmed, reason, request)
 			w.report("Desktop notification outcome unconfirmed", "Desktop notification outcome unconfirmed; attempt will not be retried", false, false, false)
-			continue
+			return true
 		}
 		outcome := notification_state.Accepted
 		if err != nil {
@@ -352,6 +435,7 @@ func (w *Worker) process(input frame) bool {
 				return false
 			}
 		}
+		return true
 	}
 	return true
 }
@@ -375,7 +459,7 @@ func deliveryGroups(candidates []notification_state.Candidate) [][]notification_
 }
 
 func eligible(candidate notification_state.Candidate, source, current Input) bool {
-	if !current.Active || current.ObserveOnly {
+	if !current.Active || current.ObserveOnly || current.Quiet {
 		return false
 	}
 	p, live := current.Snapshot[candidate.PrinterID]

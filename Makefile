@@ -1,9 +1,10 @@
-.PHONY: build auth run demo test check fmt fmt-check lint lint-actions lint-make docs-check audit-faults cross release
+.PHONY: build auth run demo test check fmt fmt-check lint lint-actions lint-make docs-check audit-faults vuln-check cross release
 
 GOLANGCI_LINT ?= golangci-lint
 GOFUMPT ?= go run mvdan.cc/gofumpt@$(shell cat .gofumpt-version)
 ACTIONLINT ?= actionlint
 CHECKMAKE ?= checkmake
+GOVULNCHECK ?= go run golang.org/x/vuln/cmd/govulncheck@$(shell cat .govulncheck-version)
 AUTH_ARGS ?= --email-code
 RUN_ARGS ?=
 VERSION ?= $(shell cat VERSION)
@@ -31,6 +32,9 @@ test:
 
 check:
 	go vet ./...
+
+vuln-check:
+	$(GOVULNCHECK) ./...
 
 fmt:
 	$(GOFUMPT) -w cmd internal

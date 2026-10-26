@@ -10,10 +10,11 @@ Run `make docs-check` for every PR. For UI changes, extend relevant interaction 
 
 ## Development
 
-Use Go 1.26 or newer, Git, and Make. Run commands from the repository root. Start with [contributing](docs/development/contributing.md) for tool versions and setup.
+Use Go 1.27.3 or newer, Git, and Make. Run commands from the repository root. Start with [contributing](docs/development/contributing.md) for tool versions and setup.
 
 - `make demo` builds and runs a synthetic farm without credentials or hardware.
 - `make fmt-check lint test check build` checks Go formatting, lint, race tests, vet, and the native build. Use `make fmt` to format Go changes.
+- `make vuln-check` scans known vulnerabilities with the pinned scanner and current build toolchain (network required).
 - `make lint-actions` checks workflow changes; `make lint-make` checks Makefile changes.
 - `make release` verifies cross-platform builds and packaging when release tooling or bundled documentation paths change.
 - `make audit-faults` performs the explicit network audit when changing the fault catalogue. Ordinary tests use synthetic fixtures and fake services.

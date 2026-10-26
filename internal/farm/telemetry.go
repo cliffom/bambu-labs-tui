@@ -11,18 +11,28 @@ import (
 // applyReport interprets wire data without emitting farm conditions or history.
 // Firmware-only responses do not count as fresh print telemetry.
 func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
+	if len(payload) > maxTelemetryBytes {
+		return false, fmt.Errorf("status exceeds telemetry limits")
+	}
 	var envelope map[string]any
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		return false, fmt.Errorf("invalid status JSON")
 	}
-	p.versionReport(object(envelope[fieldInfo]), now)
+	if !telemetryWithinLimits(envelope) {
+		return false, fmt.Errorf("status exceeds telemetry limits")
+	}
 	delta, ok := envelope[fieldPrint].(map[string]any)
 	if !ok {
+		p.versionReport(object(envelope[fieldInfo]), now)
 		return false, nil
 	}
 	if cmd := str(delta[fieldCommand]); cmd != "" && cmd != commandStatus {
+		p.versionReport(object(envelope[fieldInfo]), now)
 		return false, nil
 	}
+	// Merge into an independent candidate: rejecting a cumulative limit must
+	// not alter live telemetry, freshness, firmware, or notice decisions.
+	raw := cloneTelemetry(p.Raw).(map[string]any)
 	previous := p.State
 	// A new job must not inherit the previous job's ETA/progress while its
 	// initial report is still arriving.
@@ -31,14 +41,21 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	restart := str(delta[fieldGcodeState]) == StateRunning && (previous == StateFinished || previous == StateFailed || previous == StateIdle)
 	if newTask || restart {
 		for _, k := range []string{fieldRemainingMinutes, fieldProgress, fieldLayerNum, fieldTotalLayerNum, fieldSubtaskName, fieldGcodeFile, fieldStage} {
-			delete(p.Raw, k)
+			delete(raw, k)
 		}
+	}
+	merge(raw, delta)
+	if !telemetryWithinLimits(raw) {
+		return false, fmt.Errorf("status exceeds telemetry limits")
+	}
+	p.Raw = raw
+	p.versionReport(object(envelope[fieldInfo]), now)
+	if newTask || restart {
 		p.RemainingReported = time.Time{}
 	}
 	if _, ok := delta[fieldRemainingMinutes]; ok {
 		p.RemainingReported = now
 	}
-	merge(p.Raw, delta)
 	p.firmwareReport(delta, now)
 	p.LastReport, p.Online = now, true
 	p.normalize()

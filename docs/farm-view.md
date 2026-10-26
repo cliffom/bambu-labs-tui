@@ -41,6 +41,8 @@ Press uppercase `S` to cycle:
 | State | Alphabetical by displayed state label, ignoring case |
 | Finish | Earliest comparable estimated finish first; missing, paused, finished, and stale/unavailable estimates follow |
 
+Online printers always appear before offline printers; the selected sort applies within each group. This uses the device online flag, so online printers with stale or missing telemetry, or a disconnected cloud link, stay in the online group. Offline rows use amber text while retaining the selected row background, and show only the printer name and `Offline` link status; all telemetry columns are blank. Compact layouts show `Offline` in the state column because the link column is hidden.
+
 Use `g` / Home after choosing a sort to jump to its first printer. All ties use case-insensitive name and then stable printer ID. Duplicate names do not combine printers or their notice counts.
 
 A comparable finish estimate requires a running printer, remaining-time data, live cloud/device telemetry, and a remaining-time report no older than 120 seconds. Temperature-only updates do not refresh the age of the time estimate. Last-known estimates remain visible with `~` but are grouped with unknown estimates in Finish sorting. Paused and non-running printers show no finish ETA. Estimates on another date include the weekday in the printer list and a fuller date in details. A past-due estimate does not imply completion.

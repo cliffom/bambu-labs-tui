@@ -79,7 +79,7 @@ func TestFarmSummaryAndFilters(t *testing.T) {
 		t.Fatalf("wrong printing filter: %v", m.printerIDs)
 	}
 	m = key(m, "F")
-	if !slices.Equal(m.printerIDs, []string{"O", "T", "W"}) {
+	if !slices.Equal(m.printerIDs, []string{"T", "W", "O"}) {
 		t.Fatalf("wrong unavailable filter: %v", m.printerIDs)
 	}
 	m = key(m, "F")
@@ -292,7 +292,62 @@ func TestStateSortingUsesDisplayedLabels(t *testing.T) {
 	m := overviewModel(t)
 	m.printerSort = sortState
 	m.syncPanels()
-	if !slices.Equal(m.printerIDs, []string{"D", "I", "X", "H", "T", "O", "W"}) {
+	if !slices.Equal(m.printerIDs, []string{"D", "I", "X", "H", "T", "W", "O"}) {
 		t.Fatalf("wrong displayed-state order: %v", m.printerIDs)
+	}
+}
+
+func TestOfflinePrintersFollowOnlineForEverySort(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		sort printerSort
+		want []string
+	}{
+		{"Name", sortName, []string{"H", "X", "D", "I", "T", "W", "O", "Z"}},
+		{"Attention", sortAttention, []string{"X", "T", "W", "H", "D", "I", "Z", "O"}},
+		{"State", sortState, []string{"D", "I", "X", "H", "T", "W", "Z", "O"}},
+		{"Finish", sortFinish, []string{"H", "X", "D", "I", "T", "W", "O", "Z"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := overviewModel(t)
+			m.Farm.Printers["O"].Name = "Aardvark"
+			m.Farm.Printers["Z"] = &farm.Printer{Device: farm.Device{ID: "Z", Name: "Zulu"}, State: farm.StateFailed}
+			m.printerSort = tc.sort
+			for _, connected := range []bool{true, false} {
+				m.Farm.Connected = connected
+				m.syncPanels()
+				want := tc.want
+				if !connected && tc.sort == sortAttention {
+					want = []string{"X", "H", "D", "I", "T", "W", "Z", "O"}
+				}
+				if !connected && tc.sort == sortFinish {
+					want = []string{"H", "X", "D", "I", "T", "W", "O", "Z"}
+				}
+				if !slices.Equal(m.printerIDs, want) {
+					t.Fatalf("connected=%v: got %v, want %v", connected, m.printerIDs, want)
+				}
+			}
+		})
+	}
+}
+
+func TestOnlineChangesReorderWithoutMovingSelection(t *testing.T) {
+	m := demoModel()
+	m.selectPrinter("H")
+	m.focus = panelDetails
+	m.details.SetYOffset(3)
+	for _, online := range []bool{false, true} {
+		next, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, At: m.now, Devices: []farm.Device{
+			{ID: "H", Name: "H2D", Online: online},
+			{ID: "X", Name: "X2D", Online: true},
+		}})
+		m = next.(Model)
+		want := []string{"X", "H"}
+		if online {
+			want = []string{"H", "X"}
+		}
+		if !slices.Equal(m.printerIDs, want) || m.current().ID != "H" || m.focus != panelDetails || m.details.YOffset != 3 {
+			t.Fatalf("online=%v: order=%v selection=%s scroll=%d", online, m.printerIDs, m.current().ID, m.details.YOffset)
+		}
 	}
 }

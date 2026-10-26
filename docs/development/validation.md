@@ -4,6 +4,12 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## Saved farm views (#24)
+
+On 2026-10-26 (PDT), a v0.2.6-based working tree on local macOS arm64/Go 1.27.3 passed formatting, pinned Go lint, all race tests including UI/CLI PTY, vet, native build, and documentation checks. New synthetic tests cover all filter/sort round trips, independent invalid/non-string fallbacks, external config merges, restart restoration, empty saved filters, reset/dialog/size guards, coalesced snapshots, write failures, and explicit retries. The real demo CLI PTY regression saves Attention/Attention, exits, restarts with the same config, and resets/saves All/Name at 60×18.
+
+Actual `make demo` PTY frames were reconstructed and inspected with color enabled and disabled at 120×32 (populated/empty list and restored selection), 60×18 (empty hint and reset), and 59×17 (resize fallback and blocked hidden reset). Both runs used temporary configurations with automatic modals/desktop delivery off, retained selection through sorting/resizing, and exited normally after saving the view. This inspection establishes text/layout behavior in terminal emulation; real-terminal color appearance, live account restart, and hardware behavior were not newly validated. No cached telemetry or selected identity is persisted.
+
 ## v0.2.6 — quiet hours and burst grouping (#22)
 
 On 2026-10-26 (PDT), local macOS arm64/Go 1.27.3 passed documentation/formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, all race tests (including UI/PTY), vet, and default `make release` for all four targets. Local ad-hoc candidates passed archive inventories, installation README checks, universal helper architecture/signature checks, and checksum generation. VERSION and the direct-build fallback are 0.2.6. The tag workflow builds final signed/notarized assets separately.

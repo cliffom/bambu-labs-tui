@@ -147,10 +147,14 @@ func (m Model) wait() tea.Cmd {
 func (m Model) Init() tea.Cmd { return tea.Batch(m.wait(), tick()) }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	previousView := m.viewPreferences()
 	result, cmd := m.update(msg)
 	result.pruneSnoozes()
 	result.syncDialogs()
 	result.syncNotifications()
+	if result.viewPreferences() != previousView {
+		result.configRevision++
+	}
 	cmd = tea.Batch(cmd, result.persist())
 	if result.quitting && !result.persistencePending() {
 		if result.reviewWrites.failed != 0 || result.snoozeWrites.failed != 0 || result.configWrites.failed != 0 {
@@ -249,6 +253,8 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			m.openExport()
 		case keyFilter:
 			m.printerFilter = (m.printerFilter + 1) % filterCount
+		case keyResetView:
+			m.printerFilter, m.printerSort = filterAll, sortName
 		case keySort:
 			m.printerSort = (m.printerSort + 1) % sortCount
 		case keyFault:
@@ -503,7 +509,7 @@ func (m Model) dashboardView(help bool) string {
 		foot = warning.Render(message)
 	}
 	if help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", ",              Configure general settings, alerts, and printer overrides", "N              Recent notification outcomes and suppression reasons", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "X              Clear all notices across the farm (confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
+		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "0              Reset view to All printers / Name sorting", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", ",              Configure general settings, alerts, and printer overrides", "N              Recent notification outcomes and suppression reasons", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "X              Clear all notices across the farm (confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
 )
 
@@ -53,6 +54,21 @@ const (
 	sortFinish
 	sortCount
 )
+
+var (
+	filterValues = [filterCount]config.ViewChoice{filterAll: config.FilterAll, filterAttention: config.FilterAttention, filterPrinting: config.FilterPrinting, filterUnavailable: config.FilterUnavailable}
+	sortValues   = [sortCount]config.ViewChoice{sortName: config.SortName, sortAttention: config.SortAttention, sortState: config.SortState, sortFinish: config.SortFinish}
+)
+
+func (m Model) viewPreferences() config.ViewPreferences {
+	return config.ViewPreferences{Filter: filterValues[m.printerFilter], Sort: sortValues[m.printerSort]}
+}
+
+func (m *Model) restoreView(preferences config.ViewPreferences) {
+	preferences = preferences.Normalized()
+	m.printerFilter = printerFilter(slices.Index(filterValues[:], preferences.Filter))
+	m.printerSort = printerSort(slices.Index(sortValues[:], preferences.Sort))
+}
 
 // selectedPrinterID stays usable even when discovery removes the selected printer.
 func (m Model) selectedPrinterID() string {
@@ -203,7 +219,7 @@ func (m *Model) selectPrinter(id string) bool {
 func (m Model) printerListStatus() string {
 	filters := [filterCount]string{filterAll: "All", filterAttention: "Attention", filterPrinting: "Printing", filterUnavailable: "Unavailable"}
 	sorts := [sortCount]string{sortName: "Name", sortAttention: "Attention", sortState: "State", sortFinish: "Finish"}
-	return fmt.Sprintf("Filter: %s (%d/%d) F · Sort: %s S", filters[m.printerFilter], len(m.printerIDs), len(m.Farm.Printers), sorts[m.printerSort])
+	return fmt.Sprintf("Filter: %s (%d/%d) F · Sort: %s S · 0 reset", filters[m.printerFilter], len(m.printerIDs), len(m.Farm.Printers), sorts[m.printerSort])
 }
 
 // overviewLines counts all printers independently of filtering; state counts are last reported.
@@ -226,7 +242,7 @@ func (m Model) overviewLines() []string {
 // emptyPrinterList distinguishes unmatched filters from discovery and empty accounts.
 func (m Model) emptyPrinterList() string {
 	if len(m.Farm.Printers) > 0 {
-		return "No printers match this filter. Press F to change it."
+		return "No printers match. 0 resets All / Name; F changes filter."
 	}
 	if m.printersDiscovered {
 		return "No printers found. Bind your printers to this Bambu account."

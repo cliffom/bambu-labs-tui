@@ -30,7 +30,7 @@ Press uppercase `F` from any dashboard panel to cycle:
 3. **Printing** — printers last reported as running, including those currently unavailable.
 4. **Unavailable** — disconnected, offline, waiting-for-data, or stale printers.
 
-The printer list always shows its active filter, visible/total count, sort, and `F` / `S` shortcuts, including at 60×18. The summary stays unfiltered. Empty results explicitly say that no printers match and show no selected printer details. Continue pressing `F` to change the filter; no reset of notices or reviews is needed.
+The printer list always shows its active filter, visible/total count, sort, and `F` / `S` shortcuts plus `0 reset`, including at 60×18. The summary stays unfiltered. Empty results explicitly say that no printers match and show no selected printer details. Press `0` to reset to All printers / Name sorting, or continue pressing `F` to change the filter; no reset of notices or reviews is needed.
 
 ## Sorting
 
@@ -55,6 +55,20 @@ The dashboard sections are labeled **Printers**, **Printer Details**, and **Noti
 
 Updates may reorder rows, but selection stays attached to the same printer ID while it still matches the filter. Printer details retain their scroll position when that identity stays selected, subject to normal viewport limits after resizing. Renaming a printer does not change its identity.
 
-If the selected printer is removed or stops matching, selection falls back to the nearest remaining row and details start at the top. An empty list has no selected printer. Panel focus is preserved, and regular `j/k`, arrows, and `g/G` or Home/End navigation operates on the visible list. Filter and sort choices last for this TUI session and reset to All / Name on restart.
+If the selected printer is removed or stops matching, selection falls back to the nearest remaining row and details start at the top. An empty list has no selected printer. Panel focus is preserved, and regular `j/k`, arrows, and `g/G` or Home/End navigation operates on the visible list. Filter and sort choices are saved and restored on restart as described below.
 
-An action-needed modal still opens for an eligible printer hidden by a filter. Its explicit `p` / Enter navigation resets an excluding filter to All so the requested printer can be selected; the chosen sort remains. Other dialogs keep their existing printer/notice identity and key handling.
+An action-needed modal still opens for an eligible printer hidden by a filter. Its explicit `p` / Enter navigation resets an excluding filter to All so the requested printer can be selected; the chosen sort remains. That All filter is saved too. Other dialogs keep their existing printer/notice identity and key handling.
+
+## Saved view preferences
+
+`F` and `S` save the selected filter and sort in the active TOML configuration (`--config` or the path printed by `--config-path`). Dashboard `0` resets both to **All / Name** and saves that choice; it works from any dashboard panel, including an empty filtered list. Dialogs keep their own key handling. Below 60×18, hidden view changes are blocked until the terminal is resized.
+
+```toml
+[view]
+filter = "all" # all, attention, printing, unavailable
+sort = "name" # name, attention, state, finish
+```
+
+Scope follows the configuration path, across accounts, regions, and demo sessions. Use a separate `--config` file for a separate view. Only the two view choices are saved: no selected printer, cached telemetry, notices, reviews, or snoozes. Missing, unsupported, and non-string choices fall back independently to All or Name. A fallback does not write the file on startup. Other malformed TOML or unknown configuration keys still report configuration errors.
+
+Saves run asynchronously through the same private atomic configuration writer as Config edits. Rapid changes coalesce into the latest complete snapshot; unrelated external settings survive, and an edited field wins a conflict. Successful writes are silent and normalize TOML/remove comments. Failures leave the current view active and show a persistent Config save warning; open `,` and press `r` to retry, or make another preference change. Ticks and navigation do not retry failed writes. Normal quit waits for pending writes and offers the existing exit/cancel choice after failure or timeout. Concurrent TUIs keep independent live views; the last successful save of an edited field governs the next launch.

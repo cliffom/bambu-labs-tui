@@ -34,6 +34,7 @@ const (
 	keyDiagnostics          = "D"
 	keyFilter               = "F"
 	keySort                 = "S"
+	keyResetView            = "0"
 	keyFault                = "f"
 	keyFilament             = "m"
 	keyAlerts               = "s"

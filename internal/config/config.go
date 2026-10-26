@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	View               ViewPreferences  `toml:"view"`
 	Region             string           `toml:"region"`
 	LowFilamentPercent int              `toml:"low_filament_percent"`
 	Alerts             AlertPreferences `toml:"alerts"`
@@ -24,7 +25,7 @@ func Path() (string, error) {
 }
 
 func Load(path string) (Config, error) {
-	c := Config{Region: RegionGlobal, LowFilamentPercent: defaultLowFilamentPercent, Alerts: DefaultAlerts()}
+	c := Config{Region: RegionGlobal, LowFilamentPercent: defaultLowFilamentPercent, Alerts: DefaultAlerts(), View: (ViewPreferences{}).Normalized()}
 	meta, err := toml.DecodeFile(path, &c)
 	if os.IsNotExist(err) {
 		return c, nil
@@ -35,6 +36,7 @@ func Load(path string) (Config, error) {
 	if len(meta.Undecoded()) != 0 {
 		return c, fmt.Errorf("unknown configuration key: %s", meta.Undecoded()[0])
 	}
+	c.View = c.View.Normalized()
 	return c, c.Validate()
 }
 

@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"sync"
+	"time"
 
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/notificationstate"
@@ -15,7 +17,7 @@ const workerQueueCapacity = 256
 
 type (
 	Ledger interface {
-		Observe(farm.NotificationSnapshot) ([]notificationstate.Candidate, error)
+		ObserveActivity(farm.NotificationSnapshot) (notificationstate.Observation, error)
 		ReserveBatch([]string) ([]string, error)
 		RecordResult(string, notificationstate.Attempt) error
 	}
@@ -33,6 +35,7 @@ type (
 		Revision, Accepted, Failed, Suppressed uint64
 		Last, Error                            string
 		Disabled, Pending                      bool
+		History                                []Activity
 	}
 	frame struct {
 		sequence uint64
@@ -44,27 +47,35 @@ type (
 		Sound bool   `json:"sound"`
 	}
 	Worker struct {
-		mu           sync.Mutex
-		latest       frame
-		status       Status
-		stopped      bool
-		working      bool
-		flight       []notificationstate.Candidate
-		flightSource Input
-		cancelFlight context.CancelFunc
-		queue        chan frame
-		done         chan struct{}
-		ctx          context.Context
-		cancel       context.CancelFunc
-		ledger       Ledger
-		send         func(context.Context, Message) error
-		suppressed   map[string]bool
+		mu                sync.Mutex
+		latest            frame
+		status            Status
+		stopped           bool
+		working           bool
+		flight            []notificationstate.Candidate
+		flightSource      Input
+		cancelFlight      context.CancelFunc
+		queue             chan frame
+		done              chan struct{}
+		ctx               context.Context
+		cancel            context.CancelFunc
+		ledger            Ledger
+		send              func(context.Context, Message) error
+		now               func() time.Time
+		activitySequence  uint64
+		requestSequence   uint64
+		activitySeen      map[string]string
+		activitySeenOrder []string
 	}
 )
 
 func NewWorker(ctx context.Context, ledger Ledger, send func(context.Context, Message) error) *Worker {
+	return newWorker(ctx, ledger, send, time.Now)
+}
+
+func newWorker(ctx context.Context, ledger Ledger, send func(context.Context, Message) error, now func() time.Time) *Worker {
 	ctx, cancel := context.WithCancel(ctx)
-	w := &Worker{ctx: ctx, cancel: cancel, ledger: ledger, send: send, queue: make(chan frame, workerQueueCapacity), done: make(chan struct{}), suppressed: map[string]bool{}}
+	w := &Worker{ctx: ctx, cancel: cancel, ledger: ledger, send: send, queue: make(chan frame, workerQueueCapacity), done: make(chan struct{}), now: now}
 	go w.run()
 	return w
 }
@@ -91,6 +102,7 @@ func (w *Worker) Submit(input Input) {
 		w.status.Error = "Desktop notifications paused: update queue full; restart to retry"
 		w.status.Last = w.status.Error
 		w.status.Revision++
+		w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomePaused, Reason: ReasonQueue}, "worker/queue")
 		w.cancel()
 	}
 }
@@ -101,6 +113,7 @@ func (w *Worker) Status() Status {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	status := w.status
+	status.History = slices.Clone(w.status.History)
 	status.Pending = w.working || (w.ctx.Err() == nil && len(w.queue) > 0)
 	return status
 }
@@ -108,13 +121,12 @@ func (w *Worker) Status() Status {
 func (w *Worker) report(message, problem string, accepted, failed, suppressed bool) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.status.Disabled {
-		return
-	}
-	w.status.Revision++
-	w.status.Last = message
-	if problem != "" || accepted {
-		w.status.Error = problem
+	if !w.status.Disabled {
+		w.status.Revision++
+		w.status.Last = message
+		if problem != "" || accepted {
+			w.status.Error = problem
+		}
 	}
 	if accepted {
 		w.status.Accepted++
@@ -127,11 +139,12 @@ func (w *Worker) report(message, problem string, accepted, failed, suppressed bo
 	}
 }
 
-func (w *Worker) disable(message string) {
+func (w *Worker) disable(message, reason string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.status.Disabled, w.status.Last, w.status.Error = true, message, message
 	w.status.Revision++
+	w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomePaused, Reason: reason}, "worker/"+reason)
 	w.cancel()
 }
 
@@ -162,12 +175,15 @@ func (w *Worker) run() {
 }
 
 func (w *Worker) process(input frame) bool {
-	candidates, err := w.ledger.Observe(input.Snapshot)
+	observation, err := w.ledger.ObserveActivity(input.Snapshot)
 	if err != nil {
-		w.disable("Desktop notifications paused: identity storage unavailable; restart to retry")
+		w.disable("Desktop notifications paused: "+ReasonText(storageReason(err)), storageReason(err))
 		return false
 	}
-	for _, group := range deliveryGroups(candidates) {
+	for _, decision := range observation.Suppressed {
+		w.recordSuppression(decision.Candidate, input.Input, decision.Reason)
+	}
+	for _, group := range deliveryGroups(observation.Candidates) {
 		if w.ctx.Err() != nil {
 			return false
 		}
@@ -182,7 +198,8 @@ func (w *Worker) process(input frame) bool {
 			if eligible(candidate, input.Input, current.Input) {
 				allowed = append(allowed, candidate)
 			} else {
-				w.reportSuppressed(candidate, current.Input)
+				reason := suppressionReason(candidate, current.Input)
+				w.recordSuppression(candidate, input.Input, reason)
 			}
 		}
 		if len(allowed) == 0 {
@@ -194,7 +211,7 @@ func (w *Worker) process(input frame) bool {
 		}
 		reserved, err := w.ledger.ReserveBatch(ids)
 		if err != nil {
-			w.disable("Desktop notifications paused: reservation failed; restart to retry")
+			w.disable("Desktop notifications paused: "+ReasonText(storageReason(err)), storageReason(err))
 			return false
 		}
 		claimed := map[string]bool{}
@@ -205,6 +222,8 @@ func (w *Worker) process(input frame) bool {
 		for _, candidate := range allowed {
 			if claimed[candidate.ID] {
 				group = append(group, candidate)
+			} else {
+				w.recordSuppression(candidate, input.Input, ReasonReservation)
 			}
 		}
 		if len(group) == 0 {
@@ -212,17 +231,26 @@ func (w *Worker) process(input frame) bool {
 		}
 		w.mu.Lock()
 		current = w.latest
-		valid := !w.stopped && w.ctx.Err() == nil
+		closing := w.stopped || w.ctx.Err() != nil
+		valid := !closing
 		for _, candidate := range group {
 			valid = valid && eligible(candidate, input.Input, current.Input)
 		}
 		if !valid {
 			w.mu.Unlock()
-			w.report("Desktop notification suppressed: state changed before delivery", "", false, false, true)
+			for _, candidate := range group {
+				reason := suppressionReason(candidate, current.Input)
+				if closing {
+					reason = ReasonClosing
+				}
+				w.recordSuppression(candidate, input.Input, reason)
+			}
 			continue
 		}
 		delivery, cancel := context.WithCancel(w.ctx)
 		w.flight, w.flightSource, w.cancelFlight = group, input.Input, cancel
+		w.requestSequence++
+		request := w.requestSequence
 		w.mu.Unlock()
 		first := group[0]
 		policy := current.Policies[first.PrinterID]
@@ -244,6 +272,11 @@ func (w *Worker) process(input frame) bool {
 		w.flight, w.cancelFlight = nil, nil
 		w.mu.Unlock()
 		if err != nil && (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || w.ctx.Err() != nil) {
+			reason := ReasonCanceled
+			if errors.Is(err, context.DeadlineExceeded) {
+				reason = ReasonTimeout
+			}
+			w.recordGroup(group, input.Input, OutcomeUnconfirmed, reason, request)
 			w.report("Desktop notification outcome unconfirmed", "Desktop notification outcome unconfirmed; attempt will not be retried", false, false, false)
 			continue
 		}
@@ -251,37 +284,21 @@ func (w *Worker) process(input frame) bool {
 		if err != nil {
 			outcome = notificationstate.Failed
 		}
+		if err != nil {
+			w.recordGroup(group, input.Input, OutcomeFailed, deliveryReason(err), request)
+			w.report("Desktop notification failed", "Desktop notification failed; run doctor --notify", false, true, false)
+		} else {
+			w.recordGroup(group, input.Input, OutcomeAccepted, ReasonAccepted, request)
+			w.report("Desktop notification accepted by macOS (display unconfirmed)", "", true, false, false)
+		}
 		for _, candidate := range group {
 			if saveErr := w.ledger.RecordResult(candidate.ID, outcome); saveErr != nil {
-				w.disable("Desktop notifications paused: outcome storage failed; restart to retry")
+				w.disable("Desktop notifications paused: outcome storage failed. "+ReasonText(storageReason(saveErr)), storageReason(saveErr))
 				return false
 			}
 		}
-		if err != nil {
-			w.report("Desktop notification failed", "Desktop notification failed; run doctor --notify", false, true, false)
-		} else {
-			w.report("Desktop notification accepted by macOS (display unconfirmed)", "", true, false, false)
-		}
 	}
 	return true
-}
-
-func (w *Worker) reportSuppressed(candidate notificationstate.Candidate, current Input) {
-	if w.suppressed[candidate.ID] {
-		return
-	}
-	if len(w.suppressed) >= workerQueueCapacity {
-		clear(w.suppressed)
-	}
-	w.suppressed[candidate.ID] = true
-	reason := "Desktop notification suppressed: preferences"
-	if current.Policies[candidate.PrinterID].Snoozed {
-		reason = "Desktop notification suppressed: snoozed"
-	}
-	if !current.Active {
-		reason = "Desktop notification suppressed: session closing"
-	}
-	w.report(reason, "", false, false, true)
 }
 
 // Group only co-reported intervention occurrences on the same printer. Keep

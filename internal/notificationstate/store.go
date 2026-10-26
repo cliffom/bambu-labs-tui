@@ -38,6 +38,14 @@ var (
 )
 
 type (
+	Observation struct {
+		Candidates []Candidate
+		Suppressed []Suppression
+	}
+	Suppression struct {
+		Candidate
+		Reason string
+	}
 	Store   struct{ Path string }
 	Kind    string
 	Attempt string
@@ -99,7 +107,14 @@ func New(region, username string) (Store, error) {
 // No delivery is performed. Missing/stale/disconnected telemetry preserves saved
 // identities. Reviews affect eligibility, never the occurrence identity.
 func (s Store) Observe(snapshot farm.NotificationSnapshot) ([]Candidate, error) {
-	var candidates []Candidate
+	result, err := s.ObserveActivity(snapshot)
+	return result.Candidates, err
+}
+
+// ObserveActivity records the same identities and returns bounded-source decision
+// metadata for this observation. Activity is never persisted in the ledger.
+func (s Store) ObserveActivity(snapshot farm.NotificationSnapshot) (Observation, error) {
+	var result Observation
 	err := s.transact(func(d *document) (bool, error) {
 		dirty := false
 		for _, id := range sortedKeys(snapshot) {
@@ -131,11 +146,23 @@ func (s Store) Observe(snapshot farm.NotificationSnapshot) ([]Candidate, error) 
 					old = incident{occurrence: o, Printer: printer, Family: value.Family, Signature: signature}
 					d.Incidents[key], dirty = old, true
 				}
+				candidate := Candidate{ID: old.ID, PrinterID: id, ConditionKey: condition, Kind: Intervention}
 				if value.Eligible && old.Attempt == Pending {
-					candidates = append(candidates, Candidate{ID: old.ID, PrinterID: id, ConditionKey: condition, Kind: Intervention})
+					result.Candidates = append(result.Candidates, candidate)
+				} else {
+					reason := attemptReason(old.Attempt)
+					if value.Reviewed {
+						reason = SuppressedReviewed
+					} else if !value.Eligible {
+						reason = SuppressedNotActionable
+					}
+					result.Suppressed = append(result.Suppressed, Suppression{Candidate: candidate, Reason: reason})
 				}
 			}
 			if p.Job.Task == "" && p.Job.Subtask == "" {
+				if p.Job.State == farm.StateFinished {
+					result.Suppressed = append(result.Suppressed, Suppression{Candidate: Candidate{ID: hashParts("unknown-job", id), PrinterID: id, Kind: Completion}, Reason: SuppressedJobIdentity})
+				}
 				continue // No trustworthy protocol identity; never guess from names/ETA.
 			}
 			key := hashParts(id, p.Job.Task, p.Job.Subtask)
@@ -170,15 +197,21 @@ func (s Store) Observe(snapshot farm.NotificationSnapshot) ([]Candidate, error) 
 				d.Jobs[key], dirty = next, true
 			}
 			if p.Job.State == farm.StateFinished && next.Completed && next.Active && !next.Closed && next.Attempt == Pending {
-				candidates = append(candidates, Candidate{ID: next.ID, PrinterID: id, Kind: Completion})
+				result.Candidates = append(result.Candidates, Candidate{ID: next.ID, PrinterID: id, Kind: Completion})
+			} else if p.Job.State == farm.StateFinished {
+				reason := attemptReason(next.Attempt)
+				if next.Closed || !next.Active {
+					reason = SuppressedBaseline
+				}
+				result.Suppressed = append(result.Suppressed, Suppression{Candidate: Candidate{ID: next.ID, PrinterID: id, Kind: Completion}, Reason: reason})
 			}
 		}
 		return dirty, nil
 	})
 	if err != nil {
-		return nil, err
+		return Observation{}, err
 	}
-	return candidates, nil
+	return result, nil
 }
 
 // Reserve commits an at-most-once attempt before the caller invokes the OS.

@@ -24,6 +24,24 @@ Successful saves are silent. Failed saves remain red with `r` retry guidance in 
 
 Select **Test Notification** and press `Space` / `Enter` to send one synthetic notification through the same branded helper as doctor. It uses the current global Notification sound setting and works even when Desktop notifications is off. This action does not change preferences, consume incident/job identities, or affect live delivery counts. Only one Config test runs at a time; the status bar shows Sending, accepted, or failed after the selected-option helper text. Accepted results appear in bright green, dim after four seconds, and disappear after seven seconds. On narrow screens, the helper text shortens to keep the result readable. Test failures remain red until another test. Acceptance does not confirm a visible banner or audible sound: check macOS Focus and notification settings if needed. On first use, allow macOS permission when prompted. Closing Config cancels a pending test; already accepted notifications may still appear. A failed test can be repeated explicitly; doctor provides detailed failure guidance.
 
+## Inspect notification activity
+
+Press `N` from the dashboard to open **Notification activity** for the entire TUI session. Use `↑` / `↓` or `j` / `k` to select a decision, `PgUp` / `PgDn` to page, `Home` / `g` to follow newest decisions, and `End` / `G` for the oldest retained decision. `N` / `Esc` closes the view. New decisions keep the selected row stable while browsing; if it expires from the retained history, selection moves to the oldest remaining row. Printer names are captured when decisions occur, so entries remain understandable after renaming or removal.
+
+The view retains the last **100 decision records in memory**, including decision times, printer, fault code or completion subject, macOS desktop channel, outcome, and reason. It starts empty on each launch. Repeated matching decisions update the retained row's last-observed time and count rather than adding rows; a change of reason creates a new record. Co-reported incidents retain separate rows with the same request number and group size. History eviction does not alter saved deduplication identities or cause another notification.
+
+| Outcome | Meaning |
+| --- | --- |
+| Accepted | macOS accepted the request; banner visibility and sound remain unconfirmed |
+| Failed | The sender returned a failure, such as denied permission or an unavailable helper |
+| Unconfirmed | Delivery was interrupted or timed out; whether macOS accepted it is unknown |
+| Suppressed | Delivery was withheld because of reviews, preferences, snoozing, deduplication, completion baselines/missing identity, or changed/unavailable telemetry |
+| Paused | Identity storage, capacity, or queue failure stopped the delivery worker; monitoring continues |
+
+Each selected row explains the applicable reason and recovery guidance. An already-reserved attempt may belong to this or another session; the view does not claim exclusive ownership. Failed and unconfirmed attempts have **no automatic retry**. Corrupt/busy storage and capacity exhaustion are distinguished; restarting does not free exhausted capacity. Activity cannot diagnose whether Focus hid an accepted banner. Quiet hours and grouping across separate reports are not implemented; co-reported intervention grouping is shown.
+
+Accepted/Failed counters count OS submission outcomes, while Suppressed counts newly recorded per-incident decision transitions, not telemetry reports. Counters cover the entire session and may exceed the retained 100 rows. History contains no credentials, raw telemetry, backend stderr, or raw protocol job IDs, and is never written to disk. Config tests and doctor are separate explicit probes, outside this live activity history. Before desktop opt-in the worker remains idle; the empty view explains disabled or unsupported delivery rather than creating identity files to populate a log.
+
 ## Configure automatic alerts
 
 Add these settings to the file printed by `bambu-tui --config-path`, or your custom `--config` file. Restart the TUI after editing. Existing configurations retain these defaults:

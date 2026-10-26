@@ -8,7 +8,7 @@ import (
 
 // TestModalQuitKeys requires leaving dialogs before global quit keys take effect.
 func TestModalQuitKeys(t *testing.T) {
-	for _, dialog := range []string{"attention", "diagnostics", "alerts", "filament", "decisions", "reset", "inspection", "confirmation", "help"} {
+	for _, dialog := range []string{"notification activity", "attention", "diagnostics", "alerts", "filament", "decisions", "reset", "inspection", "confirmation", "help"} {
 		t.Run(dialog, func(t *testing.T) {
 			m := demoModel()
 			switch dialog {
@@ -22,6 +22,8 @@ func TestModalQuitKeys(t *testing.T) {
 				m.decisions.confirmReset = dialog == "reset"
 			case "diagnostics":
 				m = key(m, "D")
+			case "notification activity":
+				m = key(m, "N")
 			case "alerts":
 				m = key(m, "s")
 			case "filament":

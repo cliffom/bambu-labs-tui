@@ -44,10 +44,12 @@ func hiddenState(m Model) hiddenInputState {
 }
 
 func TestUndersizedInterfaceBlocksHiddenActionsAndNavigation(t *testing.T) {
-	for _, dialog := range []string{"dashboard", "help", "inspector", "history", "decisions", "reset", "filament", "alerts", "nested alerts", "export", "attention"} {
+	for _, dialog := range []string{"notification activity", "dashboard", "help", "inspector", "history", "decisions", "reset", "filament", "alerts", "nested alerts", "export", "attention"} {
 		t.Run(dialog, func(t *testing.T) {
 			m := noticeModel(t)
 			switch dialog {
+			case "notification activity":
+				m = key(m, "N")
 			case "help":
 				m = key(m, "?")
 			case "inspector":
@@ -75,7 +77,7 @@ func TestUndersizedInterfaceBlocksHiddenActionsAndNavigation(t *testing.T) {
 			original := hiddenState(m)
 			for _, size := range [][2]int{{59, 18}, {60, 17}, {40, 10}, {0, 0}} {
 				m = resizeModel(m, size[0], size[1])
-				for _, input := range []string{"j", "k", "tab", "?", "a", "c", "C", "n", "R", "y", "Y", "m", "s", "1", "2", "3", "u", "D", "enter", "r", "F", "S", "!", "o", "p"} {
+				for _, input := range []string{"j", "k", "N", "tab", "?", "a", "c", "C", "n", "R", "y", "Y", "m", "s", "1", "2", "3", "u", "D", "enter", "r", "F", "S", "!", "o", "p"} {
 					next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(input)})
 					m = next.(Model)
 					if cmd != nil || !reflect.DeepEqual(hiddenState(m), original) {

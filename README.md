@@ -86,6 +86,7 @@ Use arrows or `j` / `k` to select a printer, `Tab` to switch panels, and `?` for
 | `a` / `c` | Acknowledge / dismiss a notice locally |
 | `n` | Manage saved notice decisions |
 | `s` | View alert preferences and snooze/resume controls |
+| `N` | Inspect recent notification outcomes and suppression reasons |
 | `,` | Edit general settings, global alerts, and printer overrides |
 | `D` | Preview and confirm a local diagnostic export |
 | `Esc` | Close a dialog |

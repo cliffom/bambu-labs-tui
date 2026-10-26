@@ -18,7 +18,7 @@ You need macOS or Linux and a terminal of at least **60 columns × 18 rows**. To
 
 ### 1. Install
 
-**Desktop notifications are unreleased.** The latest published release, v0.1.15, provides terminal monitoring only. The notification setup below applies to builds containing the new macOS helper.
+**Desktop notifications require v0.2.0 or newer.** Earlier releases provide terminal monitoring only.
 
 Download your archive and the checksums file from the [latest release](https://github.com/cliffom/bambu-tui/releases/latest):
 

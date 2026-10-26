@@ -4,6 +4,12 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## v0.2.0 release preparation
+
+The release version and direct-Go-build fallback were updated to 0.2.0 on 2026-10-26 (PDT). The changelog was consolidated under a versioned release heading; README installation guidance now requires v0.2.0 or newer for notifications. The roadmap distinguishes implemented notification features from remaining ownership/activity, per-printer UI, quiet-hours, and platform/hardware validation work. No tag or release was created during preparation.
+
+Local formatting, pinned Go/action/Make lint, vulnerability scanning, race tests, vet, native build, and docs checks passed. The CLI reported 0.2.0. Default candidate packaging produced all four v0.2.0 archives with matching helper version metadata and passed archive inventory/docs checks plus the release-tooling tests. Signed/notarized v0.2.0 hosted-runner verification is pending; the earlier successful v0.1.15 development runs below do not establish this version's packaging result. Native notification banner/audio delivery has not been revalidated during this version-only preparation; existing limitations remain open.
+
 ## Unreleased — GitHub Actions release signing
 
 The release workflow now requires repository signing/notarization secrets for trusted version-tag pushes and manual dispatch. Ordinary PR/main CI continues using ad-hoc candidates without signing secrets. The macOS job tests before importing credentials, creates a private temporary certificate file and an isolated Keychain, validates the imported identity, stores its notarization profile in the same Keychain, and uses explicit Keychain lookup for submission/log retrieval. An always-run cleanup restores the search list and removes the Keychain; the decoded certificate is removed immediately after setup. Raw tool output/argv containing secrets are not logged, and artifact paths exclude credential files and authentication stderr. Manual dispatch skips draft publication.

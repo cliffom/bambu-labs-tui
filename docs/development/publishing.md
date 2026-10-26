@@ -6,7 +6,7 @@ Run these commands from the repository root on macOS with Xcode Command Line Too
 
 ## Prepare a release
 
-For the first notification-enabled release, remove the README's unreleased-notifications notice when publishing it. The README's download and source-build instructions must match the files included in that release.
+The README's download and source-build instructions must match the release version and bundled files, including the macOS notification helper.
 
 Update `VERSION` and the default version in `internal/buildinfo/buildinfo.go` to a new, unused release version. Update [docs/CHANGELOG.md](../CHANGELOG.md) and any affected user guides, then run the appropriate checks:
 

@@ -1,25 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — macOS desktop notifications
 
-- Sign and notarize tag/manual release builds using repository secrets and a temporary runner Keychain, with credential cleanup and no unsigned fallback. Manual runs verify artifacts without creating a draft release; ordinary PR CI uses no signing credentials.
+- Add opt-in macOS desktop notifications for intervention-required incidents and telemetry-confirmed print completion while the TUI session is running. Show the triggering printer name and Bambu TUI logo, and group co-reported intervention notices into one notification per printer.
+- Add Config (`,`) with immediate desktop notification, sound, and completion toggles saved to the active configuration file. Preserve printer overrides and unrelated settings; save silently and show persistent red failures with retry controls.
+- Add Test Notification in Config and `doctor --notify [--sound]` for explicit, repeatable tests without an account or printer. Request macOS permission explicitly and show delivery acceptance separately from visible banners or sound. Config test feedback appears after helper text, dims, and expires.
+- Honor global/per-printer categories, saved notice reviews, and snoozes. Persist account-scoped incident/job identities and delivery reservations to avoid repeat attempts after reconnect or restart; unknown telemetry preserves identity and ambiguous job IDs suppress completion.
+- Keep monitoring responsive with delivery outside the UI reducer, current-policy checks, cancellation of stale requests, and bounded shutdown. Show delivery failures and session activity; no background service or future notification schedule is installed.
+- Include a universal notification helper in macOS release archives. Developer ID-sign and notarize both macOS CLIs and the helper, staple the helper ticket, and verify extracted archives. Source checkouts build the helper separately with `make notify-helper`; local development and ordinary PR/main CI use ad-hoc candidates.
+- Sign and notarize tag/manual release builds using repository secrets and a temporary runner Keychain, with credential cleanup and no unsigned fallback. Manual runs produce verified artifacts without creating a release; version-tag runs prepare a draft for review. Forward `RUN_ARGS` through `make demo` for synthetic testing with a custom config.
 
-- Add opt-in Developer ID release signing for both macOS CLIs and the universal helper, plus Keychain-profile notarization, helper ticket stapling, and extracted-archive verification. Local development and ordinary PR/main CI retain ad-hoc candidate builds.
-
-- Add a selectable Test Notification action to Config, with current sound preference, explicit permission prompting, asynchronous results, duplicate-test prevention, and cancellation on close.
-
-- Add a separate Config modal (`,`) for immediate global desktop notification, sound, and completion toggles, with asynchronous saving to the active config file, explicit save-failure retry, and shutdown protection. Preserve printer overrides.
-
-- Show the triggering printer name in desktop notification titles, with an explicit Demo prefix for synthetic sessions. Keep the name in the body and bound/sanitize both text fields.
-
-- Group co-reported intervention notices per printer into one desktop notification so HMS, print-error, and paused-state banners do not immediately crowd one another out. Reserve all included identities atomically; keep reviews, other printers, and completion notifications separate.
-
-- Add opt-in live macOS desktop notifications with independent global/per-printer desktop, sound, and completion settings; reuse incident categories, reviews, snoozes, and persisted identities. Serialize delivery off the reducer, cancel stale/in-flight work and shutdown, report failures/session activity, and support explicitly labelled demo notifications without account storage.
-
-- Add a conservative notification identity foundation with account-scoped atomic persistence, cross-process delivery reservations, incident recurrence, and telemetry-confirmed job completion. Unknown telemetry preserves identity, ambiguous job IDs suppress completion, and failed/unknown attempts remain distinct from native acceptance. Live integration is opt-in.
-
-- Add `doctor --notify` on macOS for a synthetic desktop notification test, with optional `--sound`, bounded command execution, and explicit delivery limitations. The probe uses the adjacent branded helper, reports missing-helper and permission failures, and requires no account or printer; desktop delivery remains opt-in.
-- Bundle a universal macOS notification helper with the Bambu TUI logo and independent permission identity. Doctor registers the adjacent helper automatically. Build release candidates on macOS and verify helper inventory, metadata, architectures, and extracted signatures.
+Desktop notifications require a local macOS desktop and an active TUI session. Linux cloud monitoring remains supported; Linux, SSH, and headless desktop notification delivery are unsupported. See the [validation record](development/validation.md) for observed results and remaining clean-Mac, Intel-runtime, and real-printer checks.
 
 ## 0.1.15 — Clearer footer navigation
 

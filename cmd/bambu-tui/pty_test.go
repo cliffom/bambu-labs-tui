@@ -110,6 +110,11 @@ func (m ptyPanicModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func startPTYChild(t *testing.T, mode string) *ptyChild {
 	t.Helper()
+	return startPTYChildWithConfig(t, mode, "")
+}
+
+func startPTYChildWithConfig(t *testing.T, mode, configPath string) *ptyChild {
+	t.Helper()
 	master, slave, err := pty.Open()
 	if err != nil {
 		t.Fatal(err)
@@ -174,12 +179,17 @@ func startPTYChild(t *testing.T, mode string) *ptyChild {
 	if err = pty.Setsize(master, &pty.Winsize{Rows: 40, Cols: 120}); err != nil {
 		t.Fatal(err)
 	}
-	configPath := filepath.Join(t.TempDir(), "config.toml")
+	newConfig := configPath == ""
+	if newConfig {
+		configPath = filepath.Join(t.TempDir(), "config.toml")
+	}
 	child.configPath = configPath
 	// The real demo reports on a timer. Disable automatic interruptions so test
 	// semantics do not depend on whether a slow CI host reaches the runout step.
-	if err = os.WriteFile(configPath, []byte("[alerts]\nautomatic_modals = false\n"), 0o600); err != nil {
-		t.Fatal(err)
+	if newConfig {
+		if err = os.WriteFile(configPath, []byte("[alerts]\nautomatic_modals = false\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 	executable, err := os.Executable()
 	if err != nil {
@@ -502,4 +512,34 @@ func TestPTYRecoveredPanicRestoresTerminalAndFails(t *testing.T) {
 	child.send(t, "\x07")
 	child.exited(t, 1)
 	child.expect(t, 0, "program experienced a panic")
+}
+
+func TestPTYFarmViewRestartAndReset(t *testing.T) {
+	child := startPTYChild(t, "demo")
+	child.expect(t, 0, "Gridfinity baseplate")
+	mark := child.send(t, "F")
+	child.expect(t, mark, "Filter: Attention")
+	child.expect(t, mark, "No printers match")
+	mark = child.send(t, "S")
+	child.expect(t, mark, "Sort: Attention")
+	child.send(t, "q")
+	child.exited(t, 0)
+	cfg, err := config.Load(child.configPath)
+	if err != nil || cfg.View != (config.ViewPreferences{Filter: config.FilterAttention, Sort: config.SortAttention}) {
+		t.Fatal(cfg, err)
+	}
+	restarted := startPTYChildWithConfig(t, "demo", child.configPath)
+	restarted.expect(t, 0, "No printers match")
+	restarted.expect(t, 0, "Sort: Attention")
+	mark = restarted.resize(t, 60, 18)
+	restarted.expect(t, mark, "0 resets All / Name")
+	mark = restarted.send(t, "0")
+	restarted.expect(t, mark, "Sort: Name")
+	restarted.expect(t, mark, "Printer Name:    H2D")
+	restarted.send(t, "q")
+	restarted.exited(t, 0)
+	cfg, err = config.Load(child.configPath)
+	if err != nil || cfg.View != (config.ViewPreferences{Filter: config.FilterAll, Sort: config.SortName}) {
+		t.Fatal(cfg, err)
+	}
 }

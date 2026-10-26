@@ -77,7 +77,7 @@ func TestUndersizedInterfaceBlocksHiddenActionsAndNavigation(t *testing.T) {
 			original := hiddenState(m)
 			for _, size := range [][2]int{{59, 18}, {60, 17}, {40, 10}, {0, 0}} {
 				m = resizeModel(m, size[0], size[1])
-				for _, input := range []string{"j", "k", "N", "tab", "?", "a", "c", "C", "n", "R", "y", "Y", "m", "s", "1", "2", "3", "u", "D", "enter", "r", "F", "S", "!", "o", "p"} {
+				for _, input := range []string{"j", "k", "N", "tab", "?", "a", "c", "C", "n", "R", "y", "Y", "m", "s", "1", "2", "3", "u", "D", "enter", "r", "F", "S", "0", "!", "o", "p"} {
 					next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(input)})
 					m = next.(Model)
 					if cmd != nil || !reflect.DeepEqual(hiddenState(m), original) {

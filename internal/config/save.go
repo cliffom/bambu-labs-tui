@@ -12,6 +12,7 @@ import (
 // successful snapshot. Unrelated external edits survive; edited fields win.
 // Callers serialize writes outside the UI reducer. Encoding removes comments.
 func SaveChanges(path string, before, after Config) error {
+	before.View, after.View = before.View.Normalized(), after.View.Normalized()
 	if err := after.Validate(); err != nil {
 		return err
 	}
@@ -24,6 +25,12 @@ func SaveChanges(path string, before, after Config) error {
 	}
 	if before.LowFilamentPercent != after.LowFilamentPercent {
 		cfg.LowFilamentPercent = after.LowFilamentPercent
+	}
+	if before.View.Filter != after.View.Filter {
+		cfg.View.Filter = after.View.Filter
+	}
+	if before.View.Sort != after.View.Sort {
+		cfg.View.Sort = after.View.Sort
 	}
 	for field := range AlertFieldCount {
 		if before.Alerts.Value(field) != after.Alerts.Value(field) {

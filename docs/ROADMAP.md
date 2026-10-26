@@ -51,7 +51,7 @@ macOS release archives include the universal helper beside the CLI. Tag/manual r
 
 Notifications apply only while the TUI session is running. Quitting ends monitoring and notification delivery; v0.2.x does not introduce a background service. Persisted occurrence/job identity still prevents duplicate delivery when the TUI restarts.
 
-The release gate is configurable, testable, deduplicated macOS desktop notifications with visible failure/suppression outcomes and verified shutdown of monitoring and delivery when the TUI exits. Saved reviews and snoozing must remain consistent with delivery. [Remembering farm filters/sorting (#24)](https://github.com/cliffom/bambu-tui/issues/24) is optional milestone polish, not a notification release blocker.
+The release gate is configurable, testable, deduplicated macOS desktop notifications with visible failure/suppression outcomes and verified shutdown of monitoring and delivery when the TUI exits. Saved reviews and snoozing must remain consistent with delivery. [Saved farm views (#24)](https://github.com/cliffom/bambu-tui/issues/24) restore the last filter/sort from the active configuration, with safe per-field fallbacks and a dashboard `0` reset to All / Name. View changes reuse asynchronous configuration saves without persisting telemetry or changing reviews/snoozes.
 
 ## v0.3.0 — LAN monitoring
 

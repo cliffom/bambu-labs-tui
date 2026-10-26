@@ -69,7 +69,8 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 | `Enter` | View the selected notice; `Esc` or `Enter` returns |
 | `f` | Open the selected printer's first active fault |
 | `D` | Preview and confirm a local allowlisted diagnostic export |
-| `F` / `S` | Cycle the printer filter / sort without changing panel focus |
+| `F` / `S` | Cycle and save the printer filter / sort without changing panel focus |
+| `0` | Reset and save All printers / Name sorting from the dashboard |
 | `m` | Open the selected printer's AMS/filament browser |
 | `s` | View effective printer alert settings and snooze/resume controls |
 | `N` | Inspect notification activity, ownership, and paused-worker recovery |
@@ -96,7 +97,7 @@ Press `D` on the dashboard to preview a local JSON export for the selected print
 
 ### Farm view
 
-The summary counts the whole farm. `F` cycles All, Attention, Printing, and Unavailable; `S` cycles Name, Attention, State, and Finish. Active settings and visible/total counts stay above the printer list. Selection follows printer identity through live sorting, and filtered-out/removed printers fall back to another visible row. Missing/stale ETAs sort after live estimates. These view settings last for the session; they do not alter notices, review decisions, or alert eligibility. See the [farm view guide](farm-view.md) for exact definitions and navigation behavior.
+The summary counts the whole farm. `F` cycles All, Attention, Printing, and Unavailable; `S` cycles Name, Attention, State, and Finish. Active settings and visible/total counts stay above the printer list. Selection follows printer identity through live sorting, and filtered-out/removed printers fall back to another visible row. Missing/stale ETAs sort after live estimates. These view settings are saved in the active configuration and restored on restart. Press `0` to reset All / Name, including from an empty filtered view. They do not alter notices, review decisions, or alert eligibility. See the [farm view guide](farm-view.md) for exact definitions and navigation behavior.
 
 ### AMS and filament
 

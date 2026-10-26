@@ -57,6 +57,7 @@ var configOptions = [...]configOption{
 func (m Model) WithConfiguration(cfg config.Config) Model {
 	cfg = cfg.Clone()
 	m.configRegion, m.activeRegion = cfg.Region, cfg.Region
+	m.restoreView(cfg.View)
 	m.alertPrefs = cfg.Alerts
 	m.Farm.LowFilament = cfg.LowFilamentPercent
 	m.syncPanels()
@@ -69,7 +70,7 @@ func (m Model) WithConfigPersistence(path string, save func(config.Config) error
 }
 
 func (m Model) configuration() config.Config {
-	return config.Config{Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
+	return config.Config{View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
 }
 
 func (m Model) configPrinterIDs() []string {

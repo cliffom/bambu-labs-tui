@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.4 — Consolidated license notices
 
 - Consolidate Go and dependency license notices into one attributed `THIRD_PARTY_NOTICES.txt` in binary archives, replacing the nested `third_party/` tree while preserving all notice text.
 

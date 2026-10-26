@@ -23,6 +23,7 @@ var (
 	warning  = lipgloss.NewStyle().Foreground(lipgloss.Color(warningColor))
 	danger   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF8087"))
 	selected = lipgloss.NewStyle().Background(lipgloss.Color("#263B36")).Foreground(lipgloss.Color("#D9F5E4"))
+	footer   = lipgloss.NewStyle().Background(lipgloss.Color(footerBackgroundColor)).Foreground(lipgloss.Color("#B8C2CE"))
 )
 
 type (
@@ -445,15 +446,15 @@ func (m Model) dashboardView(help bool) string {
 	} else {
 		lines = append(lines, m.section("PRINTER DETAILS", m.focus == panelDetails, left), m.details.View(), m.section("NOTICES", m.focus == panelNotices, right), m.notices.View())
 	}
-	foot := muted.Render("j/k select  tab panel  m AMS  n reviews  s alerts  D export  ? help  q quit")
+	foot := footerHints("↑/↓ select  tab panel  m AMS  n reviews  s alerts  D export  ? help  q quit")
 	if m.focus == panelDetails {
-		foot = muted.Render("↑/↓ scroll  m filament  n decisions  s alerts  q quit")
+		foot = footerHints("↑/↓ scroll  m filament  n decisions  s alerts  q quit")
 	}
 	if m.focus == panelNotices {
-		foot = muted.Render("j/k select  enter view  a ack  c clear  X clear all  n decisions  s alerts")
+		foot = footerHints("↑/↓ select  enter view  a ack  c clear  X clear all  n decisions  s alerts")
 	}
 	if m.width < compactTableWidth {
-		foot = muted.Render("j/k move  tab  m AMS  n reviews  s alerts  D diag  ?  q quit")
+		foot = footerHints("↑/↓  tab  m AMS  n reviews  s alerts  D diag  ?  q quit")
 	}
 	if m.toast != "" {
 		foot = warning.Render(safe(m.toast))
@@ -472,8 +473,29 @@ func (m Model) dashboardView(help bool) string {
 	for len(rows) < m.height-1 {
 		rows = append(rows, "")
 	}
-	rows = append(rows, foot)
+	rows = append(rows, m.footerRow(foot))
 	return fit(strings.Join(rows, "\n"), m.width, m.height)
+}
+
+// footerHints emphasizes the key at the start of each double-space-separated hint.
+func footerHints(text string) string {
+	hints := strings.Split(text, "  ")
+	for i, hint := range hints {
+		key, label, hasLabel := strings.Cut(hint, " ")
+		hints[i] = footer.Foreground(lipgloss.Color("#E4E9F0")).Bold(true).Render(key)
+		if hasLabel {
+			hints[i] += footer.Render(" " + label)
+		}
+	}
+	return strings.Join(hints, footer.Render("  "))
+}
+
+func (m Model) footerRow(text string) string {
+	width := max(0, m.width)
+	if width < 2 {
+		return footer.Width(width).Render("")
+	}
+	return footer.Width(width).Padding(0, 1).Render(ansi.Truncate(text, width-2, ""))
 }
 
 func fit(s string, w, h int) string {

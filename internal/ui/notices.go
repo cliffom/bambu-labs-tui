@@ -338,7 +338,7 @@ func (m Model) fullView(lines []string, footer string) string {
 	for len(rows) < m.height-1 {
 		rows = append(rows, "")
 	}
-	rows = append(rows, muted.Render(footer))
+	rows = append(rows, m.footerRow(footer))
 	return fit(strings.Join(rows, "\n"), m.width, m.height)
 }
 

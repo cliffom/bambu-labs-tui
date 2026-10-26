@@ -91,7 +91,7 @@ func TestNestedAlertReturnAndSuspendedAttentionSync(t *testing.T) {
 			}
 			next, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 			m = next.(Model)
-			if m.attention.view.Width != 72 || m.alertDialog.view.Width != 78 {
+			if m.attention.view.Width != 80 || m.alertDialog.view.Width != 78 {
 				t.Fatal("resize did not synchronize owner and suspended parent")
 			}
 			// Resolution while suspended must be reflected when returning to the prompt.

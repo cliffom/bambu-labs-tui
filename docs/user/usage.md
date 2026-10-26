@@ -143,6 +143,8 @@ An **Action needed** modal automatically opens for verified runout, feed/retract
 
 Reports are collected for two seconds and grouped by printer. `Tab` / `Shift+Tab` switches printers; arrows or page keys scroll. `Enter` opens a notice, `p` selects printer details, and `o` opens a displayed HMS troubleshooting link. `a` acknowledges only that printer's displayed notices; `c` dismisses them locally. `Esc` closes the entire queued prompt without acknowledging anything, restoring your previous dashboard focus. Those occurrences do not automatically prompt again during this session; `!` reopens eligible unreviewed alerts.
 
+Each independent notice emphasizes its fault and next intervention, with its first app-observed timestamp (local timezone/UTC offset) and a live relative age. This is observation time, not a printer-side start time or desktop delivery time. Codes and review status remain visible; full troubleshooting URLs are available in the notice inspector.
+
 Existing inspectors, confirmations, help, and the AMS/filament browser finish before an alert opens. Telemetry continues, and a resolved condition is marked in the open modal. Saved acknowledgements/dismissals suppress corresponding startup alerts. A different fault or an observed resolved-and-recurring occurrence remains eligible. Distinct codes arriving after a dialog was closed can prompt again because telemetry does not always identify which reports belong to one incident. Underlying notices remain independent. See [alert behavior](action-needed.md) for details.
 
 To preview the modal without a printer, run `make demo`: the X2D simulates runout about 15 seconds after launch and recovers about nine seconds later. Demo decisions are never persisted.

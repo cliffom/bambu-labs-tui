@@ -27,9 +27,9 @@ func attentionTick(m Model) Model {
 // attentionText reads all modal content without depending on scroll position.
 func attentionText(m Model) string {
 	view := m.attention.view
-	view.Height = 200
+	view.Height = max(1, view.TotalLineCount())
 	view.GotoTop()
-	return ansi.Strip(view.View())
+	return strings.Join(strings.Fields(ansi.Strip(view.View())), " ")
 }
 
 // TestAttentionBatchCloseAndRecurrence checks modal presentation and session suppression.
@@ -45,7 +45,7 @@ func TestAttentionBatchCloseAndRecurrence(t *testing.T) {
 		t.Fatal("state and fault reports were not grouped")
 	}
 	view := ansi.Strip(m.View())
-	for _, text := range []string{"ACTION NEEDED", "H2D", "Paused", "filament runout", "0700_2000_0002_0001", "wiki.bambulab.com", "does not resolve"} {
+	for _, text := range []string{"ACTION NEEDED", "H2D", "Paused", "filament runout", "0700_2000_0002_0001", "HMS troubleshooting", "does not resolve"} {
 		if !strings.Contains(view+attentionText(m), text) {
 			t.Fatalf("modal lacks %q", text)
 		}
@@ -246,5 +246,122 @@ func TestAttentionResizeAndPauseExplanation(t *testing.T) {
 	m = attentionReport(t, m, "H", `{"print":{"print_error":50364435}}`)
 	if !strings.Contains(attentionText(m), "No longer requires an alert") {
 		t.Fatal("explicit user-pause explanation did not update the open alert")
+	}
+}
+
+func TestObservationTime(t *testing.T) {
+	since := time.Date(2026, 10, 26, 21, 32, 5, 0, time.UTC)
+	for _, tc := range []struct {
+		elapsed time.Duration
+		age     string
+	}{
+		{0, "just now"},
+		{59 * time.Second, "just now"},
+		{time.Minute, "1 minute ago"},
+		{2 * time.Minute, "2 minutes ago"},
+		{time.Hour - time.Second, "59 minutes ago"},
+		{time.Hour, "1 hour ago"},
+		{3 * time.Hour, "3 hours ago"},
+		{24*time.Hour - time.Second, "23 hours ago"},
+		{24 * time.Hour, "1 day ago"},
+		{48 * time.Hour, "2 days ago"},
+		{-time.Second, "clock skew; observation is in the future"},
+	} {
+		t.Run(tc.age, func(t *testing.T) {
+			got := observationTime(since, since.Add(tc.elapsed))
+			want := "First observed: " + since.Local().Format("2006-01-02 15:04:05 MST (Z07:00)") + " (" + tc.age + ")"
+			if got != want {
+				t.Fatalf("got %q, want %q", got, want)
+			}
+		})
+	}
+	if got := observationTime(time.Time{}, since); got != "First observed: unavailable" {
+		t.Fatal(got)
+	}
+}
+
+func TestAttentionTimeUpdatesPreservePositionAndLifetime(t *testing.T) {
+	m := attentionTick(attentionReport(t, demoModel(), "H", runoutReport))
+	m = attentionReport(t, m, "X", runoutReport)
+	m.width, m.height = 60, 18
+	m.syncAttentionView()
+	items := append([]farm.Attention(nil), m.attention.groups[0].items...)
+	m.attention.view.SetYOffset(5)
+	focus, selection := m.focus, m.selection
+	m = persistenceUpdate(m, tickMsg(m.now.Add(time.Minute)))
+	if m.attention.index != 0 || m.attention.view.YOffset != 5 || m.focus != focus || m.selection != selection {
+		t.Fatal("age update moved selection, focus, or scroll")
+	}
+	if !strings.Contains(attentionText(m), "1 minute ago") {
+		t.Fatalf("open modal age did not advance: now=%s since=%s text=%s", m.now, items[0].Since, attentionText(m))
+	}
+	m = attentionReport(t, m, "H", runoutReport)
+	if m.attention.view.YOffset != 5 {
+		t.Fatal("telemetry moved scroll")
+	}
+	m = persistenceUpdate(m, tickMsg(m.now.Add(3*time.Minute)))
+	if !strings.Contains(attentionText(m), "Stale") {
+		t.Fatal("elapsed time lost stale connection label")
+	}
+	m = persistenceUpdate(m, monitor.Event{Kind: monitor.EventConnection, Connected: false, At: m.now})
+	if !strings.Contains(attentionText(m), "Cloud disconnected") {
+		t.Fatal("connection loss was not labelled")
+	}
+	m = persistenceUpdate(m, monitor.Event{Kind: monitor.EventConnection, Connected: true, At: m.now})
+	m = key(m, "esc")
+	m = key(m, "!")
+	for i, item := range m.attention.groups[0].items {
+		if !item.Since.Equal(items[i].Since) {
+			t.Fatal("report/reconnect/reopen reset occurrence time")
+		}
+	}
+	m = persistenceUpdate(m, tickMsg(m.now.Add(time.Minute)))
+	m = attentionReport(t, m, "H", `{"print":{"gcode_state":"RUNNING","print_error":0,"hms":[]}}`)
+	m = attentionReport(t, m, "H", runoutReport)
+	group := m.attention.groups[0]
+	if len(group.items) != 2*len(items) || !strings.Contains(attentionText(m), "Replaced by a new occurrence") {
+		t.Fatal("recurrence lost previous occurrence or replacement label")
+	}
+	for _, item := range group.items[len(items):] {
+		if !item.Since.After(items[0].Since) {
+			t.Fatal("recurrence retained old observation time")
+		}
+	}
+}
+
+func TestAttentionHierarchyAndLongContent(t *testing.T) {
+	for _, size := range [][2]int{{60, 18}, {120, 32}} {
+		m := attentionTick(attentionReport(t, demoModel(), "H", runoutReport))
+		m.width, m.height = size[0], size[1]
+		group := &m.attention.groups[0]
+		for i, item := range group.items {
+			c := m.Farm.Active[item.Key]
+			c.Text = strings.Repeat("Long reported fault description ", 12) + " [" + item.Code + "]"
+			m.Farm.Active[item.Key] = c
+			group.items[i].Guidance = strings.Repeat("Inspect the filament path. ", 8)
+		}
+		m.syncAttentionView()
+		text := attentionText(m)
+		for _, item := range group.items {
+			if item.Code != "" && strings.Count(text, item.Code) != 1 {
+				t.Fatalf("code %s was duplicated or missing", item.Code)
+			}
+		}
+		if strings.Count(text, "First observed:") != len(group.items) || !strings.Contains(text, "Next:") {
+			t.Fatal("independent times or intervention missing")
+		}
+		view := strings.Split(ansi.Strip(m.View()), "\n")
+		for _, label := range []string{"a acknowledge", "c hide", "s snooze", "Esc close"} {
+			if !strings.Contains(view[len(view)-1], label) {
+				t.Fatalf("footer lost %q at %v", label, size)
+			}
+		}
+		m.attention.view.GotoBottom()
+		if !strings.Contains(ansi.Strip(m.View()), group.name) {
+			t.Fatal("scroll hid the active printer")
+		}
+		if !strings.Contains(ansi.Strip(m.View()), "printer controls") {
+			t.Fatal("local action explanation is inaccessible")
+		}
 	}
 }

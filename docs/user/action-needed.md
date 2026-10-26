@@ -32,6 +32,14 @@ Help, notice inspectors, the AMS/filament browser, the notice decisions view, pr
 
 Closing or navigating away suppresses automatic re-prompting for the dialog's occurrences during the current session. It does not persist an acknowledgement. `!` from the dashboard explicitly reopens eligible unreviewed alerts. Acknowledgement and dismissal queue background saves to account/region-scoped storage; storage failures remain visible.
 
+## Reading an alert
+
+The dialog emphasizes the printer, reported state/current connection, and each independent fault summary. Suggested physical intervention appears directly below its fault as **Next**. Review status and the single code line are secondary text. `o` opens the first displayed HMS troubleshooting link; `Enter` opens a current notice with its full, copyable URL. Printer details and Notices provide access to other notices individually. The single-row footer keeps acknowledgement, hide, snooze, and close visible; notice/printer/browser navigation stays below the heading.
+
+Each occurrence shows **First observed** with an absolute local timestamp, timezone and UTC offset, and a relative age (just now, minutes, hours, or days). Ages update while the dialog remains open without moving focus or scroll. This is when the app first observed that occurrence, not a confirmed printer-side fault start or desktop delivery time. Unavailable timestamps say unavailable; a future timestamp explicitly reports clock skew rather than a negative age. Elapsed time never establishes resolution.
+
+Routine reports, reopening, and reconnects preserve an ongoing occurrence's time. Saved reviews restore their existing observation time when matched by telemetry; unreviewed conditions first discovered after startup use that session's observation. Confirmed recurrence receives a new time. Every notice keeps its own timestamp even when grouped; an older occurrence remains labelled as replaced if its recurrence arrives while the dialog is open.
+
 ## Recurrence and startup
 
 Saved reviews are restored before telemetry arrives. Reviewed faults do not re-prompt through a separately reported paused state. Independent failed-state reviews remain meaningful. Each actual notice uses its key and first-seen timestamp as its occurrence identity; confirmed resolution and recurrence, another printer, or a different fault remain eligible for attention.

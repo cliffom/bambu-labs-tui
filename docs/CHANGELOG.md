@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.8 — Clearer action-needed alerts
+
+- Emphasize printer/state and independent fault summaries with intervention guidance directly below each fault. Move review status, codes, preferences, and version into secondary text; expose full troubleshooting URLs through the notice inspector and keep browser access with `o`. Use the shared single-row footer with explicit acknowledgement, hide, snooze, and close controls.
+- Show each occurrence’s first app-observed time with timezone/UTC offset and a live relative age. Preserve occurrence times, focus, and scroll through updates; label unavailable times, future observations, and replaced occurrences explicitly. Local reviews and elapsed time never establish physical resolution.
+
 ## 0.2.7 — Saved farm views
 
 - Save and restore the last farm filter and sort order in the active TOML configuration, across accounts/regions and demo sessions using that path. Use stable named values and fall back independently to All / Name for missing, unknown, or non-string choices. Startup restoration does not write the configuration.

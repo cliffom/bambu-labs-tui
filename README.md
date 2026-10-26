@@ -18,6 +18,8 @@ You need macOS or Linux and a terminal of at least **60 columns × 18 rows**. To
 
 ### 1. Install
 
+**Desktop notifications are unreleased.** The latest published release, v0.1.15, provides terminal monitoring only. The notification setup below applies to builds containing the new macOS helper.
+
 Download your archive and the checksums file from the [latest release](https://github.com/cliffom/bambu-tui/releases/latest):
 
 | Machine | Archive suffix |
@@ -38,7 +40,18 @@ tar -xzf "$archive"
 ./bambu-tui --version
 ```
 
-On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executable here or move it to a directory on your `PATH`. For macOS notification tests, keep the bundled `Bambu TUI Notify.app` beside it; see [notification setup and limitations](docs/user/alerts.md#desktop-notification-test-and-sound).
+On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executable here or move it to a directory on your `PATH`.
+
+**For macOS desktop notifications, use a signed release build.** Notification-enabled macOS release archives include both the CLI and a prebuilt, Developer ID-signed and notarized helper:
+
+```text
+bambu-tui
+Bambu TUI Notify.app/
+```
+
+Keep these together, including when moving the CLI to a directory on your `PATH`. No Go, Swift, Xcode, signing certificate, or Apple Developer membership is needed to run these prebuilt files. Ordinary PR CI artifacts are development candidates; the signed release workflow produces the notarized builds.
+
+Notifications are **off by default**. In a running dashboard, press `,` to open Config, select **Test Notification**, and allow macOS permission when prompted. Then enable **Desktop notifications** and optionally sound. Delivery requires a live TUI session on a local Mac; Linux desktop notifications are not supported. See [notification setup and troubleshooting](docs/user/alerts.md#live-desktop-notifications).
 
 ### 2. Try the demo
 
@@ -71,6 +84,7 @@ Use arrows or `j` / `k` to select a printer, `Tab` to switch panels, and `?` for
 | `a` / `c` | Acknowledge / dismiss a notice locally |
 | `n` | Manage saved notice decisions |
 | `s` | View alert preferences and snooze/resume controls |
+| `,` | Configure desktop notifications and send a test notification |
 | `D` | Preview and confirm a local diagnostic export |
 | `Esc` | Close a dialog |
 | `q` / `Ctrl+C` | Quit after closing dialogs |
@@ -89,7 +103,18 @@ make auth   # build and log in with an email code
 make run    # build and open your farm dashboard
 ```
 
-The executable is built at `bin/bambu-tui`. See [contributing](docs/development/contributing.md) for development setup, tests, formatting, and linting.
+The executable is built at `bin/bambu-tui`. **A fresh clone followed by `make run` builds the CLI only; desktop notifications also need the helper.** The repository contains the helper's Swift source, not a prebuilt app.
+
+On macOS, install Xcode Command Line Tools (for Swift) and **Python 3.10+**, then build the helper once before using notifications:
+
+```sh
+make notify-helper  # creates bin/Bambu TUI Notify.app
+make run
+```
+
+This locally built helper is **ad-hoc signed** and works without a signing certificate or Apple Developer membership. Use Config's **Test Notification** to grant permission, then enable desktop notifications. `make run` and `make demo` use the helper already beside `bin/bambu-tui`; they do not build or download it. Rebuild it with `make notify-helper` after updating its source. Farm monitoring works without the helper.
+
+See [contributing](docs/development/contributing.md) for development setup, tests, formatting, and linting.
 
 ## More information
 

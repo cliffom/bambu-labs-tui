@@ -155,6 +155,7 @@ func (m *Model) shutdownKey(key string, _ tea.Msg) tea.Cmd {
 		m.closeDialog()
 	case keyQuit, keyInterrupt:
 		if m.quitProblem {
+			m.stopNotifications()
 			return tea.Quit
 		}
 	}
@@ -163,7 +164,7 @@ func (m *Model) shutdownKey(key string, _ tea.Msg) tea.Cmd {
 
 func (m Model) shutdownView() string {
 	if m.quitting {
-		return fit("Saving notice decisions and snoozes before quitting (up to 5 seconds).\nEsc cancels quitting; saves continue in the background.", m.width, m.height)
+		return fit("Saving notices/snoozes and stopping notifications (up to 5 seconds).\nEsc cancels quitting; saves continue in the background.", m.width, m.height)
 	}
 	return fit("Storage failed or did not finish within 5 seconds; changes may be lost.\nPress q / Ctrl+C to exit anyway, or Esc to keep using the app.\n"+m.storageWarning(), m.width, m.height)
 }

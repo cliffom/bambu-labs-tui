@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Show the triggering printer name in desktop notification titles, with an explicit Demo prefix for synthetic sessions. Keep the name in the body and bound/sanitize both text fields.
+
+- Group co-reported intervention notices per printer into one desktop notification so HMS, print-error, and paused-state banners do not immediately crowd one another out. Reserve all included identities atomically; keep reviews, other printers, and completion notifications separate.
+
+- Add opt-in live macOS desktop notifications with independent global/per-printer desktop, sound, and completion settings; reuse incident categories, reviews, snoozes, and persisted identities. Serialize delivery off the reducer, cancel stale/in-flight work and shutdown, report failures/session activity, and support explicitly labelled demo notifications without account storage.
+
+- Add a conservative notification identity foundation with account-scoped atomic persistence, cross-process delivery reservations, incident recurrence, and telemetry-confirmed job completion. Unknown telemetry preserves identity, ambiguous job IDs suppress completion, and failed/unknown attempts remain distinct from native acceptance. Live integration is opt-in.
+
+- Add `doctor --notify` on macOS for a synthetic desktop notification test, with optional `--sound`, bounded command execution, and explicit delivery limitations. The probe uses the adjacent branded helper, reports missing-helper and permission failures, and requires no account or printer; desktop delivery remains opt-in.
+- Bundle a universal, ad-hoc signed macOS notification helper with the Bambu TUI logo and independent permission identity. Doctor registers the adjacent helper automatically. Build release candidates on macOS and verify helper inventory, metadata, architectures, and extracted signatures. Developer ID signing/notarization remain pending.
+
 ## 0.1.15 — Clearer footer navigation
 
 - Give dashboard and full-screen notice footers a full-width slate background with a one-column inset to separate them from monitoring content.

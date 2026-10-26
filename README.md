@@ -38,7 +38,7 @@ tar -xzf "$archive"
 ./bambu-tui --version
 ```
 
-On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executable here or move it to a directory on your `PATH`.
+On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executable here or move it to a directory on your `PATH`. For macOS notification tests, keep the bundled `Bambu TUI Notify.app` beside it; see [notification setup and limitations](docs/user/alerts.md#desktop-notification-test-and-sound).
 
 ### 2. Try the demo
 

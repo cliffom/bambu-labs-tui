@@ -69,6 +69,9 @@ type (
 		saveSnoozes              func(map[string]time.Time) error
 		snoozesDirty             bool
 		alertStorageError        string
+		notificationClient       notificationClient
+		notificationError        string
+		notificationRevision     uint64
 		printersDiscovered       bool
 		printerIDs               []string
 		printerMetrics           map[string]printerOverview
@@ -120,11 +123,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	result, cmd := m.update(msg)
 	result.pruneSnoozes()
 	result.syncDialogs()
+	result.syncNotifications()
 	cmd = tea.Batch(cmd, result.persist())
 	if result.quitting && !result.persistencePending() {
 		if result.reviewWrites.failed != 0 || result.snoozeWrites.failed != 0 {
 			result.quitting, result.quitProblem = false, true
 		} else {
+			result.stopNotifications()
 			return result, tea.Quit
 		}
 	}

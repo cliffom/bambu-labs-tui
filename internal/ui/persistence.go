@@ -76,7 +76,7 @@ func (m *Model) persistenceResult(msg persistenceResultMsg) {
 }
 
 func (m Model) persistencePending() bool {
-	return m.reviewWrites.inFlight || m.snoozeWrites.inFlight
+	return m.reviewWrites.inFlight || m.snoozeWrites.inFlight || (m.notificationClient != nil && m.notificationClient.Status().Pending)
 }
 
 // beginShutdown bounds the wait without pretending a synchronous filesystem

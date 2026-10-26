@@ -49,6 +49,7 @@ type (
 		// allowlisted diagnostics; lifecycle decisions use normalized fields.
 		Raw                                     map[string]any
 		knowledge                               conditionKnowledge
+		notificationJob                         NotificationJob
 		LastReport                              time.Time
 		RemainingReported                       time.Time
 		State, Job, Stage                       string

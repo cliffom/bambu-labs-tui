@@ -45,6 +45,7 @@ const (
 	fieldCommand             = "command"
 	fieldPrint               = "print"
 	fieldTaskID              = "task_id"
+	fieldSubtaskID           = "subtask_id"
 	fieldTrayUUID            = "tray_uuid"
 	fieldTagUID              = "tag_uid"
 	fieldUpgradeState        = "upgrade_state"

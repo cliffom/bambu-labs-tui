@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -21,6 +22,8 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
 	"github.com/cliffom/bambu-tui/internal/noticestore"
+	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambu-tui/internal/notificationstate"
 	"github.com/cliffom/bambu-tui/internal/ui"
 )
 
@@ -49,6 +52,8 @@ func run(args []string) error {
 	code := flags.Bool("email-code", false, "login using an emailed verification code")
 	sessionOnly := flags.Bool("session", false, "login for this session and open the dashboard without saving")
 	version := flags.Bool("version", false, "show version")
+	notify := flags.Bool("notify", false, "doctor: submit a synthetic desktop notification (macOS)")
+	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
 	flags.Usage = func() {
 		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor] [options]\n\nExamples:\n  bambu-tui --demo\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
 		flags.PrintDefaults()
@@ -82,12 +87,21 @@ func run(args []string) error {
 	if *demo && command != commandMonitor {
 		return errors.New("--demo is a dashboard option")
 	}
+	if command != commandDoctor && (*notify || *sound) {
+		return errors.New("--notify and --sound are doctor options")
+	}
+	if *sound && !*notify {
+		return errors.New("--sound requires doctor --notify")
+	}
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	if command == commandDoctor && *notify {
+		return notificationDoctor(ctx, os.Stdout, *sound, notifications.Test)
+	}
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return err
 	}
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer cancel()
 	store := credentials.Store{Region: cfg.Region}
 	api := cloud.New(cfg.Region)
 	if command == commandDoctor {
@@ -238,6 +252,45 @@ func dashboard(ctx context.Context, cfg config.Config, api *cloud.Client, sessio
 			fmt.Fprintln(os.Stderr, "Alert persistence:", snoozeErr)
 		}
 		model = model.WithSnoozePersistence(snoozes, snoozeStore.Save, snoozeErr)
+	}
+	if cfg.Alerts.DesktopEnabled() {
+		var worker *notifications.Worker
+		var ledger notificationstate.Store
+		setupErr := notifications.Available()
+		cleanup := func() {}
+		if setupErr == nil {
+			if demo {
+				var dir string
+				dir, setupErr = os.MkdirTemp("", "bambu-tui-demo-notifications-*")
+				if setupErr == nil {
+					ledger = notificationstate.Store{Path: filepath.Join(dir, "state.json")}
+					cleanup = func() { _ = os.RemoveAll(dir) }
+				}
+			} else {
+				ledger, setupErr = notificationstate.New(cfg.Region, session.Username)
+			}
+		}
+		if setupErr == nil {
+			worker = notifications.NewWorker(ctx, ledger, notifications.Send)
+			model = model.WithNotifications(worker, nil)
+		} else {
+			model = model.WithNotifications(nil, setupErr)
+		}
+		defer func() {
+			if worker != nil {
+				worker.Stop()
+				select {
+				case <-worker.Done():
+				case <-time.After(notificationShutdownTimeout):
+					fmt.Fprintln(os.Stderr, "Desktop notification shutdown unconfirmed; no new submissions will start.")
+					return
+				}
+				if problem := worker.Status().Error; problem != "" {
+					fmt.Fprintln(os.Stderr, problem)
+				}
+			}
+			cleanup()
+		}()
 	}
 	// The CLI context owns SIGINT/SIGTERM. A second handler can block sending
 	// a quit message after cancellation has stopped Bubble Tea's event loop.

@@ -29,14 +29,14 @@ jobs:
         if: runner.os == 'macOS'
         run: ./bin/bambu-tui doctor
       - name: Package release candidates
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         run: make release COMMIT="${{ github.sha }}"
       - name: Verify checksums
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         working-directory: dist
-        run: sha256sum -c "bambu-tui_v$(cat ../VERSION)_checksums.txt"
+        run: shasum -a 256 -c "bambu-tui_v$(cat ../VERSION)_checksums.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         with:
           name: release-candidates
           path: |

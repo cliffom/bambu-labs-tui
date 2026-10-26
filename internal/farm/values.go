@@ -6,6 +6,8 @@ import "time"
 // Time policies remain separate even when their current durations match.
 const (
 	StateRunning                = "RUNNING"
+	StatePreparing              = "PREPARE"
+	StateSlicing                = "SLICING"
 	StatePaused                 = "PAUSE"
 	StateFailed                 = "FAILED"
 	StateFinished               = "FINISH"

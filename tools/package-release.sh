@@ -6,6 +6,11 @@ if [[ ! "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; the
   echo 'Invalid release version' >&2
   exit 1
 fi
+if [[ $(uname -s) != Darwin ]]; then
+  echo 'Packaging macOS notification helpers requires a macOS build host.' >&2
+  exit 1
+fi
+python3 -m unittest discover -s tools -p 'test_check_release.py'
 python3 tools/check-docs.py
 
 release_stage=$(mktemp -d)
@@ -42,11 +47,31 @@ while read -r dependency dependency_dir; do
 done < "$release_stage/modules.txt"
 rm "$release_stage/modules.txt"
 
+notify_bundle='Bambu TUI Notify.app'
+cp -R "dist/notify-helper/$notify_bundle" "$release_stage/$notify_bundle"
+/usr/bin/codesign --verify --strict --all-architectures "$release_stage/$notify_bundle"
+for notify_arch in arm64 x86_64; do
+  xcrun lipo "$release_stage/$notify_bundle/Contents/MacOS/bambu-notify" -verify_arch "$notify_arch"
+done
+
 archives=()
 for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
   cp "dist/bambu-tui-$target" "$release_stage/bambu-tui"
   archive="bambu-tui_v${release_version}_${target//-/_}.tar.gz"
-  COPYFILE_DISABLE=1 tar -czf "dist/$archive" -C "$release_stage" bambu-tui README.md AGENTS.md LICENSE config.example.toml docs assets third_party
+  archive_members=(bambu-tui README.md AGENTS.md LICENSE config.example.toml docs assets third_party)
+  if [[ "$target" == darwin-* ]]; then
+    archive_members+=("$notify_bundle")
+  fi
+  COPYFILE_DISABLE=1 tar -czf "dist/$archive" -C "$release_stage" "${archive_members[@]}"
+  python3 tools/check-release.py "dist/$archive" --version "$release_version"
+  if [[ "$target" == darwin-* ]]; then
+    # Verify signatures from the actual archive, not only the pre-tar bundle.
+    notify_extracted="$release_stage/verify-$target"
+    mkdir -p "$notify_extracted"
+    tar -xzf "dist/$archive" -C "$notify_extracted" "$notify_bundle"
+    /usr/bin/codesign --verify --strict --all-architectures "$notify_extracted/$notify_bundle"
+    "$notify_extracted/$notify_bundle/Contents/MacOS/bambu-notify" --help
+  fi
   python3 tools/check-docs.py --archive "dist/$archive"
   archives+=("$archive")
 done

@@ -16,12 +16,18 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 
 1. **Record current operational evidence ([#38](https://github.com/cliffom/bambu-tui/issues/38)).** Run the remaining applicable live checks on the current release: saved login/restart/logout, notice and snooze persistence/recurrence, pause/completion, firmware/telemetry comparisons, and keyboard/modal behavior during updates. Record host OS/terminal, application version, model/firmware, and actual results in the validation record. Preserve the existing reconnect evidence and explicitly record unavailable scenarios. This follows up the closed original validation issue #6.
 2. **Measure large-farm behavior ([#39](https://github.com/cliffom/bambu-tui/issues/39)).** Benchmark report/tick updates, navigation, dialogs, and rendering with representative synthetic farm sizes and notice/history loads. Record time and allocations, then profile material costs before proposing optimization. No performance defect is assumed, and fragile wall-clock CI thresholds are outside scope.
-3. **Build optional notifications for v0.2.0.** Resolve platform feasibility and process lifetime early, then implement identity and delivery infrastructure before notification controls, grouping, and final environment validation.
+3. **Build optional macOS notifications for v0.2.0.** Delivery requires a running TUI session in a local macOS desktop environment. Connect the packaged helper and persisted identity foundation to live-session delivery before notification controls, grouping, and final macOS validation. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for v0.3.0.** Establish hardware-backed feasibility before promising compatibility or delivery.
 
-## v0.2.0 — Alerts outside the terminal
+## v0.2.0 — macOS alerts outside the terminal
+
+The v0.2.x notification scope is macOS desktop delivery only. Linux notification delivery is deferred and is not a v0.2.x release blocker. Cloud monitoring remains available on Linux. SSH and headless notification delivery are unsupported; validate clear unsupported-environment behavior rather than promising remote delivery.
 
 [Notification tracking issue #11](https://github.com/cliffom/bambu-tui/issues/11) covers opt-in desktop notifications for intervention-required incidents and telemetry-confirmed completion, with configurable sound. Reuse verified classifications, saved reviews, and per-printer preferences/snoozes. Completion must come from reported job state, with occurrence/job identity preventing duplicates after reconnects or restarts.
+
+An initial macOS feasibility probe is available through [`doctor --notify`](user/alerts.md#desktop-notification-test-and-sound), with optional `--sound`. It invokes the adjacent [native helper](development/contributing.md#macos-notification-helper) using the Bambu TUI logo and app-specific notification permissions. The universal helper is bundled beside the CLI in macOS archives and currently ad-hoc signed. Native request acceptance does not establish visible/audible delivery or automatic TUI integration. Developer ID signing/notarization, clean-install validation, hardware-backed lifecycle validation, and broader macOS validation remain open; the delivery/doctor work below remains broader than this probe.
+
+Local development and notification testing continue with ad-hoc signed builds. Defer Developer ID signing, notarization, and clean-Mac Gatekeeper validation to the final release stage, before public distribution; they do not block notification implementation or local testing. The persisted identity foundation and opt-in serialized delivery worker now connect live macOS sessions to the branded helper, with category/review/snooze checks, sound/completion preferences, cancellation, co-reported per-printer intervention grouping, and visible session outcomes. Synthetic regression coverage does not establish live hardware behavior. Next, extend notification controls/activity, quiet hours and timed grouping across reports, and validate remaining real-session behavior.
 
 | Work | Issue |
 | --- | --- |
@@ -30,11 +36,11 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 | Show delivery activity and suppression reasons | [#20](https://github.com/cliffom/bambu-tui/issues/20) |
 | Configure notification preferences in the TUI | [#21](https://github.com/cliffom/bambu-tui/issues/21) |
 | Add quiet hours and burst grouping | [#22](https://github.com/cliffom/bambu-tui/issues/22) |
-| Validate desktop, SSH, and headless environments | [#23](https://github.com/cliffom/bambu-tui/issues/23) |
+| Validate macOS desktop delivery and unsupported-environment behavior | [#23](https://github.com/cliffom/bambu-tui/issues/23) |
 
-Define whether delivery requires the TUI to remain open. If delivery must continue after it closes, design monitor ownership, persistence, installation, and lifecycle before introducing an optional background service.
+Notifications apply only while the TUI session is running. Quitting ends monitoring and notification delivery; v0.2.x does not introduce a background service. Persisted occurrence/job identity still prevents duplicate delivery when the TUI restarts.
 
-The release gate is configurable, testable, deduplicated notifications with visible failure/suppression outcomes and explicit behavior after exit. Saved reviews and snoozing must remain consistent with delivery. [Remembering farm filters/sorting (#24)](https://github.com/cliffom/bambu-tui/issues/24) is optional milestone polish, not a notification release blocker.
+The release gate is configurable, testable, deduplicated macOS desktop notifications with visible failure/suppression outcomes and verified shutdown of monitoring and delivery when the TUI exits. Saved reviews and snoozing must remain consistent with delivery. [Remembering farm filters/sorting (#24)](https://github.com/cliffom/bambu-tui/issues/24) is optional milestone polish, not a notification release blocker.
 
 ## v0.3.0 — LAN monitoring
 

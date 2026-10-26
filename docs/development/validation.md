@@ -14,6 +14,8 @@ Actual demo CLI PTY frames were inspected at 60×18 without color and 120×32 wi
 
 A review follow-up reproduced idle-owner queue overflow retaining its lease before the fix. The serialized paused-frame path now releases it without processing obsolete telemetry. New regressions verify standby takeover after idle overflow and continued exclusion until a canceled in-flight sender returns; both passed 30 race-enabled repetitions. Documentation, formatting, pinned lint, all race tests, vet, and native build passed again. This worker-only correction changes no UI layout.
 
+A second review follow-up reproduced a consumed attempt suppressing a confirmed recurrence when clear/recurrence/opt-out frames queued behind a canceled sender. Ownership now remains held until queued owner observations drain, with current muted preferences preventing delivery. The synchronized regression verifies no muted delivery, ownership release after draining, and delivery of the recurrence after re-enabling. It and the related muted-takeover/overflow tests passed 30 race-enabled repetitions. Documentation, formatting, pinned lint, all race tests, vet, and native build passed again; no UI layout changed.
+
 Native banner/audio delivery, real-account concurrent sessions, hardware, fresh-Mac installation, and Developer ID signing/notarization were not revalidated. Standby/concurrency behavior is established by synthetic worker/store tests rather than two live account sessions. The existing bounded ledger remains fail-closed at capacity; recovery does not prune or reset identities. Deferred validation in #23 and #38 remains open.
 
 ## v0.2.4 release preparation

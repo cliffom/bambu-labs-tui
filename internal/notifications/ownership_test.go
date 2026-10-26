@@ -374,3 +374,52 @@ func TestOverflowKeepsLeaseUntilCanceledSenderReturns(t *testing.T) {
 	}
 	_ = owner.Close()
 }
+
+func TestOptOutDrainsQueuedClearAndRecurrenceBeforeReleasingOwner(t *testing.T) {
+	ledger := testLedger(t)
+	started, canceled, release := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	var calls atomic.Int32
+	worker := NewWorker(context.Background(), ledger, func(ctx context.Context, _ Message) error {
+		if calls.Add(1) == 1 {
+			close(started)
+			<-ctx.Done()
+			close(canceled)
+			<-release
+			return ctx.Err()
+		}
+		return nil
+	})
+	var once sync.Once
+	allowReturn := func() { once.Do(func() { close(release) }) }
+	t.Cleanup(func() { allowReturn(); stopWorker(t, worker) })
+	worker.Submit(incidentFrame())
+	await(t, started)
+	clear := incidentFrame()
+	printer := clear.Snapshot["TEST"]
+	printer.Conditions = nil
+	clear.Snapshot["TEST"] = printer
+	worker.Submit(clear)
+	worker.Submit(incidentFrame())
+	muted := incidentFrame()
+	muted.ObserveOnly = true
+	policy := muted.Policies["TEST"]
+	policy.Desktop = false
+	muted.Policies["TEST"] = policy
+	worker.Submit(muted)
+	await(t, canceled)
+	allowReturn()
+	awaitWorkerStatus(t, worker, func(s Status) bool { return s.Ownership == OwnershipObserver && !s.Pending })
+	if calls.Load() != 1 {
+		t.Fatal("muted recurrence was delivered")
+	}
+	owner, err := ledger.AcquireOwner()
+	if err != nil {
+		t.Fatal("opt-out retained ownership after draining", err)
+	}
+	_ = owner.Close()
+	worker.Submit(incidentFrame())
+	awaitWorkerStatus(t, worker, func(s Status) bool { return s.Accepted == 1 && !s.Pending })
+	if calls.Load() != 2 {
+		t.Fatal("confirmed recurrence was not delivered after re-enabling")
+	}
+}

@@ -149,8 +149,12 @@ func (w *Worker) releaseOwner() {
 
 func (w *Worker) releaseInactiveOwner() {
 	w.mu.Lock()
-	release := w.status.Disabled || w.latest.ObserveOnly
-	if w.latest.ObserveOnly && !w.status.Disabled {
+	// An established owner must observe queued clears and recurrences even
+	// after opt-out. Release only after draining them; delivery eligibility
+	// already uses the latest muted policy. Failure still releases immediately.
+	mutedAndDrained := w.latest.ObserveOnly && len(w.queue) == 0
+	release := w.status.Disabled || mutedAndDrained
+	if mutedAndDrained && !w.status.Disabled {
 		w.status.Ownership = OwnershipObserver
 	}
 	w.mu.Unlock()

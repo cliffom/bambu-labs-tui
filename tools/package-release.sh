@@ -76,6 +76,7 @@ for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
     fi
     if [[ -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
       xcrun stapler validate "$notify_extracted/$notify_bundle"
+      /usr/bin/codesign --verify --strict --all-architectures --check-notarization -R=notarized "$notify_extracted/bambu-tui"
     fi
     "$notify_extracted/$notify_bundle/Contents/MacOS/bambu-notify" --help
   fi

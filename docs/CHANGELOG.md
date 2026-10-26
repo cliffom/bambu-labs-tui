@@ -17,7 +17,7 @@
 - Add a conservative notification identity foundation with account-scoped atomic persistence, cross-process delivery reservations, incident recurrence, and telemetry-confirmed job completion. Unknown telemetry preserves identity, ambiguous job IDs suppress completion, and failed/unknown attempts remain distinct from native acceptance. Live integration is opt-in.
 
 - Add `doctor --notify` on macOS for a synthetic desktop notification test, with optional `--sound`, bounded command execution, and explicit delivery limitations. The probe uses the adjacent branded helper, reports missing-helper and permission failures, and requires no account or printer; desktop delivery remains opt-in.
-- Bundle a universal, ad-hoc signed macOS notification helper with the Bambu TUI logo and independent permission identity. Doctor registers the adjacent helper automatically. Build release candidates on macOS and verify helper inventory, metadata, architectures, and extracted signatures. The opt-in Developer ID/notarization release path is described above; Apple acceptance and clean-Mac validation remain pending.
+- Bundle a universal, ad-hoc signed macOS notification helper with the Bambu TUI logo and independent permission identity. Doctor registers the adjacent helper automatically. Build release candidates on macOS and verify helper inventory, metadata, architectures, and extracted signatures. The opt-in Developer ID/notarization release path is described above; Local Apple notarization and helper ticket validation have passed; clean-Mac validation and CI credential provisioning remain pending.
 
 ## 0.1.15 — Clearer footer navigation
 

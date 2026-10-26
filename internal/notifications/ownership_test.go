@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -287,6 +288,89 @@ func TestObserveOnlyCannotSendOrRetainOwnership(t *testing.T) {
 	owner, err := ledger.AcquireOwner()
 	if err != nil {
 		t.Fatal("observer retained ownership", err)
+	}
+	_ = owner.Close()
+}
+
+// Delay starting the serialized loop to reproduce a burst entirely between
+// processing calls, after the worker has already established idle ownership.
+func TestIdleOwnerQueueOverflowReleasesLeaseForStandby(t *testing.T) {
+	ledger := testLedger(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	worker := &Worker{
+		ctx: ctx, cancel: cancel, ledger: ledger,
+		send:  func(context.Context, Message) error { t.Error("overflowed worker sent"); return nil },
+		queue: make(chan frame, workerQueueCapacity), done: make(chan struct{}),
+		now: time.Now, changed: make(chan struct{}, 1),
+	}
+	initial := incidentFrame()
+	policy := initial.Policies["TEST"]
+	policy.Snoozed = true
+	initial.Policies["TEST"] = policy
+	worker.latest = frame{sequence: 1, Input: initial}
+	worker.process(worker.latest)
+	if worker.Status().Ownership != OwnershipOwner {
+		t.Fatal("initial processing did not establish ownership")
+	}
+	standby := NewWorker(context.Background(), sameLedger(t, ledger), func(context.Context, Message) error { return nil })
+	defer stopWorker(t, standby)
+	standby.Submit(initial)
+	awaitWorkerStatus(t, standby, func(s Status) bool { return s.Ownership == OwnershipStandby && !s.Pending })
+	for i := range workerQueueCapacity + 1 {
+		input := incidentFrame()
+		p := input.Policies["TEST"]
+		p.PrinterName = fmt.Sprint(i)
+		input.Policies["TEST"] = p
+		worker.Submit(input)
+	}
+	if !worker.Status().Disabled {
+		t.Fatal("burst did not overflow queue")
+	}
+	go worker.run()
+	defer stopWorker(t, worker)
+	awaitWorkerStatus(t, worker, func(s Status) bool { return s.Disabled && s.Ownership == OwnershipIdle })
+	standby.requestOwnershipCheck()
+	standby.Submit(initial)
+	awaitWorkerStatus(t, standby, func(s Status) bool { return s.Ownership == OwnershipOwner && !s.Pending })
+}
+
+func TestOverflowKeepsLeaseUntilCanceledSenderReturns(t *testing.T) {
+	ledger := testLedger(t)
+	started, canceled, release := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	worker := NewWorker(context.Background(), ledger, func(ctx context.Context, _ Message) error {
+		close(started)
+		<-ctx.Done()
+		close(canceled)
+		<-release
+		return ctx.Err()
+	})
+	var once sync.Once
+	allowReturn := func() { once.Do(func() { close(release) }) }
+	t.Cleanup(func() { allowReturn(); stopWorker(t, worker) })
+	worker.Submit(incidentFrame())
+	await(t, started)
+	for i := range workerQueueCapacity + 1 {
+		input := incidentFrame()
+		p := input.Policies["TEST"]
+		p.PrinterName = fmt.Sprint(i)
+		input.Policies["TEST"] = p
+		worker.Submit(input)
+	}
+	await(t, canceled)
+	if !worker.Status().Disabled {
+		t.Fatal("overflow did not pause worker")
+	}
+	if owner, err := ledger.AcquireOwner(); !errors.Is(err, notification_state.ErrBusy) {
+		if owner != nil {
+			_ = owner.Close()
+		}
+		t.Fatal("overflow released ownership before sender returned", err)
+	}
+	allowReturn()
+	awaitWorkerStatus(t, worker, func(s Status) bool { return s.Ownership == OwnershipIdle && !s.Pending })
+	owner, err := ledger.AcquireOwner()
+	if err != nil {
+		t.Fatal("paused worker retained ownership after sender returned", err)
 	}
 	_ = owner.Close()
 }

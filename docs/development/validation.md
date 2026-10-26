@@ -12,6 +12,8 @@ Synthetic race tests cover exclusive account/region ownership, standby and fresh
 
 Actual demo CLI PTY frames were inspected at 60×18 without color and 120×32 with color for ownership, corrupt-ledger pause, and recovery after restoring the valid synthetic ledger and pressing r. At 59×17 the resize fallback blocked hidden actions; restoring 120×32 retained activity selection. Both demo processes exited normally. Separate synthetic UI frames were inspected at both supported sizes for owner, standby, observer, paused/capacity, and recovery-checking states. Demo printer desktop preferences stayed off; an absent-printer override started observation, so these inspections made no native notification requests.
 
+A review follow-up reproduced idle-owner queue overflow retaining its lease before the fix. The serialized paused-frame path now releases it without processing obsolete telemetry. New regressions verify standby takeover after idle overflow and continued exclusion until a canceled in-flight sender returns; both passed 30 race-enabled repetitions. Documentation, formatting, pinned lint, all race tests, vet, and native build passed again. This worker-only correction changes no UI layout.
+
 Native banner/audio delivery, real-account concurrent sessions, hardware, fresh-Mac installation, and Developer ID signing/notarization were not revalidated. Standby/concurrency behavior is established by synthetic worker/store tests rather than two live account sessions. The existing bounded ledger remains fail-closed at capacity; recovery does not prune or reset identities. Deferred validation in #23 and #38 remains open.
 
 ## v0.2.4 release preparation

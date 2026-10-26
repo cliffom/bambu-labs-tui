@@ -190,6 +190,13 @@ func (w *Worker) run() {
 			w.mu.Lock()
 			if w.status.Disabled || w.awaitFresh {
 				w.mu.Unlock()
+				// Overflow can pause an idle owner between process calls. The
+				// serialized loop releases its lease even when every queued frame
+				// is skipped; any in-flight sender has already returned here.
+				w.releaseInactiveOwner()
+				w.mu.Lock()
+				w.notifyChangedLocked()
+				w.mu.Unlock()
 				continue
 			}
 			w.working = true

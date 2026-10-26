@@ -111,8 +111,8 @@ func TestConfigNotificationProbeFailureAndHiddenAction(t *testing.T) {
 	for _, size := range [][2]int{{60, 18}, {120, 32}} {
 		m = resizeModel(m, size[0], size[1])
 		rows := strings.Split(ansi.Strip(m.View()), "\n")
-		if !strings.Contains(rows[len(rows)-1], "Esc / , close") {
-			t.Fatal("probe hid close keys")
+		if !strings.Contains(rows[1], "Esc / ,") || strings.Contains(rows[len(rows)-1], "Esc / ,") {
+			t.Fatal("close keys belong in the header only")
 		}
 		for _, line := range rows {
 			if ansi.StringWidth(line) > size[0] {

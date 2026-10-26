@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/config"
 )
 
@@ -119,6 +120,9 @@ func (m Model) configView() string {
 	} else if m.configStorageError != "" {
 		status = "Save failed · r retry"
 	}
+	if message := m.storageWarning(); message != "" {
+		lines = append(lines, ansi.Truncate(warning.Render(message), max(1, m.width-2), "…"))
+	}
 	lines = append(lines, "", status, "Global defaults; printer overrides still apply.", "Changes take effect immediately. macOS only.", "Test may request macOS notification permission.", "Saving normalizes TOML and removes comments.")
 	if m.configPath != "" {
 		lines = append(lines, "File: "+safe(m.configPath))
@@ -126,15 +130,9 @@ func (m Model) configView() string {
 	if len(m.alertPrefs.Printers) > 0 {
 		lines = append(lines, fmt.Sprintf("%d printer overrides configured; s shows effective values.", len(m.alertPrefs.Printers)))
 	}
-	hints := footerHints("Esc / , close") + footer.Render(" · "+m.configHelp())
-	if message := m.storageWarning(); message != "" {
-		hints = footerHints("Esc / , close") + warning.Render(" · "+message)
-		if m.configStorageError != "" {
-			hints = footerHints("Esc / , close  r retry") + warning.Render(" · Config save failed")
-		}
-	}
+	hints := m.configHelp()
 	rows := strings.Split(m.fullView(strings.Split(wrapLines(lines, max(1, m.width-2)), "\n"), hints), "\n")
-	// Keep close keys visible even when fullView prioritizes a storage warning.
+	// Config reserves its footer for helper text; warnings remain in the body.
 	rows[len(rows)-1] = m.footerRow(hints)
 	return strings.Join(rows, "\n")
 }

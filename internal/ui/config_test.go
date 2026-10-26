@@ -131,7 +131,7 @@ func TestConfigGlobalTogglePreservesPrinterOverride(t *testing.T) {
 	}
 }
 
-func TestConfigFooterKeepsCloseKeysWithStorageWarnings(t *testing.T) {
+func TestConfigFooterUsesOnlyHelpWithStorageWarnings(t *testing.T) {
 	for _, width := range []int{60, 120} {
 		for _, failed := range []bool{false, true} {
 			m := resizeModel(demoModel(), width, 18)
@@ -141,11 +141,14 @@ func TestConfigFooterKeepsCloseKeysWithStorageWarnings(t *testing.T) {
 			}
 			rows := strings.Split(ansi.Strip(m.View()), "\n")
 			footer := rows[len(rows)-1]
-			if !strings.Contains(footer, "Esc / , close") {
-				t.Fatal("Config footer hides close keys")
+			if strings.TrimSpace(footer) != "Show macOS alerts while this TUI runs." {
+				t.Fatal("Config footer should contain only selected-option help")
 			}
-			if failed && (!strings.Contains(footer, "r retry") || !strings.Contains(footer, "Config save failed")) {
-				t.Fatal("Config footer hides retry or failure")
+			if !strings.Contains(rows[1], "Esc / ,") {
+				t.Fatal("header hides close keys")
+			}
+			if failed && !strings.Contains(strings.Join(rows[:len(rows)-1], "\n"), "Config save failed") {
+				t.Fatal("body hides save failure")
 			}
 			if !strings.Contains(strings.Join(rows[:len(rows)-1], "\n"), "removes comments") {
 				t.Fatal("TOML save note missing from body")
@@ -169,7 +172,7 @@ func TestConfigFooterExplainsSelectedOption(t *testing.T) {
 		} {
 			rows := strings.Split(ansi.Strip(m.View()), "\n")
 			last := rows[len(rows)-1]
-			if !strings.Contains(last, description) || !strings.Contains(last, "Esc / , close") {
+			if strings.TrimSpace(last) != description {
 				t.Fatalf("selected option helper missing at %v: %q", size, last)
 			}
 			if !strings.Contains(rows[1], "Space/Enter") {

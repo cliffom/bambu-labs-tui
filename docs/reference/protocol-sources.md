@@ -42,3 +42,7 @@ Printer-supplied HMS messages take precedence. Severity still comes from the wir
 A paused-state notice remains separate from HMS and print-error notices, even when all concern the same incident. Pause is an independently reported state; matching it to a fault by timing or wording could hide a distinct condition. Each notice therefore keeps its own acknowledgement/dismissal and resolution lifetime. Dismissing runout does not acknowledge a new feed failure, another AMS unit/slot, or the paused state.
 
 Remaining gaps include the `12` HMS family, most sensor/electrical/drying/track-switch faults, additional model-specific extruder codes, and future firmware additions. Unknown codes remain visible for troubleshooting; catalogue expansion does not add printer control or fault-clear commands.
+
+## Notification job identity
+
+Bambu Studio's [DeviceManager.cpp](https://github.com/bambulab/BambuStudio/blob/master/src/slic3r/GUI/DeviceManager.cpp), inspected 2026-10-25, reads `task_id` and `subtask_id` from reports and excludes zero/empty subtask identifiers from cloud slice lookup. This establishes field use, not uniqueness for every physical run or model/firmware combination. The notification foundation combines reported identities with normalized state and conservatively suppresses ambiguous completion. It does not use job names or elapsed time as identifiers. Live identity/reprint behavior on H2D/X2D remains unverified.

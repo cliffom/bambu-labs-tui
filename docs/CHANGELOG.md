@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — macOS desktop notifications
+
+- Add opt-in macOS desktop notifications for intervention-required incidents and telemetry-confirmed print completion while the TUI session is running. Show the triggering printer name and Bambu TUI logo, and group co-reported intervention notices into one notification per printer.
+- Add Config (`,`) with immediate desktop notification, sound, and completion toggles saved to the active configuration file. Preserve printer overrides and unrelated settings; save silently and show persistent red failures with retry controls.
+- Add Test Notification in Config and `doctor --notify [--sound]` for explicit, repeatable tests without an account or printer. Request macOS permission explicitly and show delivery acceptance separately from visible banners or sound. Config test feedback appears after helper text, dims, and expires.
+- Honor global/per-printer categories, saved notice reviews, and snoozes. Persist account-scoped incident/job identities and delivery reservations to avoid repeat attempts after reconnect or restart; unknown telemetry preserves identity and ambiguous job IDs suppress completion.
+- Keep monitoring responsive with delivery outside the UI reducer, current-policy checks, cancellation of stale requests, and bounded shutdown. Show delivery failures and session activity; no background service or future notification schedule is installed.
+- Include a universal notification helper in macOS release archives. Developer ID-sign and notarize both macOS CLIs and the helper, staple the helper ticket, and verify extracted archives. Source checkouts build the helper separately with `make notify-helper`; local development and ordinary PR/main CI use ad-hoc candidates.
+- Sign and notarize tag/manual release builds using repository secrets and a temporary runner Keychain, with credential cleanup and no unsigned fallback. Manual runs produce verified artifacts without creating a release; version-tag runs prepare a draft for review. Forward `RUN_ARGS` through `make demo` for synthetic testing with a custom config.
+
+Desktop notifications require a local macOS desktop and an active TUI session. Linux cloud monitoring remains supported; Linux, SSH, and headless desktop notification delivery are unsupported. See the [validation record](development/validation.md) for observed results and remaining clean-Mac, Intel-runtime, and real-printer checks.
 
 ## 0.1.15 — Clearer footer navigation
 

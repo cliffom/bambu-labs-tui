@@ -16,7 +16,7 @@ Use Go 1.27.3 or newer, Git, and Make. Run commands from the repository root. St
 - `make fmt-check lint test check build` checks Go formatting, lint, race tests, vet, and the native build. Use `make fmt` to format Go changes.
 - `make vuln-check` scans known vulnerabilities with the pinned scanner and current build toolchain (network required).
 - `make lint-actions` checks workflow changes; `make lint-make` checks Makefile changes.
-- `make release` verifies cross-platform builds and packaging when release tooling or bundled documentation paths change.
+- `make release` verifies cross-platform builds and packaging when release tooling or bundled documentation paths change; it requires a macOS host with Xcode Command Line Tools (Swift) for the universal notification helper.
 - `make audit-faults` performs the explicit network audit when changing the fault catalogue. Ordinary tests use synthetic fixtures and fake services.
 
 Use the pinned tools documented in the contributing guide; Make supports overrides for tools installed outside `PATH`. Record checks actually run and any remaining limitations.
@@ -27,7 +27,7 @@ Use the pinned tools documented in the contributing guide; Make supports overrid
 - `internal/cloud`, `internal/mqtt`, `internal/monitor`: authentication/discovery, transport, and monitor workers.
 - `internal/farm`: telemetry decoding, normalization, condition lifetime, and farm state.
 - `internal/ui`: Bubble Tea reducer, dialogs, panels, and asynchronous persistence commands.
-- `internal/config`, `internal/credentials`, `internal/noticestore`, `internal/alertstore`, `internal/atomicfile`: configuration and storage.
+- `internal/config`, `internal/credentials`, `internal/noticestore`, `internal/alertstore`, `internal/notificationstate`, `internal/atomicfile`: configuration and storage.
 - `internal/diagnostics`: allowlisted local exports.
 
 Read [architecture and conventions](docs/development/architecture.md) before changing ownership, concurrency, persistence, or protocol handling. Keep regression fixtures synthetic or sanitized; never commit credentials, private telemetry, or unredacted account/printer identifiers. Automated coverage does not establish live hardware validation.

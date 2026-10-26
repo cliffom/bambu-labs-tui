@@ -165,11 +165,16 @@ func (m *Model) syncAlertDialog() {
 	field := func(name, value string) string { return detailField(name, safe(value), d.view.Width, white) }
 	lines := []string{
 		field("Printer", p.Name), field("Printer ID", p.ID), field("Alerts", m.alertStatus(p.ID)), "",
+		field("Desktop", label(rules.DesktopNotifications)), field("Sound", label(rules.NotificationSound)), field("Completion", label(rules.CompletedPrints)),
 		field("Auto Modals", label(rules.AutomaticModals)), field("Filament", label(rules.Filament)), field("Extrusion", label(rules.Extrusion)),
 		field("Printer Faults", label(rules.PrinterFaults)), field("Failed Prints", label(rules.FailedPrints)), field("Unknown Pauses", label(rules.UnknownPauses)), "",
-		"Edit [alerts] / [alerts.printers.\"PRINTER_ID\"] in config.toml and restart to change these defaults.",
+		", opens global notification settings from the dashboard. Edit TOML and restart for printer overrides and alert categories.",
 		"1: snooze 15 minutes · 2: 1 hour · 3: 4 hours", "u: end snooze and re-arm eligible alerts", "Snoozing keeps all printer state and notices visible.",
-		"Expiry re-arms eligible unreviewed alerts, including new faults during the snooze.", "!: manually inspect alerts from the dashboard, even while muted or snoozed.", "Sound notifications are not supported.",
+		"Expiry re-arms eligible unreviewed alerts, including new faults during the snooze.", "!: manually inspect alerts from the dashboard, even while muted or snoozed.", "Desktop delivery is macOS-only and requires this TUI session. Sound follows notification_sound.",
+	}
+	if m.notificationClient != nil {
+		status := m.notificationClient.Status()
+		lines = append(lines, "Delivery counts cover this entire TUI session.", field("Delivery", status.Last), field("Accepted", fmt.Sprint(status.Accepted)), field("Failed", fmt.Sprint(status.Failed)), field("Suppressed", fmt.Sprint(status.Suppressed)))
 	}
 	if m.Demo || m.saveSnoozes == nil {
 		lines = append(lines, "Snooze changes apply only to this session.")
@@ -182,17 +187,23 @@ func (m Model) alertView() string {
 	return m.fullView([]string{accent.Bold(true).Render("PRINTER ALERTS / SNOOZE"), "1: 15m · 2: 1h · 3: 4h · u: resume · s / Esc close", "", m.alertDialog.view.View()}, "PgUp/PgDn scroll · close before quitting")
 }
 
-// storageWarning keeps review and snooze persistence failures visible in every view.
+// storageWarning keeps storage and desktop delivery failures visible in every view.
 func (m Model) storageWarning() string {
-	if m.noticeStorageError != "" && m.alertStorageError != "" {
+	if m.noticeStorageError != "" && m.alertStorageError != "" && m.notificationError == "" && m.configStorageError == "" {
 		return "Notice and snooze storage unavailable; changes may not persist"
 	}
 	var warnings []string
+	if m.configStorageError != "" {
+		warnings = append(warnings, m.configStorageError)
+	}
 	if m.noticeStorageError != "" {
 		warnings = append(warnings, m.noticeStorageError)
 	}
 	if m.alertStorageError != "" {
 		warnings = append(warnings, m.alertStorageError)
+	}
+	if m.notificationError != "" {
+		warnings = append(warnings, m.notificationError)
 	}
 	return strings.Join(warnings, " · ")
 }

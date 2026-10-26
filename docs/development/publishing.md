@@ -2,9 +2,11 @@
 
 [Contributing](contributing.md) · [Documentation index](../README.md)
 
-Run these commands from the repository root.
+Run these commands from the repository root on macOS with Xcode Command Line Tools (Swift) and Python 3.10+. Release packaging requires macOS to build and verify the universal notification helper.
 
 ## Prepare a release
+
+The README's download and source-build instructions must match the release version and bundled files, including the macOS notification helper.
 
 Update `VERSION` and the default version in `internal/buildinfo/buildinfo.go` to a new, unused release version. Update [docs/CHANGELOG.md](../CHANGELOG.md) and any affected user guides, then run the appropriate checks:
 
@@ -24,9 +26,75 @@ git tag -a "$release_tag" -m "Bambu TUI $release_tag"
 git push origin "$release_tag"
 ```
 
-Release archives include the README, repository guidance, configuration example, the complete `docs/` tree, branding banner, and dependency licenses. Roadmap and changelog paths inside each archive match the repository: `docs/ROADMAP.md` and `docs/CHANGELOG.md`. The draft release reads its initial notes from `docs/CHANGELOG.md`.
+Release archives include the README, repository guidance, configuration example, the complete `docs/` tree, branding banner, and dependency licenses. macOS archives also include the universal `Bambu TUI Notify.app` beside the CLI; Linux archives omit it. Keep the CLI and helper together after extraction. Doctor registers that adjacent bundle on first use. Roadmap and changelog paths inside each archive match the repository: `docs/ROADMAP.md` and `docs/CHANGELOG.md`. The draft release reads its initial notes from `docs/CHANGELOG.md`.
 
-The tag workflow uses the patched Go version in `go.mod`, verifies the version, scans known vulnerabilities with the pinned scanner, runs race tests and vet, builds macOS/Linux archives for arm64/amd64, and includes dependency licenses. Actions are pinned to commit SHAs and checkout does not persist credentials. The build job has read-only repository permissions and uploads the archives, checksums, and changelog as a one-day artifact. A separate publishing job downloads that artifact and uses repository write permission only to create a **draft** GitHub release with SHA-256 checksums. Build metadata includes the source commit and UTC build date; builds without Git metadata report `unknown` for the commit.
+The tag workflow uses the patched Go version in `go.mod`, verifies the version, scans known vulnerabilities with the pinned scanner, runs race tests and vet, builds macOS/Linux archives for arm64/amd64, and includes dependency licenses. Actions are pinned to commit SHAs and checkout does not persist credentials. The build job runs on macOS with read-only repository permissions and uploads the archives, checksums, and changelog as a one-day artifact. A separate publishing job downloads that artifact and uses repository write permission only to create a **draft** GitHub release with SHA-256 checksums. Build metadata includes the source commit and UTC build date; builds without Git metadata report `unknown` for the commit.
+
+## macOS signing and notarization
+
+Local development helper builds and plain `make release` use an ad-hoc signature. This verifies bundle integrity but does not establish Developer ID trust, notarization, or downloaded-app Gatekeeper acceptance. The tag/manual release workflow requires signing credentials and fails if they are missing; ordinary pull-request/main CI continues producing ad-hoc candidates.
+
+For a signed candidate, install a Developer ID Application certificate and its private key in your build Mac's Keychain, then select it explicitly by its identity name or fingerprint:
+
+```sh
+security find-identity -v -p codesigning
+make release MACOS_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)'
+```
+
+Release preparation signs the universal helper and both macOS CLI binaries with hardened runtime and a secure timestamp. It verifies Developer ID identity, matching teams, runtime, timestamps, and signature integrity. A failed signing operation stops packaging; it never falls back to ad-hoc signing when an identity was requested. Linux binaries are unchanged. A signed candidate alone is still not notarized.
+
+For notarization, first create an app-specific password at your Apple Account's Sign-In and Security page. Store it interactively in Keychain; unspecified account/password options are prompted for by `notarytool`:
+
+```sh
+xcrun notarytool store-credentials 'bambu-tui-notary' --team-id YOUR_TEAM_ID
+make release \
+  MACOS_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)' \
+  MACOS_NOTARY_PROFILE='bambu-tui-notary'
+```
+
+The profile name is a reference to Keychain credentials, not the password. Credentials and signing private keys stay outside the repository. See [Apple's credential workflow](https://developer.apple.com/documentation/technotes/tn3147-migrating-to-the-latest-notarization-tool) and [notarization requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
+
+The release tool submits a temporary ZIP containing the signed helper and both macOS CLIs, waits up to 20 minutes, and requires an Accepted result. Rejected, interrupted, malformed, or still-processing responses stop packaging. Reports are stored under ignored `dist/notarization/`; Apple may continue processing after a client timeout. Use the submission ID from the report with `xcrun notarytool info SUBMISSION_ID --keychain-profile bambu-tui-notary` to inspect it before deciding to submit a new build.
+
+After acceptance, the helper's ticket is stapled and validated before archives and checksums are generated. Packaging verifies Developer ID signatures/teams from the extracted helper and CLI in both macOS archives, and validates each extracted helper's stapled ticket, and checks the extracted CLI with codesign's notarized requirement after forcing an online ticket lookup (avoiding dependence on a warm local cache). A raw CLI cannot carry a stapled ticket; its notarization record is checked by macOS online. Stapling the helper does not establish offline installation of the standalone CLI. The ZIP submission is temporary; the public archive format remains `.tar.gz`.
+
+Before public distribution, download the actual release archive onto a clean Mac with Gatekeeper enabled, keep the helper beside the CLI, and test CLI startup, the notification permission workflow, banner/sound delivery, and quit. Verify the helper with `xcrun stapler validate` and `spctl --assess --type execute --verbose=2`. For the standalone CLI, use `codesign --verify --strict --all-architectures --check-notarization -R=notarized /path/to/bambu-tui`; application-oriented `spctl --type execute` can reject a valid CLI because it is not an app bundle. Signing verification, Apple's acceptance, and local execution do not establish the clean-machine experience. The release workflow imports a certificate/private key and notarization credentials into an isolated runner Keychain; creating a local Keychain profile does not configure GitHub Actions. See the setup below.
+
+## GitHub Actions signing setup
+
+The release workflow accepts trusted version-tag pushes and manual dispatch. Both require these repository Actions secrets:
+
+| Secret | Value |
+| --- | --- |
+| `MACOS_CERTIFICATE_P12_BASE64` | Base64-encoded password-protected `.p12` containing the Developer ID Application certificate and its private key |
+| `MACOS_CERTIFICATE_PASSWORD` | The `.p12` export password |
+| `MACOS_SIGN_IDENTITY` | The valid identity fingerprint or full Developer ID Application identity name |
+| `APPLE_ID` | Developer Apple account email |
+| `APPLE_TEAM_ID` | Developer team ID |
+| `APPLE_APP_SPECIFIC_PASSWORD` | Apple app-specific password for notarization |
+
+Export the selected identity from Keychain Access → login → My Certificates, including its private key, as Personal Information Exchange (`.p12`). Keep the export outside the repository. The export password is separate from the Apple app-specific password and the Mac login password. Certificate export files are ignored by Git. See [Apple's identity export guidance](https://developer.apple.com/documentation/xcode/sharing-your-teams-signing-certificates).
+
+Set the certificate secret through stdin and enter password secrets at the hidden CLI prompts:
+
+```sh
+base64 -i /path/to/bambu-tui-signing.p12 | gh secret set MACOS_CERTIFICATE_P12_BASE64 --repo cliffom/bambu-tui
+gh secret set MACOS_CERTIFICATE_PASSWORD --repo cliffom/bambu-tui
+gh secret set MACOS_SIGN_IDENTITY --repo cliffom/bambu-tui
+gh secret set APPLE_ID --repo cliffom/bambu-tui
+gh secret set APPLE_TEAM_ID --repo cliffom/bambu-tui
+gh secret set APPLE_APP_SPECIFIC_PASSWORD --repo cliffom/bambu-tui
+```
+
+The build scans vulnerabilities and runs tests before credential installation. The CI helper validates required secrets, decodes the certificate into a private temporary file, creates a Keychain with a random password, imports the selected signing identity, and configures noninteractive codesign access. It stores the notarization profile in that same temporary Keychain. `MACOS_NOTARY_KEYCHAIN` passes its path to submission/log commands; the local default Keychain path remains optional. No profile password is written to `GITHUB_ENV` or logged. The decoded `.p12` is removed after import, and an always-run cleanup restores the original Keychain search list and deletes the temporary Keychain. Hosted runner disposal provides a final boundary.
+
+Ordinary PR/main CI does not use these secrets. The signed workflow has no pull-request trigger. Its build job retains read-only repository permissions; the separate draft-publishing job has write permission only for version-tag pushes. A manual run produces signed/notarized workflow artifacts and skips publishing:
+
+```sh
+gh workflow run release.yml --ref YOUR_TRUSTED_BRANCH --repo cliffom/bambu-tui
+```
+
+Dispatch requires the workflow to be registered on the default branch. Missing/invalid credentials, signing failure, notarization rejection, or ticket verification failure stops release packaging; there is no ad-hoc fallback in the tag/manual workflow. Allowlisted notarization JSON reports are retained as a separate one-day diagnostic artifact; credential files and raw authentication stderr are excluded. Release archives/checksums remain the only distribution assets.
 
 ## Verify and publish
 

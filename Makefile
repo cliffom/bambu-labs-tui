@@ -1,4 +1,4 @@
-.PHONY: build auth run demo test check fmt fmt-check lint lint-actions lint-make docs-check audit-faults vuln-check cross release
+.PHONY: build auth run demo test check fmt fmt-check lint lint-actions lint-make docs-check audit-faults vuln-check cross notify-helper notify-release release
 
 GOLANGCI_LINT ?= golangci-lint
 GOFUMPT ?= go run mvdan.cc/gofumpt@$(shell cat .gofumpt-version)
@@ -7,6 +7,10 @@ CHECKMAKE ?= checkmake
 GOVULNCHECK ?= go run golang.org/x/vuln/cmd/govulncheck@$(shell cat .govulncheck-version)
 AUTH_ARGS ?= --email-code
 RUN_ARGS ?=
+MACOS_SIGN_IDENTITY ?=
+MACOS_NOTARY_PROFILE ?=
+MACOS_NOTARY_KEYCHAIN ?=
+export MACOS_SIGN_IDENTITY MACOS_NOTARY_PROFILE MACOS_NOTARY_KEYCHAIN
 VERSION ?= $(shell cat VERSION)
 COMMIT ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 ifndef BUILD_DATE
@@ -25,7 +29,7 @@ run: build
 	./bin/bambu-tui $(RUN_ARGS)
 
 demo: build
-	./bin/bambu-tui --demo
+	./bin/bambu-tui --demo $(RUN_ARGS)
 
 test:
 	go test -race ./...
@@ -68,5 +72,12 @@ cross:
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-linux-arm64 ./cmd/bambu-tui
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-linux-amd64 ./cmd/bambu-tui
 
-release: cross
+notify-helper:
+	VERSION='$(VERSION)' bash tools/build-notify-helper.sh
+
+notify-release:
+	VERSION='$(VERSION)' bash tools/build-notify-helper.sh dist/notify-helper
+
+release: cross notify-release
+	python3 tools/prepare-macos-release.py prepare dist
 	bash tools/package-release.sh '$(VERSION)'

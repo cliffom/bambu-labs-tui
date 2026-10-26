@@ -22,10 +22,13 @@ make auth    # build and log in using an email code
 make run     # build and open the dashboard
 make demo    # build and open the simulated farm without login
 make cross   # macOS/Linux, arm64/amd64 binaries in dist/
-make release # versioned archives, SHA-256 checksums, and dependency licenses
+make notify-helper # universal branded helper beside bin/bambu-tui (macOS + Swift)
+make release # all archives/checksums/licenses; requires macOS + Swift
 ```
 
-`VERSION` is the release version. Make injects version, commit, and UTC build date into `--version`; a source build without Git metadata reports `unknown` for its commit. CI runs pinned vulnerability scans, race tests, and vet on Linux/macOS using the Go version in `go.mod`, checks native credential persistence on macOS, and packages release candidates on Linux. A pushed version tag creates a **draft** release for review; it does not publish automatically.
+Both `make run` and `make demo` accept `RUN_ARGS`. To use a repository-local configuration for synthetic notification testing, run `make demo RUN_ARGS='--config ./config.toml'`. The default configuration location still applies when no `--config` argument is supplied.
+
+`VERSION` is the release version. Make injects version, commit, and UTC build date into `--version`; a source build without Git metadata reports `unknown` for its commit. CI runs pinned vulnerability scans, race tests, and vet on Linux/macOS using the Go version in `go.mod`, checks native credential persistence on macOS, and packages release candidates on macOS so the notification helper can be compiled and signed. A pushed version tag creates a **draft** release for review; it does not publish automatically.
 
 `make vuln-check` runs govulncheck pinned in `.govulncheck-version` through `go run`; override `GOVULNCHECK` for an installed binary. It queries the Go vulnerability database and fails for reachable known advisories. Run it with the same patched Go toolchain used to build the application; an advisory-free local scan with a newer toolchain does not validate an older release toolchain. CI scans native macOS and Linux targets, and the tag workflow scans before packaging. Keep the Go version in `go.mod` and these setup requirements current when security patches are released.
 
@@ -39,8 +42,40 @@ Install the versions in `.golangci-lint-version` and `.actionlint-version` to re
 
 Install the pinned [checkmake](https://github.com/checkmake/checkmake) version with `go install "github.com/checkmake/checkmake/cmd/checkmake@$(cat .checkmake-version)"`. Run `make lint-make`, or override `CHECKMAKE` if the binary is installed elsewhere. `checkmake.ini` requires the project's build, auth, run, test, and check targets to exist and be declared phony; other lint rules use their defaults.
 
+## macOS notification helper
+
+From a source checkout on macOS with Xcode Command Line Tools (Swift compiler) and Python 3.10+, run:
+
+```sh
+make build
+make notify-helper
+./bin/bambu-tui doctor --notify
+"./bin/Bambu TUI Notify.app/Contents/MacOS/bambu-notify" --status
+"./bin/Bambu TUI Notify.app/Contents/MacOS/bambu-notify" --test
+"./bin/Bambu TUI Notify.app/Contents/MacOS/bambu-notify" --test --sound
+```
+
+The helper build requires macOS, Xcode Command Line Tools (Swift), and Python 3.10+. It creates a universal arm64/x86_64 app under ignored `bin/`, wraps the existing 32/64/512 PNG logos in an ICNS file without resampling, sets the app version from `VERSION`, ad-hoc signs the bundle, and verifies both architectures and signatures. It does not install into Applications. Doctor registers the adjacent bundle with Launch Services before invoking it; registration failure stops the test. The helper declares macOS 12 as its minimum; actual host results belong in the [validation record](validation.md).
+
+`make release` runs on macOS, cross-builds all four Go targets, and builds a separate universal helper under `dist/notify-helper/`. Only macOS archives include that bundle, beside `bambu-tui`. Packaging runs synthetic inventory regression tests, validates archive inventory/metadata/architectures, and verifies the signatures and help command from each extracted macOS bundle. CI and tag-release packaging run on macOS; Linux still runs Go checks and produces a Linux-compatible monitor binary. Developer ID signing and notarization are opt-in release modes using MACOS_SIGN_IDENTITY and MACOS_NOTARY_PROFILE; plain local builds and ordinary PR/main CI remain ad-hoc candidates; tag/manual release builds require signing secrets. Signed mode covers both macOS CLIs and the helper, verifies extracted signatures, and validates stapled tickets when notarized. Clean-Mac Gatekeeper validation remains required; see [publishing](publishing.md).
+
+The helper uses bundle ID `com.github.cliffom.bambu-tui.notify-poc` and display name Bambu TUI. It requests its own notification permission through Apple's UserNotifications framework. Allow notifications in the system prompt; if denied or the request returns "not allowed," enable Bambu TUI in System Settings → Notifications and retry `--test`. If the request is accepted but no banner appears, check Notification Center and the active Focus: temporarily disable Focus or allow Bambu TUI through that Focus, then retry. Enabled app notification settings do not establish that Focus permits interruption. The permission prompt itself is not evidence of normal banner delivery. The helper reports permission denial as exit 3, other framework failures as exit 4, and a 60-second permission/service timeout as exit 5. Bad arguments and SSH use exit 2. `--status` inspects authorization, alert/sound settings, and the effective preview setting without requesting permission or sending a notification; it does not diagnose Focus suppression. An effective preview setting of Never can hide both the supplied title and body behind generic notification text.
+
+Each explicit `--test` requests one immediate synthetic notification; `--sound` requests the default system notification sound. Command acceptance does not establish banner/icon/audio delivery. Inspect the logo and notification text with the terminal focused and unfocused, check sound separately, and record suppression/denial outcomes. Starting the app without arguments, including a notification click that relaunches it, prints help and exits without sending another notification. The helper itself never connects to Bambu, schedules future notifications, starts a monitor, or persists a background service. The opted-in TUI worker uses `--deliver` with bounded JSON stdin and requires existing permission. `doctor --notify` invokes this helper beside the resolved CLI executable, passing `--test` and optional `--sound`. Doctor reports missing-helper build guidance, permission denial, and service timeout; it has a 65-second command deadline and terminates the helper on cancellation. There is no AppleScript fallback. See the alert guide for opt-in automatic delivery.
+
+To remove a locally built helper, unregister it before deleting its generated app bundle:
+
+```sh
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$PWD/bin/Bambu TUI Notify.app"
+rm -r "./bin/Bambu TUI Notify.app"
+```
+
+macOS may retain its notification settings/history after removal. The helper does not reset permissions or remove existing notifications automatically.
+
 ## Test evidence
 
 On Linux/macOS, `make test` also runs the [PTY smoke suite](terminal-tests.md), which exercises the real demo CLI and terminal lifecycle without account access. Tests use fake HTTP/native credential processes, an in-memory MQTT broker connection, and **synthetic** H2D/X2D telemetry fixtures. Displayed telemetry has been validated on H2D and X2D, and the native credential-store probe has passed in a normal terminal. Remaining hardware and real-account restart checks are tracked in [the validation record](validation.md). Captured regression fixtures must have tokens, account identifiers, serials, job names, and spool identifiers removed.
+
+Notification identity regressions use synthetic farm reports and temporary private stores. They cover reconnect/restart replay, family-specific clears and recurrence, job baselines/identities, failed and unknown attempts, cross-process locking semantics, corruption/capacity failures, and reservation write failures. These do not establish live automatic notification delivery.
 
 See [architecture and conventions](architecture.md) for state ownership, concurrency, persistence, and code conventions. Protocol references are maintained in [protocol sources](../reference/protocol-sources.md).

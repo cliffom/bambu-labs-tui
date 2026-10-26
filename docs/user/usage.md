@@ -31,6 +31,8 @@ Account tokens are saved in macOS Keychain or the Linux Secret Service through `
 
 If saving fails, run `./bambu-tui doctor`. It tests save, reload, and deletion using a disposable credential, without reading or sending Bambu credentials. On macOS, unlock your login keychain and try from a normal terminal if a sandboxed terminal cannot authorize access. Linux needs `secret-tool` and a running Secret Service session. The app verifies writes before reporting success and keeps unavailable stores distinct from missing credentials. Session-only login remains available when the host cannot provide a credential store.
 
+For an independent synthetic desktop notification test on macOS, run `./bambu-tui doctor --notify`, optionally adding `--sound`. This skips the credential check and requires no login. See [notification testing](alerts.md#desktop-notification-test-and-sound) for permissions, focused/unfocused terminal checks, and delivery limitations.
+
 `logout` removes this application's saved session for the configured region; it does not revoke the token with Bambu. Authentication failures stop reconnect attempts and show a notice directing you to log in again. Cloudflare blocks and account API errors are reported without printing response bodies or tokens. If direct login is blocked, token import may help, but account discovery must still be accessible.
 
 ## Configuration
@@ -50,6 +52,8 @@ low_filament_percent = 10
 
 The configuration contains no credentials. Each region uses a separate saved session. All printers discovered on the account appear in the dashboard.
 
+Press `,` in the dashboard to change and save global notification settings immediately. See [notification controls](alerts.md#change-notifications-in-the-tui) for file saving, printer overrides, and failure recovery.
+
 ## Keyboard and navigation
 
 | Key | Action |
@@ -64,6 +68,7 @@ The configuration contains no credentials. Each region uses a separate saved ses
 | `F` / `S` | Cycle the printer filter / sort without changing panel focus |
 | `m` | Open the selected printer's AMS/filament browser |
 | `s` | View effective printer alert settings and snooze/resume controls |
+| `,` | Configure and save global desktop notification, sound, and completion settings |
 | `n` | Manage local notice decisions, including dismissals |
 | `!` | Reopen unreviewed action-needed alerts |
 | `a` | Toggle local acknowledgement of the selected active notice |
@@ -124,7 +129,7 @@ When quitting from the dashboard, the app waits up to five seconds for pending n
 
 ### Alert preferences and snoozing
 
-Press `s` on the dashboard or an action-needed prompt to snooze its printer for 15 minutes, 1 hour, or 4 hours; `u` in those controls ends a snooze early. Deadlines save across restarts, independently of acknowledgements and dismissals. All underlying notices stay visible. Global and per-printer category/master switches are configured under `[alerts]` in TOML; defaults preserve automatic alerts. `!` manually inspects unreviewed actionable notices even while muted or snoozed. See the [alert guide](alerts.md) for configuration, expiry, removed-printer behavior, and storage errors. Sound is deferred to notification issue #11.
+Press `s` on the dashboard or an action-needed prompt to snooze its printer for 15 minutes, 1 hour, or 4 hours; `u` in those controls ends a snooze early. Deadlines save across restarts, independently of acknowledgements and dismissals. All underlying notices stay visible. Global and per-printer category/master switches are configured under `[alerts]` in TOML; defaults preserve automatic alerts. `!` manually inspects unreviewed actionable notices even while muted or snoozed. See the [alert guide](alerts.md) for configuration, expiry, removed-printer behavior, and storage errors. Opt-in macOS desktop delivery and sound share category preferences and snoozes; see the alert guide for setup.
 
 ### Action-needed alerts
 
@@ -149,7 +154,7 @@ To preview the modal without a printer, run `make demo`: the X2D simulates runou
 - Standard AMS and AMS HT units have separate readable labels; internal IDs are preserved for filament-path assignments.
 - Notices disappear when their condition resolves or you dismiss them locally; the event panel retains up to 500 events until you quit.
 
-Monitoring requests only: the MQTT client can subscribe to reports and request full status. It exposes no pause, resume, cancel, heating, motion, or job-submission operations. This version has no database, background service, camera feed, desktop alerts, or LAN connection.
+Monitoring requests only: the MQTT client can subscribe to reports and request full status. It exposes no pause, resume, cancel, heating, motion, or job-submission operations. This version has no database, background service, camera feed, LAN connection. Opt-in desktop alerts require a running local macOS TUI session and the bundled helper.
 
 ### Firmware
 

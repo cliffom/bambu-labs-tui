@@ -106,7 +106,7 @@ func persistenceUpdate(m Model, msg tea.Msg) Model {
 	case tickMsg, monitor.Event:
 		// Telemetry and ticks also schedule a blocking event read or a real timer.
 		// The outer batch puts those first and persistence commands second.
-		started := (!m.reviewWrites.inFlight && result.reviewWrites.inFlight) || (!m.snoozeWrites.inFlight && result.snoozeWrites.inFlight)
+		started := (!m.reviewWrites.inFlight && result.reviewWrites.inFlight) || (!m.snoozeWrites.inFlight && result.snoozeWrites.inFlight) || (!m.configWrites.inFlight && result.configWrites.inFlight)
 		if !started {
 			return result
 		}
@@ -125,7 +125,7 @@ func completePersistence(m Model, cmd tea.Cmd) Model {
 		for _, child := range msg {
 			m = completePersistence(m, child)
 		}
-	case persistenceResultMsg:
+	case persistenceResultMsg, configResultMsg:
 		next, follow := m.Update(msg)
 		m = completePersistence(next.(Model), follow)
 	}

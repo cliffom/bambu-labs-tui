@@ -59,6 +59,7 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	p.firmwareReport(delta, now)
 	p.LastReport, p.Online = now, true
 	p.normalize()
+	p.observeNotificationJob(delta)
 	return true, nil
 }
 

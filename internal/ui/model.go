@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -32,52 +33,71 @@ type (
 	endMsg struct{}
 
 	Model struct {
-		Farm                     *farm.State
-		Events                   <-chan monitor.Event
-		Refresh                  chan<- struct{}
-		Demo                     bool
-		width, height, selection int
-		focus                    dashboardPanel
-		now                      time.Time
-		ended                    bool
-		toast                    string
-		toastAt                  time.Time
-		details, notices         viewport.Model
-		noticeKey                string
-		noticeIndex              int
-		noticeFocused            bool
-		noticeSpans              []noticeSpan
-		inspected                *noticeItem
-		inspection               viewport.Model
-		dialog                   dialogState
-		saveReviews              func(map[string]farm.Review) error
-		reviewWrites             persistence
-		snoozeWrites             persistence
-		snoozeRevision           uint64
-		quitting                 bool
-		quitProblem              bool
-		quitGeneration           uint64
-		noticeStorageError       string
-		attention                *attentionDialog
-		attentionSeen            map[attentionOccurrence]bool
-		attentionPending         time.Time
-		filament                 *filamentDialog
-		decisions                *decisionsDialog
-		alertDialog              *alertDialog
-		alertPrefs               config.AlertPreferences
-		snoozes                  map[string]time.Time
-		saveSnoozes              func(map[string]time.Time) error
-		snoozesDirty             bool
-		alertStorageError        string
-		printersDiscovered       bool
-		printerIDs               []string
-		printerMetrics           map[string]printerOverview
-		printerFilter            printerFilter
-		printerSort              printerSort
-		overview                 farmOverview
-		diagnostics              diagnostics.Recorder
-		exportDialog             *exportDialog
-		clearNotices             *clearNoticesDialog
+		Farm                       *farm.State
+		Events                     <-chan monitor.Event
+		Refresh                    chan<- struct{}
+		Demo                       bool
+		width, height, selection   int
+		focus                      dashboardPanel
+		now                        time.Time
+		ended                      bool
+		toast                      string
+		toastAt                    time.Time
+		details, notices           viewport.Model
+		noticeKey                  string
+		noticeIndex                int
+		noticeFocused              bool
+		noticeSpans                []noticeSpan
+		inspected                  *noticeItem
+		inspection                 viewport.Model
+		dialog                     dialogState
+		saveReviews                func(map[string]farm.Review) error
+		reviewWrites               persistence
+		snoozeWrites               persistence
+		snoozeRevision             uint64
+		quitting                   bool
+		quitProblem                bool
+		quitGeneration             uint64
+		noticeStorageError         string
+		attention                  *attentionDialog
+		attentionSeen              map[attentionOccurrence]bool
+		attentionPending           time.Time
+		filament                   *filamentDialog
+		decisions                  *decisionsDialog
+		alertDialog                *alertDialog
+		alertPrefs                 config.AlertPreferences
+		snoozes                    map[string]time.Time
+		saveSnoozes                func(map[string]time.Time) error
+		snoozesDirty               bool
+		alertStorageError          string
+		notificationClient         notificationClient
+		notificationStarted        bool
+		testNotification           func(context.Context, bool) error
+		notificationTestContext    context.Context
+		notificationTestCancel     context.CancelFunc
+		notificationTestPending    bool
+		notificationTestGeneration uint64
+		notificationTestStatus     string
+		notificationTestStatusAt   time.Time
+		notificationTestFailed     bool
+		notificationSetupError     string
+		configSelection            int
+		configPath                 string
+		saveConfig                 func(config.AlertRules) error
+		configRevision             uint64
+		configWrites               persistence
+		configStorageError         string
+		notificationError          string
+		notificationRevision       uint64
+		printersDiscovered         bool
+		printerIDs                 []string
+		printerMetrics             map[string]printerOverview
+		printerFilter              printerFilter
+		printerSort                printerSort
+		overview                   farmOverview
+		diagnostics                diagnostics.Recorder
+		exportDialog               *exportDialog
+		clearNotices               *clearNoticesDialog
 	}
 )
 
@@ -120,11 +140,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	result, cmd := m.update(msg)
 	result.pruneSnoozes()
 	result.syncDialogs()
+	result.syncNotifications()
 	cmd = tea.Batch(cmd, result.persist())
 	if result.quitting && !result.persistencePending() {
-		if result.reviewWrites.failed != 0 || result.snoozeWrites.failed != 0 {
+		if result.reviewWrites.failed != 0 || result.snoozeWrites.failed != 0 || result.configWrites.failed != 0 {
 			result.quitting, result.quitProblem = false, true
 		} else {
+			result.stopNotifications()
 			return result, tea.Quit
 		}
 	}
@@ -134,6 +156,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch v := msg.(type) {
+	case notificationTestResultMsg:
+		m.notificationTestResult(v)
+	case configResultMsg:
+		m.configResult(v)
 	case persistenceResultMsg:
 		m.persistenceResult(v)
 	case shutdownTimeoutMsg:
@@ -194,6 +220,8 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		case keyQuit, keyInterrupt:
 			cmd = m.beginShutdown()
 			return m, cmd
+		case keyConfig:
+			m.openDialog(dialogConfig)
 		case keyHelp:
 			m.openDialog(dialogHelp)
 		case keyAttention:
@@ -446,15 +474,15 @@ func (m Model) dashboardView(help bool) string {
 	} else {
 		lines = append(lines, m.section("PRINTER DETAILS", m.focus == panelDetails, left), m.details.View(), m.section("NOTICES", m.focus == panelNotices, right), m.notices.View())
 	}
-	foot := footerHints("↑/↓ select  tab panel  m AMS  n reviews  s alerts  D export  ? help  q quit")
+	foot := footerHints("↑/↓ select  tab panel  m AMS  n reviews  s alerts  , config  D export  ? help  q quit")
 	if m.focus == panelDetails {
-		foot = footerHints("↑/↓ scroll  m filament  n decisions  s alerts  q quit")
+		foot = footerHints("↑/↓ scroll  m filament  n decisions  s alerts  , config  q quit")
 	}
 	if m.focus == panelNotices {
-		foot = footerHints("↑/↓ select  enter view  a ack  c clear  X clear all  n decisions  s alerts")
+		foot = footerHints("↑/↓ select  enter view  a ack  c clear  X clear all  n decisions  s alerts  , config")
 	}
 	if m.width < compactTableWidth {
-		foot = footerHints("↑/↓  tab  m AMS  n reviews  s alerts  D diag  ?  q quit")
+		foot = footerHints("↑/↓  tab  m AMS  n reviews  s alerts  , config  ?  q quit")
 	}
 	if m.toast != "" {
 		foot = warning.Render(safe(m.toast))
@@ -463,7 +491,7 @@ func (m Model) dashboardView(help bool) string {
 		foot = warning.Render(message)
 	}
 	if help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "X              Clear all notices across the farm (confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
+		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", ",              Configure global notification defaults", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "X              Clear all notices across the farm (confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
 	}
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")

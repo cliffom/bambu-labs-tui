@@ -4,12 +4,13 @@
 
 Read [UI direction](ui-direction.md) before UI changes and [documentation direction](documentation-direction.md) for documentation ownership and required PR evidence.
 
-Requires Go 1.26 or newer and Python 3.10+ for documentation checks. Bubble Tea v1, Bubbles, and Lip Gloss are pinned in `go.mod`.
+Requires Go 1.27.3 or newer and Python 3.10+ for documentation checks. Bubble Tea v1, Bubbles, and Lip Gloss are pinned in `go.mod`.
 
 ```sh
 make docs-check # documentation policy, links, and checker regression tests
 make test    # tests with the race detector
 make check   # go vet
+make vuln-check # known vulnerabilities for the current target/toolchain (network required)
 make fmt     # format Go source
 make fmt-check # check formatting without changing files
 make lint    # golangci-lint
@@ -24,7 +25,9 @@ make cross   # macOS/Linux, arm64/amd64 binaries in dist/
 make release # versioned archives, SHA-256 checksums, and dependency licenses
 ```
 
-`VERSION` is the release version. Make injects version, commit, and UTC build date into `--version`; a source build without Git metadata reports `unknown` for its commit. CI runs race tests and vet on Linux/macOS, checks native credential persistence on macOS, and packages release candidates on Linux. A pushed version tag creates a **draft** release for review; it does not publish automatically.
+`VERSION` is the release version. Make injects version, commit, and UTC build date into `--version`; a source build without Git metadata reports `unknown` for its commit. CI runs pinned vulnerability scans, race tests, and vet on Linux/macOS using the Go version in `go.mod`, checks native credential persistence on macOS, and packages release candidates on Linux. A pushed version tag creates a **draft** release for review; it does not publish automatically.
+
+`make vuln-check` runs govulncheck pinned in `.govulncheck-version` through `go run`; override `GOVULNCHECK` for an installed binary. It queries the Go vulnerability database and fails for reachable known advisories. Run it with the same patched Go toolchain used to build the application; an advisory-free local scan with a newer toolchain does not validate an older release toolchain. CI scans native macOS and Linux targets, and the tag workflow scans before packaging. Keep the Go version in `go.mod` and these setup requirements current when security patches are released.
 
 The separate **Formatting and lint** workflow checks Go formatting, type declaration grouping, error handling, vet diagnostics, ineffective assignments, static analysis, unused code, GitHub Actions syntax, and Makefile rules on pull requests and pushes to `main`. It reports formatting problems without rewriting source. Run `make fmt` locally to fix Go formatting. Checkmake validates the Makefile; it does not format or rewrite it.
 

@@ -11,7 +11,7 @@ Update `VERSION` and the default version in `internal/buildinfo/buildinfo.go` to
 ```sh
 make docs-check fmt-check lint lint-actions lint-make
 make audit-faults
-make test check release
+make vuln-check test check release
 ```
 
 The lint commands require the pinned tools documented in the [development guide](contributing.md). The catalogue audit requires network access; ordinary tests remain offline. Review the hardware-validation limitations in [validation.md](validation.md) and any feature-specific validation notes.
@@ -26,7 +26,7 @@ git push origin "$release_tag"
 
 Release archives include the README, repository guidance, configuration example, the complete `docs/` tree, branding banner, and dependency licenses. Roadmap and changelog paths inside each archive match the repository: `docs/ROADMAP.md` and `docs/CHANGELOG.md`. The draft release reads its initial notes from `docs/CHANGELOG.md`.
 
-The tag workflow verifies the version, runs race tests and vet, builds macOS/Linux archives for arm64/amd64, includes dependency licenses, and creates a **draft** GitHub release with SHA-256 checksums. Build metadata includes the source commit and UTC build date; builds without Git metadata report `unknown` for the commit.
+The tag workflow uses the patched Go version in `go.mod`, verifies the version, scans known vulnerabilities with the pinned scanner, runs race tests and vet, builds macOS/Linux archives for arm64/amd64, and includes dependency licenses. Actions are pinned to commit SHAs and checkout does not persist credentials. The build job has read-only repository permissions and uploads the archives, checksums, and changelog as a one-day artifact. A separate publishing job downloads that artifact and uses repository write permission only to create a **draft** GitHub release with SHA-256 checksums. Build metadata includes the source commit and UTC build date; builds without Git metadata report `unknown` for the commit.
 
 ## Verify and publish
 

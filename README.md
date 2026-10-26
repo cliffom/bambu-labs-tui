@@ -77,7 +77,7 @@ Action-needed alerts highlight faults requiring intervention. Acknowledging or d
 
 ## Build from source
 
-Requires **Go 1.26 or newer**, Git, and Make.
+Requires **Go 1.27.3 or newer**, Git, and Make.
 
 ```sh
 git clone https://github.com/cliffom/bambu-tui.git

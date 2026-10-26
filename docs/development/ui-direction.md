@@ -10,6 +10,8 @@ Extend the existing dashboard hierarchy: version/connection header, farm summary
 
 Color supplements text. Preserve readable state labels, fault codes, focus/selection markers, and unknown/last-known qualifiers when color is unavailable. Treat printer names and other external strings as untrusted terminal text; use existing sanitization and ANSI-aware width/wrapping helpers. Avoid decorative content that consumes space needed for monitoring or navigation.
 
+Use a full-width slate background for the bottom dashboard and full-screen notice footer, with a one-column horizontal inset. Use bold, bright dashboard hotkeys with secondary labels and keep dashboard warnings amber; preserve the footer's single-row height and readable controls without color.
+
 ## Interaction and layout contracts
 
 - Reuse key meanings from `internal/ui/keys.go`. Keep dashboard help, dialog hints, and the [keyboard reference](../user/usage.md#keyboard-and-navigation) consistent with actual routing. Context-specific reuse is allowed when the active dialog makes the action clear.

@@ -4,6 +4,8 @@
 
 The dashboard summary always describes the **whole account farm**. Filtering changes only the printer list and its selected details. Notices, event history, saved reviews, snoozes, and automatic alert eligibility are unchanged.
 
+The bottom dashboard row uses a contrasting background and bold hotkeys to separate navigation hints from printer data. Hints show `↑/↓` for selection or scrolling; `j` / `k` remain available. Toasts and storage warnings can temporarily replace the hints.
+
 ## Summary definitions
 
 | Count | Meaning |

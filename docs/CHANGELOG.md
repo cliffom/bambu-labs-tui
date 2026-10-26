@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.15 — Clearer footer navigation
+
+- Give dashboard and full-screen notice footers a full-width slate background with a one-column inset to separate them from monitoring content.
+- Emphasize dashboard hotkeys in bold with brighter text and show up/down arrows in navigation hints. Keep both arrow and `j` / `k` navigation available, along with amber dashboard warnings and readable controls without color.
+
 ## 0.1.14 — Cleaner section headers
 
 - Remove numeric prefixes from the Printers, Printer Details, and Notices section headers in compact and wide layouts, retaining the existing focus marker and keyboard navigation.

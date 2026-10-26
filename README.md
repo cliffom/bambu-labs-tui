@@ -29,7 +29,7 @@ Download your archive and the checksums file from the [latest release](https://g
 | Linux with x86-64 processor | `linux_amd64.tar.gz` |
 | Linux with ARM64 processor | `linux_arm64.tar.gz` |
 
-From v0.2.1, Mac archives use `macos` in the filename; v0.2.0 and earlier use `darwin`. Binary downloads include a short installation README, a configuration example, and license notices; full documentation is hosted in this repository.
+From v0.2.1, Mac archives use `macos` in the filename; v0.2.0 and earlier use `darwin`. Binary downloads include a short installation README, a configuration example, and license notices; full documentation is hosted in this repository. From v0.2.4, Go and dependency notices are consolidated in `THIRD_PARTY_NOTICES.txt`; earlier releases use `third_party/`.
 
 From your download directory, set the release version below to the one you downloaded. This example uses the Apple silicon archive; change the suffix for your machine.
 
@@ -127,4 +127,4 @@ See [contributing](docs/development/contributing.md) for development setup, test
 - [Roadmap](docs/ROADMAP.md) and [changelog](docs/CHANGELOG.md)
 - [Report a bug or request a feature](https://github.com/cliffom/bambu-tui/issues)
 
-Licensed under [MIT](LICENSE). Release archives include dependency licenses. This project is not affiliated with Bambu Lab.
+Licensed under [MIT](LICENSE). Release archives include Go and dependency license notices. This project is not affiliated with Bambu Lab.

@@ -137,7 +137,7 @@ def archive_errors(path, source):
         files = {m.name.rstrip("/") for m in members if m.isfile()}
         documents = {
             m.name: archive.extractfile(m).read().decode("utf-8")
-            for m in members if m.isfile() and is_markdown(m.name) and not m.name.startswith("third_party/")
+            for m in members if m.isfile() and is_markdown(m.name)
         }
     expected = {'README.md': source.documents[RELEASE_README]}
     errors = []

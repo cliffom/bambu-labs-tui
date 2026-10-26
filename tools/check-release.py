@@ -33,20 +33,15 @@ def archive_errors(path, version):
     macos = match[1] == 'macos'
     with tarfile.open(path) as archive:
         entries = {m.name.removeprefix('./').rstrip('/'): m for m in archive.getmembers()}
-        required_files = {'bambu-tui', 'README.md', 'LICENSE', 'config.example.toml', 'third_party/Go-LICENSE'}
+        required_files = {'bambu-tui', 'README.md', 'LICENSE', 'config.example.toml', 'THIRD_PARTY_NOTICES.txt'}
         helper_files = {EXECUTABLE, CONTENTS + 'Info.plist', CONTENTS + 'Resources/BambuTUI.icns', CONTENTS + '_CodeSignature/CodeResources', CONTENTS + 'CodeResources'}
         allowed = required_files | (helper_files if macos else set())
         for member in archive.getmembers():
             name = member.name.removeprefix('./').rstrip('/')
-            notice = re.fullmatch(r'third_party/[^/]+/(?:LICENSE|COPYING|NOTICE)[^/]*', name)
-            directory = member.isdir() and (
-                name == 'third_party'
-                or bool(re.fullmatch(r'third_party/[^/]+', name))
-                or (macos and any(n.startswith(name + '/') for n in helper_files))
-            )
+            directory = member.isdir() and macos and any(n.startswith(name + '/') for n in helper_files)
             if member.issym() and macos and name == CONTENTS + 'CodeResources' and member.linkname == '_CodeSignature/CodeResources':
                 continue
-            if not directory and not (member.isfile() and (name in allowed or notice)):
+            if not directory and not (member.isfile() and name in allowed):
                 errors.append('unexpected archive entry: ' + member.name)
         if len(entries) != len(archive.getmembers()):
             errors.append('duplicate archive entries')

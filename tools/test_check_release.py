@@ -25,8 +25,7 @@ class ReleaseInventoryTests(unittest.TestCase):
             'README.md': (b'# Install', 0o644),
             'LICENSE': (b'MIT', 0o644),
             'config.example.toml': (b'region = "global"', 0o644),
-            'third_party/Go-LICENSE': (b'Go license', 0o644),
-            'third_party/example_dependency/LICENSE': (b'Dependency license', 0o644),
+            'THIRD_PARTY_NOTICES.txt': (b'Go and dependency license notices', 0o644),
             release.EXECUTABLE: (binary, 0o755),
             release.CONTENTS + 'Info.plist': (plistlib.dumps(metadata), 0o644),
             release.CONTENTS + 'Resources/BambuTUI.icns': (b'synthetic-icon', 0o644),
@@ -50,11 +49,18 @@ class ReleaseInventoryTests(unittest.TestCase):
             self.assertTrue(any('invalid release archive filename' in e for e in self.check(target)))
 
     def test_rejects_unexpected_files_even_inside_helper_or_notices(self):
-        for name in ('cmd/main.go', 'docs/README.md', 'AGENTS.md', 'assets/hero.png', 'third_party/dependency/main.go', release.CONTENTS + 'Resources/extra.png', '../outside'):
+        for name in ('cmd/main.go', 'docs/README.md', 'AGENTS.md', 'assets/hero.png', 'third_party/dependency/main.go', 'third_party/dependency/LICENSE', 'third_party/Go-LICENSE', release.CONTENTS + 'Resources/extra.png', '../outside'):
             with self.subTest(name=name):
                 self.files[name] = (b'unexpected', 0o644)
                 self.assertTrue(any('unexpected archive entry' in e for e in self.check()))
                 del self.files[name]
+
+    def test_rejects_old_notice_directories_and_empty_consolidated_file(self):
+        directory = tarfile.TarInfo('third_party/')
+        directory.type = tarfile.DIRTYPE
+        self.assertTrue(any('unexpected archive entry' in e for e in self.check(extra_members=(directory,))))
+        self.files['THIRD_PARTY_NOTICES.txt'] = (b'', 0o644)
+        self.assertIn('missing runtime file: THIRD_PARTY_NOTICES.txt', self.check())
 
     def test_duplicate_members_and_unsafe_links_fail(self):
         duplicate = tarfile.TarInfo('README.md')
@@ -71,7 +77,7 @@ class ReleaseInventoryTests(unittest.TestCase):
         self.assertEqual(self.check(extra_members=(entry,)), [])
 
     def test_required_runtime_guidance_and_licenses(self):
-        for name in ('README.md', 'LICENSE', 'config.example.toml', 'third_party/Go-LICENSE'):
+        for name in ('README.md', 'LICENSE', 'config.example.toml', 'THIRD_PARTY_NOTICES.txt'):
             with self.subTest(name=name):
                 original = self.files.pop(name)
                 self.assertIn('missing runtime file: ' + name, self.check())

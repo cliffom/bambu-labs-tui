@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4 — Consolidated license notices
+
+- Consolidate Go and dependency license notices into one attributed `THIRD_PARTY_NOTICES.txt` in binary archives, replacing the nested `third_party/` tree while preserving all notice text.
+
 ## 0.2.3 — Notification activity
 
 - Add a keyboard-accessible Notification activity view (`N`) with the last 100 session decisions, stable selection, incident/channel/outcome/reason details, repeat coalescing, and grouped-request membership. Explain reviews, preferences, snoozes, prior attempts, completion baselines, native failures, and storage pauses. Keep macOS acceptance separate from confirmed presentation and preserve accepted outcomes when saving their result fails. Activity is memory-only and does not change delivery identities or retry policy.

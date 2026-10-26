@@ -11,6 +11,7 @@ if [[ $(uname -s) != Darwin ]]; then
   exit 1
 fi
 python3 -m unittest discover -s tools -p 'test_check_release.py'
+python3 -m unittest discover -s tools -p 'test_third_party_notices.py'
 python3 -m unittest discover -s tools -p 'test_prepare_macos_release.py'
 python3 -m unittest discover -s tools -p 'test_setup_macos_ci_signing.py'
 python3 tools/check-docs.py
@@ -20,31 +21,14 @@ trap 'rm -rf "$release_stage"' EXIT
 
 cp LICENSE config.example.toml "$release_stage/"
 cp docs/user/release-installation.md "$release_stage/README.md"
-mkdir -p "$release_stage/third_party"
 go_root=$(go env GOROOT)
-if [[ -f "$go_root/LICENSE" ]]; then
-  cp "$go_root/LICENSE" "$release_stage/third_party/Go-LICENSE"
-else
-  # Homebrew keeps the license one directory above libexec/GOROOT.
-  cp "$go_root/../LICENSE" "$release_stage/third_party/Go-LICENSE"
-fi
-
 # Include notices from dependencies actually linked into the application.
-go list -deps -f '{{with .Module}}{{.Path}} {{.Dir}}{{end}}' ./cmd/bambu-tui | sort -u > "$release_stage/modules.txt"
-while read -r dependency dependency_dir; do
-  [[ -z "$dependency" || "$dependency" == 'github.com/cliffom/bambu-tui' ]] && continue
-  destination="$release_stage/third_party/${dependency//\//_}"
-  mkdir -p "$destination"
-  shopt -s nullglob
-  notices=("$dependency_dir"/LICENSE* "$dependency_dir"/COPYING* "$dependency_dir"/NOTICE*)
-  if [[ ${#notices[@]} -eq 0 ]]; then
-    echo "No license found for $dependency" >&2
-    exit 1
-  fi
-  for notice in "${notices[@]}"; do
-    [[ -f "$notice" ]] && cp "$notice" "$destination/"
-  done
-done < "$release_stage/modules.txt"
+for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
+  CGO_ENABLED=0 GOOS=${target%-*} GOARCH=${target#*-} \
+    go list -deps -f '{{with .Module}}{{.Path}} {{.Dir}}{{end}}' ./cmd/bambu-tui || exit 1
+done | sort -u > "$release_stage/modules.txt"
+python3 tools/third-party-notices.py --go-root "$go_root" \
+  --modules "$release_stage/modules.txt" --output "$release_stage/THIRD_PARTY_NOTICES.txt"
 rm "$release_stage/modules.txt"
 
 notify_bundle='Bambu TUI Notify.app'
@@ -59,7 +43,7 @@ for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
   cp "dist/bambu-tui-$target" "$release_stage/bambu-tui"
   download_target=${target/darwin/macos}
   archive="bambu-tui_v${release_version}_${download_target//-/_}.tar.gz"
-  archive_members=(bambu-tui README.md LICENSE config.example.toml third_party)
+  archive_members=(bambu-tui README.md LICENSE config.example.toml THIRD_PARTY_NOTICES.txt)
   if [[ "$target" == darwin-* ]]; then
     archive_members+=("$notify_bundle")
   fi

@@ -119,7 +119,7 @@ class DocumentationChecks(unittest.TestCase):
         source = self.tree()
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "release.tar.gz"
-            documents = {'README.md': guide, 'third_party/dependency/README.md': '# Vendor\n'}
+            documents = {'README.md': guide}
             files = ('LICENSE', 'config.example.toml')
             self.write_archive(path, documents, files=files)
             self.assertEqual(docs.archive_errors(path, source), [])

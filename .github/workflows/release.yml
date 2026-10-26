@@ -57,7 +57,8 @@ jobs:
         with:
           name: release-assets
           path: |
-            dist/*.tar.gz
+            dist/*_macos_*.tar.gz
+            dist/*_linux_*.tar.gz
             dist/*checksums.txt
             docs/CHANGELOG.md
           retention-days: 1

@@ -18,11 +18,9 @@ python3 tools/check-docs.py
 release_stage=$(mktemp -d)
 trap 'rm -rf "$release_stage"' EXIT
 
-cp README.md AGENTS.md LICENSE config.example.toml "$release_stage/"
-mkdir -p "$release_stage/third_party" "$release_stage/assets/branding"
-cp -R docs "$release_stage/docs"
-cp assets/branding/hero.png "$release_stage/assets/branding/"
-cp -R assets/screenshots "$release_stage/assets/screenshots"
+cp LICENSE config.example.toml "$release_stage/"
+cp docs/user/release-installation.md "$release_stage/README.md"
+mkdir -p "$release_stage/third_party"
 go_root=$(go env GOROOT)
 if [[ -f "$go_root/LICENSE" ]]; then
   cp "$go_root/LICENSE" "$release_stage/third_party/Go-LICENSE"
@@ -59,8 +57,9 @@ done
 archives=()
 for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
   cp "dist/bambu-tui-$target" "$release_stage/bambu-tui"
-  archive="bambu-tui_v${release_version}_${target//-/_}.tar.gz"
-  archive_members=(bambu-tui README.md AGENTS.md LICENSE config.example.toml docs assets third_party)
+  download_target=${target/darwin/macos}
+  archive="bambu-tui_v${release_version}_${download_target//-/_}.tar.gz"
+  archive_members=(bambu-tui README.md LICENSE config.example.toml third_party)
   if [[ "$target" == darwin-* ]]; then
     archive_members+=("$notify_bundle")
   fi

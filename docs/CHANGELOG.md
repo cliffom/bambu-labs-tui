@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Trim binary release archives to the CLI, macOS notification helper, concise installation README, configuration example, and license notices. Keep full documentation online. Rename macOS download filenames from `darwin` to `macos`, retaining Go build targets and signed/notarized packaging verification.
+
 ## 0.2.0 — macOS desktop notifications
 
 - Add opt-in macOS desktop notifications for intervention-required incidents and telemetry-confirmed print completion while the TUI session is running. Show the triggering printer name and Bambu TUI logo, and group co-reported intervention notices into one notification per printer.

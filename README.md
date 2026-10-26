@@ -24,16 +24,18 @@ Download your archive and the checksums file from the [latest release](https://g
 
 | Machine | Archive suffix |
 | --- | --- |
-| Mac with Apple silicon | `darwin_arm64.tar.gz` |
-| Mac with Intel processor | `darwin_amd64.tar.gz` |
+| Mac with Apple silicon | `macos_arm64.tar.gz` |
+| Mac with Intel processor | `macos_amd64.tar.gz` |
 | Linux with x86-64 processor | `linux_amd64.tar.gz` |
 | Linux with ARM64 processor | `linux_arm64.tar.gz` |
+
+From v0.2.1, Mac archives use `macos` in the filename; v0.2.0 and earlier use `darwin`. Binary downloads include a short installation README, a configuration example, and license notices; full documentation is hosted in this repository.
 
 From your download directory, set the release version below to the one you downloaded. This example uses the Apple silicon archive; change the suffix for your machine.
 
 ```sh
 release_version=vX.Y.Z # Replace with the downloaded release's version.
-archive="bambu-tui_${release_version}_darwin_arm64.tar.gz"
+archive="bambu-tui_${release_version}_macos_arm64.tar.gz"
 shasum -a 256 "$archive"
 # Compare with the matching line in bambu-tui_${release_version}_checksums.txt.
 tar -xzf "$archive"

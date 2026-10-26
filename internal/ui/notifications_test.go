@@ -17,14 +17,24 @@ import (
 )
 
 type notificationStub struct {
-	inputs  []notifications.Input
-	status  notifications.Status
-	stopped bool
+	inputs     []notifications.Input
+	status     notifications.Status
+	stopped    bool
+	retries    int
+	retryInput notifications.Input
 }
 
 func (n *notificationStub) Submit(input notifications.Input) { n.inputs = append(n.inputs, input) }
 func (n *notificationStub) Status() notifications.Status     { return n.status }
 func (n *notificationStub) Stop()                            { n.stopped = true }
+
+func (n *notificationStub) Retry() bool {
+	n.retries++
+	if len(n.inputs) > 0 {
+		n.retryInput = n.inputs[len(n.inputs)-1]
+	}
+	return true
+}
 
 func notificationModel(t *testing.T) (Model, *notificationStub, string) {
 	t.Helper()

@@ -24,6 +24,7 @@ const (
 	OutcomeSuppressed   = "Suppressed"
 	OutcomeUnconfirmed  = "Unconfirmed"
 	OutcomePaused       = "Paused"
+	OutcomeStatus       = "Status"
 	ReasonDesktopOff    = "desktop_off"
 	ReasonCategoryOff   = "category_off"
 	ReasonCompletionOff = "completion_off"
@@ -58,6 +59,16 @@ type Activity struct {
 // telemetry, credentials, or protocol job identifiers.
 func ReasonText(reason string) string {
 	switch reason {
+	case ReasonOwner:
+		return "This TUI owns automatic delivery for this account and region."
+	case ReasonStandby:
+		return "Another TUI owns delivery. Monitoring continues; takeover follows owner exit."
+	case ReasonObserver:
+		return "Desktop delivery is off; this TUI does not retain delivery ownership."
+	case ReasonRetry:
+		return "Checking existing state again; prior attempts will not be resent."
+	case ReasonPaused:
+		return "Worker paused before submission; reservation kept. No automatic retry."
 	case ReasonDesktopOff:
 		return "Desktop notifications are off for this printer."
 	case ReasonCategoryOff:
@@ -85,13 +96,13 @@ func ReasonText(reason string) string {
 	case ReasonBackend:
 		return "macOS submission failed; run doctor --notify. No automatic retry."
 	case ReasonQueue:
-		return "Update queue full; delivery paused. Restart to retry."
+		return "Update queue full; delivery paused. Press r in activity to retry after the queue drains."
 	case ReasonStorageBusy:
-		return "Identity storage busy; delivery paused. Restart after competing access ends."
+		return "Identity storage busy; delivery paused. Press r after competing access ends."
 	case ReasonStorageFull:
 		return "Identity capacity reached; delivery paused. Restart cannot free capacity."
 	case ReasonStorage:
-		return "Identity storage unavailable; delivery paused. Check storage, then restart."
+		return "Identity storage unavailable; delivery paused. Fix storage, then press r in activity."
 	case ReasonReservation:
 		return "Already claimed by this or another session; no duplicate request."
 	case notificationstate.SuppressedReviewed:
@@ -178,6 +189,7 @@ func (w *Worker) appendActivityLocked(entry Activity, key string) bool {
 		w.status.History = w.status.History[:ActivityLimit-1]
 	}
 	w.status.History = append(w.status.History, entry)
+	w.notifyChangedLocked()
 	return true
 }
 
@@ -228,6 +240,9 @@ func (w *Worker) recordGroup(group []notificationstate.Candidate, source Input, 
 func suppressionReason(candidate notificationstate.Candidate, current Input) string {
 	if !current.Active {
 		return ReasonClosing
+	}
+	if current.ObserveOnly {
+		return ReasonDesktopOff
 	}
 	printer, live := current.Snapshot[candidate.PrinterID]
 	if !live {

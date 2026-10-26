@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/notifications"
 )
 
 type alertDialog struct {
@@ -174,7 +175,7 @@ func (m *Model) syncAlertDialog() {
 	}
 	if m.notificationClient != nil {
 		status := m.notificationClient.Status()
-		lines = append(lines, "N from the dashboard opens recent notification activity.", "Delivery counts cover this entire TUI session.", field("Delivery", status.Last), field("Accepted", fmt.Sprint(status.Accepted)), field("Failed", fmt.Sprint(status.Failed)), field("Suppressed", fmt.Sprint(status.Suppressed)))
+		lines = append(lines, "N from the dashboard opens recent notification activity.", "Delivery counts cover this entire TUI session.", field("Owner", notifications.OwnershipText(status)), field("Delivery", status.Last), field("Accepted", fmt.Sprint(status.Accepted)), field("Failed", fmt.Sprint(status.Failed)), field("Suppressed", fmt.Sprint(status.Suppressed)))
 	}
 	if m.Demo || m.saveSnoozes == nil {
 		lines = append(lines, "Snooze changes apply only to this session.")

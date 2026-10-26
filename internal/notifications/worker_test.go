@@ -78,6 +78,23 @@ func await[T any](t *testing.T, ch <-chan T) T {
 }
 func stopWorker(t *testing.T, w *Worker) { t.Helper(); w.Stop(); await(t, w.Done()) }
 
+func awaitPaused(t *testing.T, w *Worker) {
+	t.Helper()
+	deadline := time.NewTimer(3 * time.Second)
+	defer deadline.Stop()
+	for {
+		status := w.Status()
+		if status.Disabled && !status.Pending {
+			return
+		}
+		select {
+		case <-w.changed:
+		case <-deadline.C:
+			t.Fatal("worker did not pause")
+		}
+	}
+}
+
 func TestWorkerDeliversAndDeduplicatesAcrossRestart(t *testing.T) {
 	ledger := testLedger(t)
 	messages := make(chan Message, 4)
@@ -176,7 +193,7 @@ func TestQueueOverflowDisablesWithoutBlockingUI(t *testing.T) {
 		input.Policies["TEST"] = p
 		w.Submit(input)
 	}
-	if !w.Status().Disabled || !strings.Contains(w.Status().Error, "queue full") || len(w.Status().History) != 1 || w.Status().History[0].Reason != ReasonQueue {
+	if !w.Status().Disabled || !strings.Contains(w.Status().Error, "queue full") || len(withoutOwnership(w.Status()).History) != 1 || withoutOwnership(w.Status()).History[0].Reason != ReasonQueue {
 		t.Fatal(w.Status())
 	}
 	close(release)
@@ -202,7 +219,8 @@ func TestWorkerFailureIsVisibleAndNotAccepted(t *testing.T) {
 	broken.observeErr = errors.New("corrupt store")
 	failed := NewWorker(context.Background(), broken, func(context.Context, Message) error { t.Error("sent with failed storage"); return nil })
 	failed.Submit(incidentFrame())
-	await(t, failed.Done())
+	awaitPaused(t, failed)
+	stopWorker(t, failed)
 	if !failed.Status().Disabled {
 		t.Fatal("storage failure did not disable worker")
 	}

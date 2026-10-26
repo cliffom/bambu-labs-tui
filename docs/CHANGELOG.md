@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.5 — Notification ownership and recovery
+
+- Elect one automatic notification owner per account/region using a private OS file lock. Show ownership and standby status without interrupting secondary monitoring; take over from a fresh UI snapshot after owner exit/crash or desktop opt-out. Muted sessions release delivery ownership while preserving identity observation when available.
+- Add `r` in Notification activity to recheck paused delivery after fixing its cause. Drain obsolete frames and require fresh telemetry/preferences before resuming. Preserve accepted, failed, and uncertain attempts, leave unreadable state untouched, and retain capacity limits without resetting history. Hold ownership until any canceled sender has returned.
+
 ## 0.2.4 — Consolidated license notices
 
 - Consolidate Go and dependency license notices into one attributed `THIRD_PARTY_NOTICES.txt` in binary archives, replacing the nested `third_party/` tree while preserving all notice text.

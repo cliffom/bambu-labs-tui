@@ -8,6 +8,7 @@ type notificationClient interface {
 	Submit(notifications.Input)
 	Status() notifications.Status
 	Stop()
+	Retry() bool
 }
 
 func (m Model) WithNotifications(client notificationClient, setupErr error) Model {
@@ -44,7 +45,7 @@ func (m *Model) syncNotifications() {
 		rules := m.alertPrefs.RulesFor(id)
 		policies[id] = notifications.Policy{PrinterName: m.Farm.Printers[id].Name, Desktop: rules.DesktopNotifications, Completion: rules.CompletedPrints, Sound: rules.NotificationSound, Snoozed: m.snoozed(id), Allowed: allowed}
 	}
-	m.notificationClient.Submit(notifications.Input{Snapshot: snapshot, Policies: policies, Active: !m.quitting && !m.quitProblem && !m.ended, Demo: m.Demo})
+	m.notificationClient.Submit(notifications.Input{Snapshot: snapshot, Policies: policies, Active: !m.quitting && !m.quitProblem && !m.ended, Demo: m.Demo, ObserveOnly: !enabled})
 	status := m.notificationClient.Status()
 	m.notificationError = status.Error
 	if status.Revision != m.notificationRevision {

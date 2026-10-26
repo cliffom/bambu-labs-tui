@@ -17,6 +17,7 @@ const workerQueueCapacity = 256
 
 type (
 	Ledger interface {
+		AcquireOwner() (*notificationstate.Owner, error)
 		ObserveActivity(farm.NotificationSnapshot) (notificationstate.Observation, error)
 		ReserveBatch([]string) ([]string, error)
 		RecordResult(string, notificationstate.Attempt) error
@@ -30,12 +31,15 @@ type (
 		Snapshot     farm.NotificationSnapshot
 		Policies     map[string]Policy
 		Active, Demo bool
+		ObserveOnly  bool
 	}
 	Status struct {
 		Revision, Accepted, Failed, Suppressed uint64
 		Last, Error                            string
 		Disabled, Pending                      bool
 		History                                []Activity
+		Ownership                              string
+		Recovering                             bool
 	}
 	frame struct {
 		sequence uint64
@@ -66,6 +70,10 @@ type (
 		requestSequence   uint64
 		activitySeen      map[string]string
 		activitySeenOrder []string
+		owner             *notificationstate.Owner
+		forceFrame        bool
+		awaitFresh        bool
+		changed           chan struct{}
 	}
 )
 
@@ -75,7 +83,7 @@ func NewWorker(ctx context.Context, ledger Ledger, send func(context.Context, Me
 
 func newWorker(ctx context.Context, ledger Ledger, send func(context.Context, Message) error, now func() time.Time) *Worker {
 	ctx, cancel := context.WithCancel(ctx)
-	w := &Worker{ctx: ctx, cancel: cancel, ledger: ledger, send: send, queue: make(chan frame, workerQueueCapacity), done: make(chan struct{}), now: now}
+	w := &Worker{ctx: ctx, cancel: cancel, ledger: ledger, send: send, queue: make(chan frame, workerQueueCapacity), done: make(chan struct{}), now: now, changed: make(chan struct{}, 1)}
 	go w.run()
 	return w
 }
@@ -85,10 +93,18 @@ func newWorker(ctx context.Context, ledger Ledger, send func(context.Context, Me
 func (w *Worker) Submit(input Input) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.stopped || w.status.Disabled || reflect.DeepEqual(w.latest.Input, input) {
+	if w.stopped || w.ctx.Err() != nil {
 		return
 	}
+	if !w.forceFrame && reflect.DeepEqual(w.latest.Input, input) {
+		return
+	}
+	w.forceFrame = false
+	w.awaitFresh = false
 	w.latest = frame{sequence: w.latest.sequence + 1, Input: input}
+	if w.status.Disabled {
+		return
+	}
 	for _, candidate := range w.flight {
 		if !eligible(candidate, w.flightSource, input) {
 			w.cancelFlight()
@@ -99,11 +115,14 @@ func (w *Worker) Submit(input Input) {
 	case w.queue <- w.latest:
 	default:
 		w.status.Disabled = true
-		w.status.Error = "Desktop notifications paused: update queue full; restart to retry"
+		w.status.Recovering = false
+		w.status.Error = "Desktop notifications paused: " + ReasonText(ReasonQueue)
 		w.status.Last = w.status.Error
 		w.status.Revision++
 		w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomePaused, Reason: ReasonQueue}, "worker/queue")
-		w.cancel()
+		if w.cancelFlight != nil {
+			w.cancelFlight()
+		}
 	}
 }
 
@@ -114,7 +133,7 @@ func (w *Worker) Status() Status {
 	defer w.mu.Unlock()
 	status := w.status
 	status.History = slices.Clone(w.status.History)
-	status.Pending = w.working || (w.ctx.Err() == nil && len(w.queue) > 0)
+	status.Pending = w.working || (w.ctx.Err() == nil && !w.status.Disabled && len(w.queue) > 0)
 	return status
 }
 
@@ -143,41 +162,65 @@ func (w *Worker) disable(message, reason string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.status.Disabled, w.status.Last, w.status.Error = true, message, message
+	w.status.Recovering = false
 	w.status.Revision++
 	w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomePaused, Reason: reason}, "worker/"+reason)
-	w.cancel()
+	if w.cancelFlight != nil {
+		w.cancelFlight()
+	}
 }
 
 func (w *Worker) run() {
 	defer close(w.done)
+	defer w.releaseOwner()
+	poll := time.NewTicker(ownershipPollInterval)
+	defer poll.Stop()
 	defer func() { w.mu.Lock(); w.working = false; w.mu.Unlock() }()
 	defer w.cancel()
 	for {
 		select {
 		case <-w.ctx.Done():
 			return
+		case <-poll.C:
+			w.requestOwnershipCheck()
 		case input := <-w.queue:
 			if w.ctx.Err() != nil {
 				return
 			}
 			w.mu.Lock()
+			if w.status.Disabled || w.awaitFresh {
+				w.mu.Unlock()
+				continue
+			}
 			w.working = true
 			w.mu.Unlock()
-			keepRunning := w.process(input)
+			w.process(input)
 			w.mu.Lock()
 			w.working = false
+			w.notifyChangedLocked()
 			w.mu.Unlock()
-			if !keepRunning {
-				return
-			}
 		}
 	}
 }
 
 func (w *Worker) process(input frame) bool {
+	defer w.releaseInactiveOwner()
+	if !w.acquireOwner(input) {
+		w.mu.Lock()
+		paused := w.status.Disabled
+		w.mu.Unlock()
+		return !paused
+	}
 	observation, err := w.ledger.ObserveActivity(input.Snapshot)
 	if err != nil {
 		w.disable("Desktop notifications paused: "+ReasonText(storageReason(err)), storageReason(err))
+		return false
+	}
+	w.mu.Lock()
+	paused := w.status.Disabled
+	w.status.Recovering = false
+	w.mu.Unlock()
+	if paused {
 		return false
 	}
 	for _, decision := range observation.Suppressed {
@@ -232,7 +275,8 @@ func (w *Worker) process(input frame) bool {
 		w.mu.Lock()
 		current = w.latest
 		closing := w.stopped || w.ctx.Err() != nil
-		valid := !closing
+		paused = w.status.Disabled
+		valid := !closing && !paused
 		for _, candidate := range group {
 			valid = valid && eligible(candidate, input.Input, current.Input)
 		}
@@ -242,6 +286,8 @@ func (w *Worker) process(input frame) bool {
 				reason := suppressionReason(candidate, current.Input)
 				if closing {
 					reason = ReasonClosing
+				} else if paused {
+					reason = ReasonPaused
 				}
 				w.recordSuppression(candidate, input.Input, reason)
 			}
@@ -320,7 +366,7 @@ func deliveryGroups(candidates []notificationstate.Candidate) [][]notificationst
 }
 
 func eligible(candidate notificationstate.Candidate, source, current Input) bool {
-	if !current.Active {
+	if !current.Active || current.ObserveOnly {
 		return false
 	}
 	p, live := current.Snapshot[candidate.PrinterID]

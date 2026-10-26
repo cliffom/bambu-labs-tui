@@ -4,6 +4,16 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## v0.2.5 — notification ownership and recovery (#18)
+
+On 2026-10-26 (PDT), local macOS arm64/Go 1.27.3 passed `make docs-check fmt-check lint test check build` with the pinned Go linter, vulnerability scanning, and `git diff --check`. Default `make release` produced all four local v0.2.5 candidates and passed archive inventory, installation README, and helper architecture/signature checks. VERSION and the direct-build fallback are 0.2.5; no tag or release was created during this preparation.
+
+Synthetic race tests cover exclusive account/region ownership, standby and fresh-snapshot takeover, normal exit and subprocess crash lock release, private stable lock files, muted observer behavior, cancellation while a native submission remains in flight, corrupt/full storage, and reservation/outcome failures. Recovery tests preserve accepted/failed/reserved identities, leave corrupt files untouched, discard paused queued frames, and require fresh telemetry and current preferences before processing resumes. UI interaction tests cover ownership labels, retry with current review/snooze state, unchanged configuration/review decisions, and blocked hidden input below minimum size.
+
+Actual demo CLI PTY frames were inspected at 60×18 without color and 120×32 with color for ownership, corrupt-ledger pause, and recovery after restoring the valid synthetic ledger and pressing r. At 59×17 the resize fallback blocked hidden actions; restoring 120×32 retained activity selection. Both demo processes exited normally. Separate synthetic UI frames were inspected at both supported sizes for owner, standby, observer, paused/capacity, and recovery-checking states. Demo printer desktop preferences stayed off; an absent-printer override started observation, so these inspections made no native notification requests.
+
+Native banner/audio delivery, real-account concurrent sessions, hardware, fresh-Mac installation, and Developer ID signing/notarization were not revalidated. Standby/concurrency behavior is established by synthetic worker/store tests rather than two live account sessions. The existing bounded ledger remains fail-closed at capacity; recovery does not prune or reset identities. Deferred validation in #23 and #38 remains open.
+
 ## v0.2.4 release preparation
 
 On 2026-10-26 (PDT), VERSION and the direct-build fallback were updated to 0.2.4 and the changelog finalized for consolidated license notices. README now identifies v0.2.4 as the first flat-notices release. Local macOS arm64/Go 1.27.3 passed documentation/formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, all race tests, vet, and default `make release` for all four targets. Archive inventories, installation README, helper architecture/signature checks, and checksums passed. The tag workflow will build and verify final signed/notarized assets; the earlier notice-preservation evidence and native/hardware limitations remain unchanged.

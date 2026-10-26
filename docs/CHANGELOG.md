@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add opt-in Developer ID release signing for both macOS CLIs and the universal helper, plus Keychain-profile notarization, helper ticket stapling, and extracted-archive verification. Local development and unconfigured CI retain ad-hoc candidate builds.
+
 - Add a selectable Test Notification action to Config, with current sound preference, explicit permission prompting, asynchronous results, duplicate-test prevention, and cancellation on close.
 
 - Add a separate Config modal (`,`) for immediate global desktop notification, sound, and completion toggles, with asynchronous saving to the active config file, explicit save-failure retry, and shutdown protection. Preserve printer overrides.
@@ -15,7 +17,7 @@
 - Add a conservative notification identity foundation with account-scoped atomic persistence, cross-process delivery reservations, incident recurrence, and telemetry-confirmed job completion. Unknown telemetry preserves identity, ambiguous job IDs suppress completion, and failed/unknown attempts remain distinct from native acceptance. Live integration is opt-in.
 
 - Add `doctor --notify` on macOS for a synthetic desktop notification test, with optional `--sound`, bounded command execution, and explicit delivery limitations. The probe uses the adjacent branded helper, reports missing-helper and permission failures, and requires no account or printer; desktop delivery remains opt-in.
-- Bundle a universal, ad-hoc signed macOS notification helper with the Bambu TUI logo and independent permission identity. Doctor registers the adjacent helper automatically. Build release candidates on macOS and verify helper inventory, metadata, architectures, and extracted signatures. Developer ID signing/notarization remain pending.
+- Bundle a universal, ad-hoc signed macOS notification helper with the Bambu TUI logo and independent permission identity. Doctor registers the adjacent helper automatically. Build release candidates on macOS and verify helper inventory, metadata, architectures, and extracted signatures. The opt-in Developer ID/notarization release path is described above; Apple acceptance and clean-Mac validation remain pending.
 
 ## 0.1.15 — Clearer footer navigation
 

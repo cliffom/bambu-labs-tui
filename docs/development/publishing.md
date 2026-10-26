@@ -28,13 +28,35 @@ Release archives include the README, repository guidance, configuration example,
 
 The tag workflow uses the patched Go version in `go.mod`, verifies the version, scans known vulnerabilities with the pinned scanner, runs race tests and vet, builds macOS/Linux archives for arm64/amd64, and includes dependency licenses. Actions are pinned to commit SHAs and checkout does not persist credentials. The build job runs on macOS with read-only repository permissions and uploads the archives, checksums, and changelog as a one-day artifact. A separate publishing job downloads that artifact and uses repository write permission only to create a **draft** GitHub release with SHA-256 checksums. Build metadata includes the source commit and UTC build date; builds without Git metadata report `unknown` for the commit.
 
-## macOS signing status
+## macOS signing and notarization
 
-The helper currently has an ad-hoc signature for local validation. This verifies bundle integrity but does not establish Developer ID trust or notarization. Before distributing the helper as a supported downloaded app, configure Developer ID Application signing and notarization, then test the downloaded, quarantined archive on a clean Mac with Gatekeeper enabled. See [Apple's notarization guidance](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution). No Developer ID credentials or notarization submission are configured by these build changes.
+Local development helper builds and plain `make release` use an ad-hoc signature. This verifies bundle integrity but does not establish Developer ID trust, notarization, or downloaded-app Gatekeeper acceptance. The draft-release workflow also remains in candidate mode until signing credentials are provisioned on its build runner.
 
-Local `make release` and the draft-release workflow can prepare and verify ad-hoc signed candidate archives; neither check establishes Gatekeeper acceptance. Do not report that requirement as validated merely because packaging or `codesign --verify` passes.
+For a signed candidate, install a Developer ID Application certificate and its private key in your build Mac's Keychain, then select it explicitly by its identity name or fingerprint:
 
-Developer ID signing and notarization are deferred to the final v0.2.x release stage. Continue implementation and local testing with ad-hoc signed candidates; complete distribution signing, notarization, and clean-Mac Gatekeeper validation before public distribution.
+```sh
+security find-identity -v -p codesigning
+make release MACOS_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)'
+```
+
+Release preparation signs the universal helper and both macOS CLI binaries with hardened runtime and a secure timestamp. It verifies Developer ID identity, matching teams, runtime, timestamps, and signature integrity. A failed signing operation stops packaging; it never falls back to ad-hoc signing when an identity was requested. Linux binaries are unchanged. A signed candidate alone is still not notarized.
+
+For notarization, first create an app-specific password at your Apple Account's Sign-In and Security page. Store it interactively in Keychain; unspecified account/password options are prompted for by `notarytool`:
+
+```sh
+xcrun notarytool store-credentials 'bambu-tui-notary' --team-id YOUR_TEAM_ID
+make release \
+  MACOS_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)' \
+  MACOS_NOTARY_PROFILE='bambu-tui-notary'
+```
+
+The profile name is a reference to Keychain credentials, not the password. Credentials and signing private keys stay outside the repository. See [Apple's credential workflow](https://developer.apple.com/documentation/technotes/tn3147-migrating-to-the-latest-notarization-tool) and [notarization requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
+
+The release tool submits a temporary ZIP containing the signed helper and both macOS CLIs, waits up to 20 minutes, and requires an Accepted result. Rejected, interrupted, malformed, or still-processing responses stop packaging. Reports are stored under ignored `dist/notarization/`; Apple may continue processing after a client timeout. Use the submission ID from the report with `xcrun notarytool info SUBMISSION_ID --keychain-profile bambu-tui-notary` to inspect it before deciding to submit a new build.
+
+After acceptance, the helper's ticket is stapled and validated before archives and checksums are generated. Packaging verifies Developer ID signatures/teams from the extracted helper and CLI in both macOS archives, and validates each extracted helper's stapled ticket. A raw CLI cannot carry a stapled ticket; its notarization record is checked by macOS online. Stapling the helper does not establish offline installation of the standalone CLI. The ZIP submission is temporary; the public archive format remains `.tar.gz`.
+
+Before public distribution, download the actual release archive onto a clean Mac with Gatekeeper enabled, keep the helper beside the CLI, and test CLI startup, the notification permission workflow, banner/sound delivery, and quit. Verify the helper with `xcrun stapler validate` and `spctl --assess --type execute --verbose=2`. Signing verification, Apple's acceptance, and local execution do not establish the clean-machine experience. CI signing/notarization needs a certificate/private-key import and notarization credentials on the runner; creating a local Keychain profile does not configure GitHub Actions.
 
 ## Verify and publish
 

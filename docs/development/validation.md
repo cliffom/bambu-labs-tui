@@ -4,6 +4,12 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## Unreleased — Developer ID release preparation
+
+On 2026-10-26 (PDT), the user's Keychain reported one valid Developer ID Application identity. A development build of version 0.1.15 on base `1c660b0f1c62` successfully signed the universal helper and both macOS CLI binaries with that identity, hardened runtime, and secure timestamps. Signature verification confirmed a matching team, Developer ID authority, runtime flag, timestamps, and integrity. All four candidate archives passed inventory/documentation checks; extracted macOS helpers and CLIs passed Developer ID verification. The arm64 CLI's `--version` ran successfully, and the signed helper's read-only `--status` reported the existing authorized notification settings. Local `spctl --assess --type execute --verbose=2` accepted the helper with source Developer ID; this does not establish notarization or clean-Mac behavior for a downloaded/quarantined archive.
+
+No Apple notarization submission has been made. The user is setting up an app-specific password/Keychain profile. Notarization/stapling code has synthetic coverage for accepted, rejected, interrupted, malformed, signing-failure, mixed-team, and stapling-failure paths. Actual Apple acceptance, stapled-ticket validation, downloaded clean-Mac installation, and Intel runtime remain unverified. Local membership/certificate setup does not provision CI signing credentials; CI continues producing ad-hoc candidates. No private key or password was exported, committed, or added to GitHub.
+
 ## Unreleased — Synthetic macOS notification probe
 
 ### Config modal and immediate notification preferences

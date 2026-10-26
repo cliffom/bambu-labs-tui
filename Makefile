@@ -7,6 +7,9 @@ CHECKMAKE ?= checkmake
 GOVULNCHECK ?= go run golang.org/x/vuln/cmd/govulncheck@$(shell cat .govulncheck-version)
 AUTH_ARGS ?= --email-code
 RUN_ARGS ?=
+MACOS_SIGN_IDENTITY ?=
+MACOS_NOTARY_PROFILE ?=
+export MACOS_SIGN_IDENTITY MACOS_NOTARY_PROFILE
 VERSION ?= $(shell cat VERSION)
 COMMIT ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 ifndef BUILD_DATE
@@ -75,4 +78,5 @@ notify-release:
 	VERSION='$(VERSION)' bash tools/build-notify-helper.sh dist/notify-helper
 
 release: cross notify-release
+	python3 tools/prepare-macos-release.py prepare dist
 	bash tools/package-release.sh '$(VERSION)'

@@ -11,6 +11,7 @@ if [[ $(uname -s) != Darwin ]]; then
   exit 1
 fi
 python3 -m unittest discover -s tools -p 'test_check_release.py'
+python3 -m unittest discover -s tools -p 'test_prepare_macos_release.py'
 python3 tools/check-docs.py
 
 release_stage=$(mktemp -d)
@@ -68,8 +69,14 @@ for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
     # Verify signatures from the actual archive, not only the pre-tar bundle.
     notify_extracted="$release_stage/verify-$target"
     mkdir -p "$notify_extracted"
-    tar -xzf "dist/$archive" -C "$notify_extracted" "$notify_bundle"
+    tar -xzf "dist/$archive" -C "$notify_extracted" "$notify_bundle" bambu-tui
     /usr/bin/codesign --verify --strict --all-architectures "$notify_extracted/$notify_bundle"
+    if [[ -n "${MACOS_SIGN_IDENTITY:-}" ]]; then
+      python3 tools/prepare-macos-release.py verify "$notify_extracted/$notify_bundle" "$notify_extracted/bambu-tui"
+    fi
+    if [[ -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
+      xcrun stapler validate "$notify_extracted/$notify_bundle"
+    fi
     "$notify_extracted/$notify_bundle/Contents/MacOS/bambu-notify" --help
   fi
   python3 tools/check-docs.py --archive "dist/$archive"

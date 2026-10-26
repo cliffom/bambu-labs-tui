@@ -130,3 +130,30 @@ func TestConfigGlobalTogglePreservesPrinterOverride(t *testing.T) {
 		t.Fatal("override behavior is hidden")
 	}
 }
+
+func TestConfigFooterKeepsCloseKeysWithStorageWarnings(t *testing.T) {
+	for _, width := range []int{60, 120} {
+		for _, failed := range []bool{false, true} {
+			m := resizeModel(demoModel(), width, 18)
+			m = key(m, ",")
+			if failed {
+				m.configStorageError = "Config save failed"
+			}
+			rows := strings.Split(ansi.Strip(m.View()), "\n")
+			footer := rows[len(rows)-1]
+			if !strings.Contains(footer, "Esc / , close") {
+				t.Fatal("Config footer hides close keys")
+			}
+			if failed && (!strings.Contains(footer, "r retry") || !strings.Contains(footer, "Config save failed")) {
+				t.Fatal("Config footer hides retry or failure")
+			}
+			if !strings.Contains(strings.Join(rows[:len(rows)-1], "\n"), "removes comments") {
+				t.Fatal("TOML save note missing from body")
+			}
+			m = key(m, ",")
+			if m.hasOpenDialog() {
+				t.Fatal("advertised close key did not close Config")
+			}
+		}
+	}
+}

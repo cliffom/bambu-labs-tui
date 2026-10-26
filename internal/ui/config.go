@@ -99,12 +99,22 @@ func (m Model) configView() string {
 	} else if m.configStorageError != "" {
 		status = "Save failed · r retry"
 	}
-	lines = append(lines, "", status, "Global defaults; printer overrides still apply.", "Changes take effect immediately. macOS only.", "Permission: run bambu-tui doctor --notify.")
+	lines = append(lines, "", status, "Global defaults; printer overrides still apply.", "Changes take effect immediately. macOS only.", "Permission: run bambu-tui doctor --notify.", "Saving normalizes TOML and removes comments.")
 	if m.configPath != "" {
 		lines = append(lines, "File: "+safe(m.configPath))
 	}
 	if len(m.alertPrefs.Printers) > 0 {
 		lines = append(lines, fmt.Sprintf("%d printer overrides configured; s shows effective values.", len(m.alertPrefs.Printers)))
 	}
-	return m.fullView(strings.Split(wrapLines(lines, max(1, m.width-2)), "\n"), "Saving normalizes TOML and removes comments")
+	hints := "Esc / , close  ↑/↓ select  Space/Enter toggle"
+	if message := m.storageWarning(); message != "" {
+		hints = "Esc / , close  " + message
+		if m.configStorageError != "" {
+			hints = "Esc / , close  r retry  Config save failed"
+		}
+	}
+	rows := strings.Split(m.fullView(strings.Split(wrapLines(lines, max(1, m.width-2)), "\n"), hints), "\n")
+	// Keep close keys visible even when fullView prioritizes a storage warning.
+	rows[len(rows)-1] = m.footerRow(footerHints(hints))
+	return strings.Join(rows, "\n")
 }

@@ -6,7 +6,7 @@ Bambu TUI separates **what the printer reports** from **when automatic modals or
 
 ## Change notifications in the TUI
 
-Press `,` from any dashboard panel to open **Config / Notifications**. Use `↑` / `↓` (or `j` / `k`) to select Desktop notifications, Notification sound, or Completed prints, then `Space` / `Enter` to toggle. Changes take effect immediately and save in the background. `,` / `Esc` closes the modal; close it before quitting.
+Press `,` from any dashboard panel to open **Config / Notifications**. Use `↑` / `↓` (or `j` / `k`) to select Desktop notifications, Notification sound, or Completed prints, then `Space` / `Enter` to toggle. Changes take effect immediately and save in the background. `,` / `Esc` closes the modal; close it before quitting. The footer keeps these close keys visible, including when a save fails; a failed save also shows `r` to retry.
 
 These are global defaults. Existing per-printer overrides still win, including an explicit desktop `true` when the global default is off. Use `s` to check the selected printer's effective settings. Edit TOML and restart for per-printer overrides, modal preferences, or category switches.
 

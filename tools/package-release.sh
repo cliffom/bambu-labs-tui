@@ -15,6 +15,7 @@ cp README.md AGENTS.md LICENSE config.example.toml "$release_stage/"
 mkdir -p "$release_stage/third_party" "$release_stage/assets/branding"
 cp -R docs "$release_stage/docs"
 cp assets/branding/hero.png "$release_stage/assets/branding/"
+cp -R assets/screenshots "$release_stage/assets/screenshots"
 go_root=$(go env GOROOT)
 if [[ -f "$go_root/LICENSE" ]]; then
   cp "$go_root/LICENSE" "$release_stage/third_party/Go-LICENSE"

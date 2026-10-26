@@ -14,10 +14,16 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 
 ## Next priorities
 
-1. **Record current operational evidence ([#38](https://github.com/cliffom/bambu-tui/issues/38)).** Run the remaining applicable live checks on the current release: saved login/restart/logout, notice and snooze persistence/recurrence, pause/completion, firmware/telemetry comparisons, and keyboard/modal behavior during updates. Record host OS/terminal, application version, model/firmware, and actual results in the validation record. Preserve the existing reconnect evidence and explicitly record unavailable scenarios. This follows up the closed original validation issue #6.
-2. **Measure large-farm behavior ([#39](https://github.com/cliffom/bambu-tui/issues/39)).** Benchmark report/tick updates, navigation, dialogs, and rendering with representative synthetic farm sizes and notice/history loads. Record time and allocations, then profile material costs before proposing optimization. No performance defect is assumed, and fragile wall-clock CI thresholds are outside scope.
-3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
-4. **Investigate LAN monitoring for v0.3.0.** Establish hardware-backed feasibility before promising compatibility or delivery.
+1. **Explain notification outcomes ([#20](https://github.com/cliffom/bambu-tui/issues/20)).** Add bounded recent delivery activity and specific suppression/failure reasons so operators can diagnose missing notifications.
+2. **Expose notification ownership and recovery ([#18](https://github.com/cliffom/bambu-tui/issues/18)).** Persistence and deduplication are implemented. Make concurrent-session behavior visible and define actionable recovery for temporary storage failures and exhausted identity capacity without replaying old notifications.
+3. **Remember farm views ([#24](https://github.com/cliffom/bambu-tui/issues/24)).** Persist filter/sort preferences with safe fallbacks and an obvious return to the default view.
+4. **Add quiet hours and timed grouping ([#22](https://github.com/cliffom/bambu-tui/issues/22)).** Build on activity visibility so scheduled suppression and grouped outcomes remain understandable.
+
+[Large-farm benchmarks (#39)](https://github.com/cliffom/bambu-tui/issues/39) remain supporting work: measure before optimizing, with no assumed performance defect or fragile wall-clock CI thresholds. LAN monitoring remains scoped to v0.3.0 below.
+
+## Deferred validation
+
+At the maintainer's request on 2026-10-26, [macOS distribution/delivery validation (#23)](https://github.com/cliffom/bambu-tui/issues/23) and [current-release operational validation (#38)](https://github.com/cliffom/bambu-tui/issues/38) are lower priority than the implementation work above. Both issues remain open, and unperformed checks remain unverified in the [validation record](development/validation.md). This scheduling change does not replace required regression tests, UI/layout inspection, or accurate release limitations. Linux notification delivery remains outside v0.2.x scope.
 
 ## v0.2.2 — complete configuration controls
 
@@ -42,7 +48,7 @@ macOS release archives include the universal helper beside the CLI. Tag/manual r
 | Expose cross-session notification ownership | [#18](https://github.com/cliffom/bambu-tui/issues/18) |
 | Extend delivery activity and suppression history | [#20](https://github.com/cliffom/bambu-tui/issues/20) |
 | Add quiet hours and timed grouping across reports | [#22](https://github.com/cliffom/bambu-tui/issues/22) |
-| Complete clean-install, hardware, and unsupported-environment validation | [#23](https://github.com/cliffom/bambu-tui/issues/23) |
+| Complete clean-install, hardware, and unsupported-environment validation (deferred) | [#23](https://github.com/cliffom/bambu-tui/issues/23) |
 
 Notifications apply only while the TUI session is running. Quitting ends monitoring and notification delivery; v0.2.x does not introduce a background service. Persisted occurrence/job identity still prevents duplicate delivery when the TUI restarts.
 

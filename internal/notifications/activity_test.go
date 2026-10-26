@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 )
 
 func withoutOwnership(status Status) Status {
@@ -92,7 +92,7 @@ func TestWorkerActivityExplainsPoliciesAndCoalescesRepeatedObservations(t *testi
 				input.Active = false
 			}
 			input.Policies["TEST"] = policy
-			var owner *notificationstate.Owner
+			var owner *notification_state.Owner
 			if tc.kind == "closing" {
 				held, err := ledger.AcquireOwner()
 				if err != nil {
@@ -145,7 +145,7 @@ func TestGroupedOutcomesRetainMembersAndRestartExplainsDedup(t *testing.T) {
 	}
 	stopWorker(t, restarted)
 	for _, entry := range withoutOwnership(restarted.Status()).History {
-		if entry.Reason != notificationstate.SuppressedAccepted {
+		if entry.Reason != notification_state.SuppressedAccepted {
 			t.Fatal(entry)
 		}
 	}
@@ -188,8 +188,8 @@ func TestActivityReportsStorageFailuresAndPreservesAcceptedOutcome(t *testing.T)
 		err    error
 		reason string
 	}{
-		{"observe", notificationstate.ErrBusy, ReasonStorageBusy},
-		{"observe", notificationstate.ErrCapacity, ReasonStorageFull},
+		{"observe", notification_state.ErrBusy, ReasonStorageBusy},
+		{"observe", notification_state.ErrCapacity, ReasonStorageFull},
 		{"reserve", errors.New("private path secret"), ReasonStorage},
 		{"record", errors.New("private token"), ReasonStorage},
 	} {
@@ -255,7 +255,7 @@ func TestFailedAttemptExplainsNoAutomaticRetry(t *testing.T) {
 	}
 	stopWorker(t, w)
 	status := withoutOwnership(w.Status())
-	if calls != 1 || status.Failed != 1 || len(status.History) != 2 || status.History[1].Reason != notificationstate.SuppressedFailed {
+	if calls != 1 || status.Failed != 1 || len(status.History) != 2 || status.History[1].Reason != notification_state.SuppressedFailed {
 		t.Fatal("failed attempt replayed or was not explained", status)
 	}
 }

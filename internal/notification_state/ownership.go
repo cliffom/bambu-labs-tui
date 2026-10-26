@@ -1,4 +1,4 @@
-package notificationstate
+package notification_state
 
 import (
 	"errors"

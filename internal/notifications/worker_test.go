@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 )
 
 type workerLedger struct {
-	notificationstate.Store
+	notification_state.Store
 	observed    chan struct{}
-	recorded    chan notificationstate.Attempt
+	recorded    chan notification_state.Attempt
 	observeGate func()
 	reserveGate func()
 	observeErr  error
@@ -25,12 +25,12 @@ type workerLedger struct {
 	recordErr   error
 }
 
-func (l *workerLedger) ObserveActivity(s farm.NotificationSnapshot) (notificationstate.Observation, error) {
+func (l *workerLedger) ObserveActivity(s farm.NotificationSnapshot) (notification_state.Observation, error) {
 	if l.observeGate != nil {
 		l.observeGate()
 	}
 	if l.observeErr != nil {
-		return notificationstate.Observation{}, l.observeErr
+		return notification_state.Observation{}, l.observeErr
 	}
 	result, err := l.Store.ObserveActivity(s)
 	l.observed <- struct{}{}
@@ -47,7 +47,7 @@ func (l *workerLedger) ReserveBatch(ids []string) ([]string, error) {
 	return l.Store.ReserveBatch(ids)
 }
 
-func (l *workerLedger) RecordResult(id string, a notificationstate.Attempt) error {
+func (l *workerLedger) RecordResult(id string, a notification_state.Attempt) error {
 	if l.recordErr != nil {
 		return l.recordErr
 	}
@@ -58,7 +58,7 @@ func (l *workerLedger) RecordResult(id string, a notificationstate.Attempt) erro
 
 func testLedger(t *testing.T) *workerLedger {
 	t.Helper()
-	return &workerLedger{Store: notificationstate.Store{Path: filepath.Join(t.TempDir(), "ledger.json")}, observed: make(chan struct{}, workerQueueCapacity+4), recorded: make(chan notificationstate.Attempt, 16)}
+	return &workerLedger{Store: notification_state.Store{Path: filepath.Join(t.TempDir(), "ledger.json")}, observed: make(chan struct{}, workerQueueCapacity+4), recorded: make(chan notification_state.Attempt, 16)}
 }
 
 func incidentFrame() Input {
@@ -105,7 +105,7 @@ func TestWorkerDeliversAndDeduplicatesAcrossRestart(t *testing.T) {
 	if message.Title != "Synthetic printer" || !message.Sound || !strings.Contains(message.Body, "Synthetic printer needs attention") {
 		t.Fatal("wrong live message", message)
 	}
-	if result := await(t, ledger.recorded); result != notificationstate.Accepted {
+	if result := await(t, ledger.recorded); result != notification_state.Accepted {
 		t.Fatal(result)
 	}
 	stopWorker(t, w)
@@ -207,7 +207,7 @@ func TestWorkerFailureIsVisibleAndNotAccepted(t *testing.T) {
 	ledger := testLedger(t)
 	w := NewWorker(context.Background(), ledger, func(context.Context, Message) error { return errors.New("synthetic denial") })
 	w.Submit(incidentFrame())
-	if outcome := await(t, ledger.recorded); outcome != notificationstate.Failed {
+	if outcome := await(t, ledger.recorded); outcome != notification_state.Failed {
 		t.Fatal(outcome)
 	}
 	stopWorker(t, w)
@@ -252,7 +252,7 @@ func TestCompletionDeliveryRequiresActivityAndCurrentPolicy(t *testing.T) {
 
 func TestEligibilityRejectsChangedReviewedMutedAndStaleSources(t *testing.T) {
 	source := incidentFrame()
-	candidate := notificationstate.Candidate{PrinterID: "TEST", ConditionKey: "TEST/fault/0700_8011", Kind: notificationstate.Intervention}
+	candidate := notification_state.Candidate{PrinterID: "TEST", ConditionKey: "TEST/fault/0700_8011", Kind: notification_state.Intervention}
 	if !eligible(candidate, source, source) {
 		t.Fatal("valid source suppressed")
 	}
@@ -315,7 +315,7 @@ func TestCoReportedIncidentsProduceOneOSSubmission(t *testing.T) {
 		t.Fatal("group count missing", message)
 	}
 	for range 3 {
-		if result := await(t, ledger.recorded); result != notificationstate.Accepted {
+		if result := await(t, ledger.recorded); result != notification_state.Accepted {
 			t.Fatal(result)
 		}
 	}
@@ -354,9 +354,9 @@ func TestGroupedDeliveryKeepsMutedNoticePending(t *testing.T) {
 }
 
 func TestDeliveryGroupingSeparatesPrintersAndCompletion(t *testing.T) {
-	items := []notificationstate.Candidate{{ID: "a1", PrinterID: "A", Kind: notificationstate.Intervention}, {ID: "b1", PrinterID: "B", Kind: notificationstate.Intervention}, {ID: "a2", PrinterID: "A", Kind: notificationstate.Intervention}, {ID: "a3", PrinterID: "A", Kind: notificationstate.Completion}}
+	items := []notification_state.Candidate{{ID: "a1", PrinterID: "A", Kind: notification_state.Intervention}, {ID: "b1", PrinterID: "B", Kind: notification_state.Intervention}, {ID: "a2", PrinterID: "A", Kind: notification_state.Intervention}, {ID: "a3", PrinterID: "A", Kind: notification_state.Completion}}
 	groups := deliveryGroups(items)
-	if len(groups) != 3 || len(groups[0]) != 2 || groups[1][0].PrinterID != "B" || groups[2][0].Kind != notificationstate.Completion {
+	if len(groups) != 3 || len(groups[0]) != 2 || groups[1][0].PrinterID != "B" || groups[2][0].Kind != notification_state.Completion {
 		t.Fatal("grouping merged unrelated deliveries", groups)
 	}
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 )
 
 func awaitWorkerStatus(t *testing.T, w *Worker, ready func(Status) bool) Status {
@@ -72,7 +72,7 @@ func TestStandbyTakesOverWithoutReplayingAcceptedIncident(t *testing.T) {
 	}
 	found := false
 	for _, entry := range status.History {
-		found = found || entry.Reason == notificationstate.SuppressedAccepted
+		found = found || entry.Reason == notification_state.SuppressedAccepted
 	}
 	if !found {
 		t.Fatal("takeover lost persisted acceptance", status)
@@ -232,7 +232,7 @@ func TestLeaseIsHeldUntilCanceledSenderReturns(t *testing.T) {
 	awaitWorkerStatus(t, other, func(s Status) bool { return s.Ownership == OwnershipStandby && !s.Pending })
 	first.Stop()
 	await(t, canceled)
-	if owner, err := ledger.AcquireOwner(); !errors.Is(err, notificationstate.ErrBusy) {
+	if owner, err := ledger.AcquireOwner(); !errors.Is(err, notification_state.ErrBusy) {
 		if owner != nil {
 			_ = owner.Close()
 		}

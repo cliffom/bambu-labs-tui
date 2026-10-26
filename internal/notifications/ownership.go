@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 )
 
 const (
@@ -98,7 +98,7 @@ func (w *Worker) acquireOwner(input frame) bool {
 	}
 	owner, err := w.ledger.AcquireOwner()
 	if err != nil {
-		if errors.Is(err, notificationstate.ErrBusy) {
+		if errors.Is(err, notification_state.ErrBusy) {
 			w.mu.Lock()
 			role, reason := OwnershipStandby, ReasonStandby
 			if input.ObserveOnly {

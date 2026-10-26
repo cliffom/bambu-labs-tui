@@ -12,8 +12,8 @@ import (
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 	"github.com/cliffom/bambu-tui/internal/notifications"
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
 )
 
 type notificationStub struct {
@@ -147,7 +147,7 @@ func TestNotificationStatusFitsSupportedLayoutsAndDialogs(t *testing.T) {
 func TestTelemetryAndSnoozeRemainResponsiveDuringNativeDelivery(t *testing.T) {
 	m, _, _ := notificationModel(t)
 	started, canceled := make(chan struct{}), make(chan struct{})
-	worker := notifications.NewWorker(context.Background(), notificationstate.Store{Path: filepath.Join(t.TempDir(), "ledger.json")}, func(ctx context.Context, _ notifications.Message) error {
+	worker := notifications.NewWorker(context.Background(), notification_state.Store{Path: filepath.Join(t.TempDir(), "ledger.json")}, func(ctx context.Context, _ notifications.Message) error {
 		close(started)
 		<-ctx.Done()
 		close(canceled)

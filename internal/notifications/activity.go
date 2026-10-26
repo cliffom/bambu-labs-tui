@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 )
 
 // ActivityLimit bounds session-only diagnostic metadata; it never changes the
@@ -105,19 +105,19 @@ func ReasonText(reason string) string {
 		return "Identity storage unavailable; delivery paused. Fix storage, then press r in activity."
 	case ReasonReservation:
 		return "Already claimed by this or another session; no duplicate request."
-	case notificationstate.SuppressedReviewed:
+	case notification_state.SuppressedReviewed:
 		return "This condition is acknowledged or dismissed locally."
-	case notificationstate.SuppressedNotActionable:
+	case notification_state.SuppressedNotActionable:
 		return "This reported condition is not eligible for intervention alerts."
-	case notificationstate.SuppressedAccepted:
+	case notification_state.SuppressedAccepted:
 		return "This occurrence was already accepted; no duplicate request."
-	case notificationstate.SuppressedFailed:
+	case notification_state.SuppressedFailed:
 		return "This occurrence already failed; no automatic retry."
-	case notificationstate.SuppressedReserved:
+	case notification_state.SuppressedReserved:
 		return "This occurrence was already reserved; prior outcome is unconfirmed."
-	case notificationstate.SuppressedBaseline:
+	case notification_state.SuppressedBaseline:
 		return "Completion baseline or reused/closed job; no new confirmed transition."
-	case notificationstate.SuppressedJobIdentity:
+	case notification_state.SuppressedJobIdentity:
 		return "Completion has no trustworthy job identity; no guessed notification."
 	default:
 		return "No delivery decision is available."
@@ -126,9 +126,9 @@ func ReasonText(reason string) string {
 
 func storageReason(err error) string {
 	switch {
-	case errors.Is(err, notificationstate.ErrBusy):
+	case errors.Is(err, notification_state.ErrBusy):
 		return ReasonStorageBusy
-	case errors.Is(err, notificationstate.ErrCapacity):
+	case errors.Is(err, notification_state.ErrCapacity):
 		return ReasonStorageFull
 	default:
 		return ReasonStorage
@@ -193,14 +193,14 @@ func (w *Worker) appendActivityLocked(entry Activity, key string) bool {
 	return true
 }
 
-func activityFor(candidate notificationstate.Candidate, source Input, outcome, reason string) Activity {
+func activityFor(candidate notification_state.Candidate, source Input, outcome, reason string) Activity {
 	policy := source.Policies[candidate.PrinterID]
 	printer := policy.PrinterName
 	if printer == "" {
 		printer = candidate.PrinterID
 	}
 	subject := "Print completion"
-	if candidate.Kind == notificationstate.Intervention {
+	if candidate.Kind == notification_state.Intervention {
 		condition := source.Snapshot[candidate.PrinterID].Conditions[candidate.ConditionKey]
 		subject = "Printer condition"
 		if condition.Code != "" {
@@ -212,7 +212,7 @@ func activityFor(candidate notificationstate.Candidate, source Input, outcome, r
 	return Activity{PrinterID: candidate.PrinterID, Printer: printer, Subject: subject, Outcome: outcome, Reason: reason}
 }
 
-func (w *Worker) recordSuppression(candidate notificationstate.Candidate, source Input, reason string) {
+func (w *Worker) recordSuppression(candidate notification_state.Candidate, source Input, reason string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	entry := activityFor(candidate, source, OutcomeSuppressed, reason)
@@ -225,7 +225,7 @@ func (w *Worker) recordSuppression(candidate notificationstate.Candidate, source
 	}
 }
 
-func (w *Worker) recordGroup(group []notificationstate.Candidate, source Input, outcome, reason string, request uint64) {
+func (w *Worker) recordGroup(group []notification_state.Candidate, source Input, outcome, reason string, request uint64) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	for _, candidate := range group {
@@ -237,7 +237,7 @@ func (w *Worker) recordGroup(group []notificationstate.Candidate, source Input, 
 	}
 }
 
-func suppressionReason(candidate notificationstate.Candidate, current Input) string {
+func suppressionReason(candidate notification_state.Candidate, current Input) string {
 	if !current.Active {
 		return ReasonClosing
 	}
@@ -255,7 +255,7 @@ func suppressionReason(candidate notificationstate.Candidate, current Input) str
 	if !policy.Desktop {
 		return ReasonDesktopOff
 	}
-	if candidate.Kind == notificationstate.Completion {
+	if candidate.Kind == notification_state.Completion {
 		if !policy.Completion {
 			return ReasonCompletionOff
 		}
@@ -266,10 +266,10 @@ func suppressionReason(candidate notificationstate.Candidate, current Input) str
 		return ReasonChanged
 	}
 	if condition.Reviewed {
-		return notificationstate.SuppressedReviewed
+		return notification_state.SuppressedReviewed
 	}
 	if !condition.Eligible {
-		return notificationstate.SuppressedNotActionable
+		return notification_state.SuppressedNotActionable
 	}
 	if !policy.Allowed[candidate.ConditionKey] {
 		return ReasonCategoryOff

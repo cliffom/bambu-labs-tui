@@ -10,17 +10,17 @@ import (
 	"time"
 
 	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/notificationstate"
+	"github.com/cliffom/bambu-tui/internal/notification_state"
 )
 
 const workerQueueCapacity = 256
 
 type (
 	Ledger interface {
-		AcquireOwner() (*notificationstate.Owner, error)
-		ObserveActivity(farm.NotificationSnapshot) (notificationstate.Observation, error)
+		AcquireOwner() (*notification_state.Owner, error)
+		ObserveActivity(farm.NotificationSnapshot) (notification_state.Observation, error)
 		ReserveBatch([]string) ([]string, error)
-		RecordResult(string, notificationstate.Attempt) error
+		RecordResult(string, notification_state.Attempt) error
 	}
 	Policy struct {
 		PrinterName                         string
@@ -56,7 +56,7 @@ type (
 		status            Status
 		stopped           bool
 		working           bool
-		flight            []notificationstate.Candidate
+		flight            []notification_state.Candidate
 		flightSource      Input
 		cancelFlight      context.CancelFunc
 		queue             chan frame
@@ -70,7 +70,7 @@ type (
 		requestSequence   uint64
 		activitySeen      map[string]string
 		activitySeenOrder []string
-		owner             *notificationstate.Owner
+		owner             *notification_state.Owner
 		forceFrame        bool
 		awaitFresh        bool
 		changed           chan struct{}
@@ -236,7 +236,7 @@ func (w *Worker) process(input frame) bool {
 		if current.sequence != input.sequence {
 			return true
 		}
-		var allowed []notificationstate.Candidate
+		var allowed []notification_state.Candidate
 		for _, candidate := range group {
 			if eligible(candidate, input.Input, current.Input) {
 				allowed = append(allowed, candidate)
@@ -305,7 +305,7 @@ func (w *Worker) process(input frame) bool {
 		if len(group) > 1 {
 			body = fmt.Sprintf("%s needs attention (%d notices). Open Bambu TUI to inspect them.", policy.PrinterName, len(group))
 		}
-		if first.Kind == notificationstate.Completion {
+		if first.Kind == notification_state.Completion {
 			body = policy.PrinterName + " reports that the print finished."
 		}
 		if current.Demo {
@@ -326,9 +326,9 @@ func (w *Worker) process(input frame) bool {
 			w.report("Desktop notification outcome unconfirmed", "Desktop notification outcome unconfirmed; attempt will not be retried", false, false, false)
 			continue
 		}
-		outcome := notificationstate.Accepted
+		outcome := notification_state.Accepted
 		if err != nil {
-			outcome = notificationstate.Failed
+			outcome = notification_state.Failed
 		}
 		if err != nil {
 			w.recordGroup(group, input.Input, OutcomeFailed, deliveryReason(err), request)
@@ -349,23 +349,23 @@ func (w *Worker) process(input frame) bool {
 
 // Group only co-reported intervention occurrences on the same printer. Keep
 // notice identities independent, and never merge printers or job completion.
-func deliveryGroups(candidates []notificationstate.Candidate) [][]notificationstate.Candidate {
-	var groups [][]notificationstate.Candidate
+func deliveryGroups(candidates []notification_state.Candidate) [][]notification_state.Candidate {
+	var groups [][]notification_state.Candidate
 	printers := map[string]int{}
 	for _, candidate := range candidates {
-		if candidate.Kind == notificationstate.Intervention {
+		if candidate.Kind == notification_state.Intervention {
 			if index, present := printers[candidate.PrinterID]; present {
 				groups[index] = append(groups[index], candidate)
 				continue
 			}
 			printers[candidate.PrinterID] = len(groups)
 		}
-		groups = append(groups, []notificationstate.Candidate{candidate})
+		groups = append(groups, []notification_state.Candidate{candidate})
 	}
 	return groups
 }
 
-func eligible(candidate notificationstate.Candidate, source, current Input) bool {
+func eligible(candidate notification_state.Candidate, source, current Input) bool {
 	if !current.Active || current.ObserveOnly {
 		return false
 	}
@@ -375,7 +375,7 @@ func eligible(candidate notificationstate.Candidate, source, current Input) bool
 	if !live || !policy.Desktop || policy.Snoozed {
 		return false
 	}
-	if candidate.Kind == notificationstate.Completion {
+	if candidate.Kind == notification_state.Completion {
 		return policy.Completion && p.Job == before.Job && p.Job.State == farm.StateFinished
 	}
 	condition, present := p.Conditions[candidate.ConditionKey]

@@ -40,6 +40,7 @@ jobs:
         with:
           name: release-candidates
           path: |
-            dist/*.tar.gz
+            dist/*_macos_*.tar.gz
+            dist/*_linux_*.tar.gz
             dist/*checksums.txt
           retention-days: 14

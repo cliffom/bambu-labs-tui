@@ -18,7 +18,7 @@ spec.loader.exec_module(docs)
 
 class DocumentationChecks(unittest.TestCase):
     def setUp(self):
-        names = docs.ROOT_MARKDOWN | docs.DOCS_ROOT | docs.DIRECTION
+        names = docs.ROOT_MARKDOWN | docs.DOCS_ROOT | docs.DIRECTION | {docs.RELEASE_README}
         self.documents = {n: "# Guide\n" for n in names}
         self.documents["docs/README.md"] += "".join(
             f"\n[Guide]({n.removeprefix('docs/')})" for n in sorted(names) if n.startswith("docs/") and n != "docs/README.md"
@@ -113,22 +113,25 @@ class DocumentationChecks(unittest.TestCase):
             for name in files:
                 archive.addfile(tarfile.TarInfo(name), io.BytesIO())
 
-    def test_archive_detects_missing_stale_extra_documents_and_assets(self):
+    def test_archive_checks_install_guide_instead_of_full_repository(self):
+        guide = "# Install\n[Config](config.example.toml)\n[License](LICENSE)\n[Help](https://example.invalid/docs)\n"
+        self.documents['docs/user/release-installation.md'] = guide
         source = self.tree()
-        self.documents["README.md"] += "\n![Hero](assets/hero.png)\n"
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "release.tar.gz"
-            self.write_archive(path, self.documents | {"third_party/dependency/README.md": "# Vendor\n"})
+            documents = {'README.md': guide, 'third_party/dependency/README.md': '# Vendor\n'}
+            files = ('LICENSE', 'config.example.toml')
+            self.write_archive(path, documents, files=files)
             self.assertEqual(docs.archive_errors(path, source), [])
-            changed = self.documents | {"README.md": "# Stale\n", "docs/user/extra.md": "# Extra\n"}
-            del changed["docs/ROADMAP.md"]
-            self.write_archive(path, changed)
+            self.write_archive(path, {}, files=files)
+            self.assertIn('archive missing document: README.md', docs.archive_errors(path, source))
+            self.write_archive(path, documents | {'README.md': '# Stale\n', 'AGENTS.md': '# Agent\n', 'docs/README.md': '# Docs\n'}, files=files)
             errors = docs.archive_errors(path, source)
-            self.assertIn("archive missing document: docs/ROADMAP.md", errors)
-            self.assertIn("archive has stale document: README.md", errors)
-            self.assertIn("archive has unexpected document: docs/user/extra.md", errors)
-            self.write_archive(path, self.documents, files=())
-            self.assertTrue(any("missing local target: assets/hero.png" in e for e in docs.archive_errors(path, source)))
+            self.assertIn('archive has stale document: README.md', errors)
+            self.assertIn('archive has unexpected document: AGENTS.md', errors)
+            self.assertIn('archive has unexpected document: docs/README.md', errors)
+            self.write_archive(path, documents, files=())
+            self.assertTrue(any('missing local target: config.example.toml' in e for e in docs.archive_errors(path, source)))
 
 
 if __name__ == "__main__":

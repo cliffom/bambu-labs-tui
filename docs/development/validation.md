@@ -4,6 +4,18 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## v0.2.1 release preparation
+
+On 2026-10-26 (PDT), VERSION and the direct-build fallback were updated to 0.2.1 and the changelog finalized for lean runtime archives and `macos` download names. Local macOS arm64/Go 1.27.3 passed documentation and formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, race tests, vet, and default `make release` for all four targets. Archive inventory, installation README, helper architecture/signature, and checksum checks passed. The signed/notarized packaging evidence below covers the preceding packaging change; the tagged release workflow will build and verify the final signed assets. Hardware and fresh-Mac interactive validation were not repeated.
+
+## Unreleased — lean runtime archives (#66)
+
+On 2026-10-26 (PDT), local macOS 27.0 arm64 with Go 1.27.3 passed all 37 Python tooling tests, `make docs-check`, workflow lint with the pinned actionlint, shell syntax checks, and `git diff --check`. Default `make release` produced all four lean runtime archives with `macos`/`linux` download names. Source VERSION remained 0.2.0; these were local packaging candidates for the v0.2.1 change, not a new release.
+
+A second `make release` with the existing Developer ID identity and local notary profile passed Apple notarization of both macOS CLIs and the universal helper. Extracted archives passed inventory and installation-README byte checks, Developer ID/team/runtime/timestamp verification, stapled helper ticket validation, and online CLI notarization checks. All four checksum entries verified. macOS archives contained the CLI, helper, installation README, configuration example, project license, and dependency notices; Linux archives omitted the helper. Full docs, contributor guidance, and screenshots were absent. Synthetic regressions reject legacy/unknown download names, unexpected files, duplicate members, unsafe links, missing required runtime files, and stale installation guidance.
+
+No UI or telemetry behavior changed. Notification banners/sound, fresh-Mac browser downloads, Intel/Linux runtime execution, and hardware behavior were not revalidated by these packaging checks.
+
 ## v0.2.0 release preparation
 
 The release version and direct-Go-build fallback were updated to 0.2.0 on 2026-10-26 (PDT). The changelog was consolidated under a versioned release heading; README installation guidance now requires v0.2.0 or newer for notifications. The roadmap distinguishes implemented notification features from remaining ownership/activity, per-printer UI, quiet-hours, and platform/hardware validation work. No tag or release was created during preparation.

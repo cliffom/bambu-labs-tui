@@ -14,6 +14,7 @@ import unicodedata
 from urllib.parse import unquote, urlsplit
 
 
+RELEASE_README = "docs/user/release-installation.md"
 ROOT_MARKDOWN = {"README.md", "AGENTS.md"}
 DOCS_ROOT = {"docs/README.md", "docs/ROADMAP.md", "docs/CHANGELOG.md"}
 DIRECTION = {
@@ -90,7 +91,7 @@ def local_links(name, text):
 def validate(tree):
     errors = []
     names = set(tree.documents)
-    for missing in sorted((ROOT_MARKDOWN | DOCS_ROOT | DIRECTION) - names):
+    for missing in sorted((ROOT_MARKDOWN | DOCS_ROOT | DIRECTION | {RELEASE_README}) - names):
         errors.append(f"missing required document: {missing}")
     all_links = {}
     heading_ids = {name: anchors(text) for name, text in tree.documents.items()}
@@ -138,14 +139,22 @@ def archive_errors(path, source):
             m.name: archive.extractfile(m).read().decode("utf-8")
             for m in members if m.isfile() and is_markdown(m.name) and not m.name.startswith("third_party/")
         }
-    errors = validate(Tree(files, documents))
-    for name in sorted(source.documents.keys() | documents.keys()):
+    expected = {'README.md': source.documents[RELEASE_README]}
+    errors = []
+    for name in sorted(expected.keys() | documents.keys()):
         if name not in documents:
             errors.append(f"archive missing document: {name}")
-        elif name not in source.documents:
+        elif name not in expected:
             errors.append(f"archive has unexpected document: {name}")
-        elif documents[name] != source.documents[name]:
+        elif documents[name] != expected[name]:
             errors.append(f"archive has stale document: {name}")
+    tree = Tree(files, documents)
+    for name, text in documents.items():
+        for target, dest, anchor in local_links(name, text):
+            if dest.startswith(("/", "../")) or not tree.exists(dest):
+                errors.append(f"{name}: missing local target: {target}")
+            elif anchor and dest in documents and anchor not in anchors(documents[dest]):
+                errors.append(f"{name}: missing heading anchor: {target}")
     return errors
 
 

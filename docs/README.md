@@ -4,6 +4,8 @@ For installation, the demo, and your first connection, start with the [project R
 
 ## User guides
 
+- [Release installation guide](user/release-installation.md): concise instructions included in binary downloads
+
 - [Usage and configuration](user/usage.md): login, saved sessions, keyboard controls, and telemetry fields
 - [Farm view](user/farm-view.md): summary counts, filters, sorting, and selection
 - [Alert preferences](user/alerts.md): global/per-printer controls, snoozing, and persistence

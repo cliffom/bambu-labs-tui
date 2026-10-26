@@ -109,9 +109,6 @@ func (m Model) configView() string {
 		action = selected.Render("> Test Notification")
 	}
 	lines = append(lines, action)
-	if m.notificationTestStatus != "" {
-		lines = append(lines, m.notificationTestStatus)
-	}
 	if m.configStorageError != "" {
 		lines = append(lines, danger.Render("Save failed · r retry; settings apply this session."))
 	} else if message := m.storageWarning(); message != "" {
@@ -125,9 +122,9 @@ func (m Model) configView() string {
 	if len(m.alertPrefs.Printers) > 0 {
 		lines = append(lines, fmt.Sprintf("%d printer overrides configured; s shows effective values.", len(m.alertPrefs.Printers)))
 	}
-	hints := m.configHelp()
+	hints := m.configFooter()
 	rows := strings.Split(m.fullView(strings.Split(wrapLines(lines, max(1, m.width-2)), "\n"), hints), "\n")
-	// Config reserves its footer for helper text; warnings remain in the body.
+	// Config shows helper text and transient test feedback; save failures stay in the body.
 	rows[len(rows)-1] = m.footerRow(hints)
 	return strings.Join(rows, "\n")
 }
@@ -143,4 +140,25 @@ func (m Model) configHelp() string {
 		return "Sending test; closing cancels it."
 	}
 	return help[m.configSelection]
+}
+
+func (m Model) configFooter() string {
+	helper := m.configHelp()
+	feedback := m.notificationTestStatus
+	if feedback == "" {
+		return helper
+	}
+	elapsed := m.now.Sub(m.notificationTestStatusAt)
+	if !m.notificationTestPending && !m.notificationTestFailed && elapsed >= notificationTestFeedbackLifetime {
+		return helper
+	}
+	rendered := accent.Bold(true).Render(feedback)
+	if m.notificationTestFailed {
+		rendered = danger.Bold(true).Render(feedback)
+	} else if !m.notificationTestPending && elapsed >= notificationTestDimAfter {
+		rendered = muted.Render(feedback)
+	}
+	const separator = " · "
+	helperWidth := max(1, m.width-2-ansi.StringWidth(rendered)-ansi.StringWidth(separator))
+	return ansi.Truncate(helper, helperWidth, "…") + separator + rendered
 }

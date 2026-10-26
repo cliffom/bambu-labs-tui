@@ -23,12 +23,14 @@ func (m *Model) startNotificationTest() tea.Cmd {
 		return nil
 	}
 	if m.testNotification == nil {
+		m.notificationTestFailed = true
 		m.notificationTestStatus = "Test unavailable; run bambu-tui doctor --notify"
 		return nil
 	}
 	ctx, cancel := context.WithCancel(m.notificationTestContext)
 	m.notificationTestCancel = cancel
 	m.notificationTestPending = true
+	m.notificationTestFailed = false
 	m.notificationTestGeneration++
 	m.notificationTestStatus = "Test: Sending… Allow macOS permission if prompted."
 	generation, test, sound := m.notificationTestGeneration, m.testNotification, m.alertPrefs.NotificationSound
@@ -44,9 +46,11 @@ func (m *Model) notificationTestResult(msg notificationTestResultMsg) {
 	}
 	m.notificationTestPending = false
 	m.notificationTestCancel = nil
+	m.notificationTestStatusAt = m.now
+	m.notificationTestFailed = msg.err != nil
 	m.notificationTestStatus = "Test accepted by macOS; check banner and sound."
 	if msg.err != nil {
-		m.notificationTestStatus = "Test failed; run bambu-tui doctor --notify for details."
+		m.notificationTestStatus = "Test failed; run bambu-tui doctor --notify."
 	}
 }
 
@@ -56,6 +60,8 @@ func (m *Model) cancelNotificationTest() {
 		m.notificationTestCancel = nil
 		m.notificationTestPending = false
 		m.notificationTestGeneration++
+		m.notificationTestStatusAt = m.now
+		m.notificationTestFailed = false
 		m.notificationTestStatus = "Test canceled; delivery unconfirmed."
 	}
 }

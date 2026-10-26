@@ -78,6 +78,8 @@ type (
 		notificationTestPending    bool
 		notificationTestGeneration uint64
 		notificationTestStatus     string
+		notificationTestStatusAt   time.Time
+		notificationTestFailed     bool
 		notificationSetupError     string
 		configSelection            int
 		configPath                 string

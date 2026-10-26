@@ -8,11 +8,16 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/muesli/termenv"
 )
 
 func TestConfigNotificationProbeUsesSoundSnapshotWithoutSaving(t *testing.T) {
+	profile := lipgloss.ColorProfile()
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
 	for _, sound := range []bool{false, true} {
 		calls := 0
 		m := demoModel().WithNotificationTest(context.Background(), func(_ context.Context, requested bool) error {
@@ -44,6 +49,24 @@ func TestConfigNotificationProbeUsesSoundSnapshotWithoutSaving(t *testing.T) {
 		m = next.(Model)
 		if calls != 1 || m.notificationTestPending || !strings.Contains(ansi.Strip(m.View()), "accepted by macOS") || m.alertPrefs.DesktopNotifications {
 			t.Fatal("probe outcome or opt-out independence incorrect")
+		}
+		for _, width := range []int{60, 120} {
+			m = resizeModel(m, width, 18)
+			rows := strings.Split(ansi.Strip(m.View()), "\n")
+			if strings.Contains(strings.Join(rows[:len(rows)-1], "\n"), "Test accepted") || !strings.Contains(rows[len(rows)-1], " · "+m.notificationTestStatus) {
+				t.Fatal("test result belongs after helper text in the status bar")
+			}
+			if !strings.Contains(m.configFooter(), accent.Bold(true).Render(m.notificationTestStatus)) {
+				t.Fatal("fresh test result should be prominent green")
+			}
+		}
+		m.now = m.notificationTestStatusAt.Add(notificationTestDimAfter)
+		if !strings.Contains(m.configFooter(), muted.Render(m.notificationTestStatus)) {
+			t.Fatal("accepted test result should dim before expiry")
+		}
+		m.now = m.notificationTestStatusAt.Add(notificationTestFeedbackLifetime)
+		if m.configFooter() != m.configHelp() {
+			t.Fatal("expired test result should leave only helper text")
 		}
 	}
 }
@@ -107,6 +130,10 @@ func TestConfigNotificationProbeFailureAndHiddenAction(t *testing.T) {
 	m = next.(Model)
 	if m.notificationTestPending || !strings.Contains(ansi.Strip(m.View()), "Test failed") {
 		t.Fatal("failure not visible")
+	}
+	m.now = m.now.Add(notificationTestFeedbackLifetime)
+	if !strings.Contains(ansi.Strip(m.configFooter()), "Test failed") {
+		t.Fatal("actionable test failures should remain visible")
 	}
 	for _, size := range [][2]int{{60, 18}, {120, 32}} {
 		m = resizeModel(m, size[0], size[1])

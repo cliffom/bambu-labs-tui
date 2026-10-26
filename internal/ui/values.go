@@ -26,6 +26,11 @@ const (
 )
 
 const (
+	notificationTestDimAfter         = 4 * time.Second
+	notificationTestFeedbackLifetime = 7 * time.Second
+)
+
+const (
 	snoozeShort              = 15 * time.Minute
 	snoozeHour               = time.Hour
 	snoozeLong               = 4 * time.Hour

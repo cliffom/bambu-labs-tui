@@ -19,7 +19,7 @@ func hmsLevel(code int) string {
 
 // hmsMessages contains independently phrased summaries of Bambu Studio's English
 // HMS catalogues. A known empty catalogue entry is internal and is suppressed.
-// See docs/protocol-sources.md for the source files and fallback policy.
+// See docs/reference/protocol-sources.md for the source files and fallback policy.
 var hmsMessages = buildHMSMessages()
 
 // buildHMSMessages combines verified printer, maintenance, and filament notices.

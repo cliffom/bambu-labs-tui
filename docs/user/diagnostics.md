@@ -1,6 +1,6 @@
 # Local diagnostic export
 
-[Back to the README](../README.md)
+[Back to the README](../../README.md)
 
 Select a printer and press uppercase `D` from the dashboard. The preview shows the local destination and export scope. Press Enter to create that file, or Esc to cancel. There is no automatic export, upload, issue attachment, or support message. Close this view before quitting.
 

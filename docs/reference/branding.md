@@ -1,5 +1,9 @@
 # Branding artwork
 
+[Documentation index](../README.md)
+
+All source and exported files below live in [assets/branding/](../../assets/branding/).
+
 The icon combines a terminal prompt with a bamboo shoot. All artwork uses a limited palette, solid pixels, and nearest-neighbor scaling.
 
 | File | Purpose |

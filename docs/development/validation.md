@@ -1,5 +1,9 @@
 # Validation record
 
+[Contributing](contributing.md) · [Documentation index](../README.md)
+
+This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
+
 ## v0.1.8 — Live job transitions and connection recovery
 
 The user's 2026-10-25 screenshot and report show real session events during a job start and network disconnects on v0.1.8. The user subsequently confirmed that they restarted their routers, providing the network-interruption context for this recovery evidence:
@@ -45,7 +49,7 @@ The native credential probe in the implementation workspace failed with `securit
 
 ## Remaining live checks
 
-Unchecked items below remain unverified. Closing the tracking issue or publishing v0.1.0 does not count as passing these checks.
+Unchecked items below remain unverified. Closing a tracking issue or publishing a release does not count as passing these checks.
 
 - [ ] Validate global/per-printer alert preferences, snooze/resume, restart persistence, and expiry on H2D/X2D. v0.0.9 has synthetic/store/demo coverage; live interruption behavior remains unconfirmed.
 
@@ -56,7 +60,10 @@ Unchecked items below remain unverified. Closing the tracking issue or publishin
 - [ ] Compare H2D and X2D progress, remaining time, temperatures, and active filament paths against Bambu Studio during a real print.
 - [ ] Observe pause/resume and completion; verify completion is reported from telemetry rather than inferred from elapsed time.
 - [x] Verify reconnection and fresh telemetry after a network interruption. On 2026-10-25, the user reported restarting their routers; the v0.1.8 screenshot shows resolved disconnect/offline notices and subsequent fresh H2D printing telemetry. This was a router restart rather than an isolated monitor-only interruption; see the evidence above.
-- [ ] Dismiss a notice and verify routine reports do not restore it; resolve/recur a condition through normal printer use and verify it returns.
+- [ ] Acknowledge and dismiss notices, restart, and verify saved decisions persist and routine reports do not restore dismissed notices. Resolve/recur a condition through normal printer use and verify it returns unreviewed.
+- [ ] Verify action-needed prompts during naturally occurring intervention conditions; confirm recovery/maintenance do not interrupt and telemetry continues while dialogs are open.
+- [ ] Exercise farm filters/sorting, keyboard/modal navigation, and resizing in a normal terminal while telemetry continues.
+- [ ] Preview and inspect a local diagnostic export on the supported live setup before voluntarily sharing any data.
 - [ ] Run `logout`; verify the next startup requests login.
 
-Leave incomplete items unchecked. Record model/firmware and results here after performing them; never attach credentials, unredacted serials, or account tokens.
+Do not deliberately fault a printer to satisfy a checklist. Record unavailable scenarios as untested with a clear limitation. Leave incomplete items unchecked. Record model/firmware and results here after performing them; never attach credentials, unredacted serials, or account tokens.

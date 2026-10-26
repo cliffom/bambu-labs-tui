@@ -3,7 +3,7 @@ package farm
 import "fmt"
 
 // addFilamentHMS adds the finite code families verified against the pinned Bambu
-// Studio catalogues in docs/protocol-sources.md. Do not extrapolate new units,
+// Studio catalogues in docs/reference/protocol-sources.md. Do not extrapolate new units,
 // slots, or subcodes: unknown codes must retain the normal visible fallback.
 func addFilamentHMS(messages map[string]string) {
 	// The high word is the component (0x1000, 0x2000, ...); low words

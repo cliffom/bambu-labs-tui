@@ -35,16 +35,21 @@ func Load(path string) (Config, error) {
 	if len(meta.Undecoded()) != 0 {
 		return c, fmt.Errorf("unknown configuration key: %s", meta.Undecoded()[0])
 	}
+	return c, c.Validate()
+}
+
+// Validate is shared by file loading and interactive editing.
+func (c Config) Validate() error {
 	if c.Region != RegionGlobal && c.Region != RegionChina {
-		return c, fmt.Errorf("region must be global or china")
+		return fmt.Errorf("region must be global or china")
 	}
 	if c.LowFilamentPercent < 0 || c.LowFilamentPercent > maxPercent {
-		return c, fmt.Errorf("low_filament_percent must be between 0 and 100")
+		return fmt.Errorf("low_filament_percent must be between 0 and 100")
 	}
 	for id := range c.Alerts.Printers {
 		if strings.TrimSpace(id) == "" {
-			return c, fmt.Errorf("alert printer ID must not be empty")
+			return fmt.Errorf("alert printer ID must not be empty")
 		}
 	}
-	return c, nil
+	return nil
 }

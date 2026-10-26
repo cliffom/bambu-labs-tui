@@ -21,7 +21,7 @@ On macOS, keep `Bambu TUI Notify.app` beside `bambu-tui`, including when moving 
 
 ## Configure notifications
 
-Notifications are off by default and require a live TUI session on a local Mac. Press `,` to open Config, select **Test Notification**, and allow notification permission. Enable **Desktop notifications** and optionally sound. Check macOS Focus and notification preview settings if a banner is hidden or generic. Quitting the TUI ends monitoring and delivery.
+Notifications are off by default and require a live TUI session on a local Mac. Press `,` to open Config, switch to **Alerts** with `Tab`, and select **Test Notification**, and allow notification permission. Enable **Desktop notifications** and optionally sound. Check macOS Focus and notification preview settings if a banner is hidden or generic. Quitting the TUI ends monitoring and delivery.
 
 The included `config.example.toml` documents available settings. It is not loaded automatically from the current directory. To use an edited copy explicitly:
 

@@ -16,7 +16,8 @@ failed_prints = true
 unknown_pauses = true
 
 # Optional per-printer overrides inherit every unspecified global value.
-# Press s in the TUI to find the stable printer ID. Restart after editing.
+# Use Config (,) > Printers for On / Off / Inherit and reset controls.
+# Press s to find the stable printer ID. Restart after external file edits.
 # [alerts.printers."YOUR_PRINTER_ID"]
 # automatic_modals = false
 # filament = false

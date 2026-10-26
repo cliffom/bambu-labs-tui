@@ -22,6 +22,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/term"
+	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
 	"github.com/cliffom/bambu-tui/internal/ui"
@@ -82,6 +83,7 @@ type (
 	ptyPanicModel struct{ ui.Model }
 
 	ptyChild struct {
+		configPath                  string
 		release                     *os.File
 		returned                    chan struct{}
 		returnErr                   error
@@ -173,6 +175,7 @@ func startPTYChild(t *testing.T, mode string) *ptyChild {
 		t.Fatal(err)
 	}
 	configPath := filepath.Join(t.TempDir(), "config.toml")
+	child.configPath = configPath
 	// The real demo reports on a timer. Disable automatic interruptions so test
 	// semantics do not depend on whether a slow CI host reaches the runout step.
 	if err = os.WriteFile(configPath, []byte("[alerts]\nautomatic_modals = false\n"), 0o600); err != nil {
@@ -394,6 +397,43 @@ func TestPTYNavigationResizeAndNormalQuit(t *testing.T) {
 	child.expect(t, mark, "› PRINTERS")
 	child.send(t, "q")
 	child.exited(t, 0)
+}
+
+func TestPTYConfigEditsPersistToLaunchFile(t *testing.T) {
+	child := startPTYChild(t, "demo")
+	child.expect(t, 0, "Gridfinity baseplate")
+	mark := child.send(t, ",")
+	child.expect(t, mark, "CONFIG / GENERAL")
+	mark = child.send(t, "\r")
+	child.expect(t, mark, "restart + login required")
+	child.send(t, "\x1b[B\r")
+	mark = child.send(t, "0.5\r")
+	child.expect(t, mark, "Enter a whole percentage from 0 to 100.")
+	mark = child.send(t, "\x1525\r") // Ctrl+U clears before replacement.
+	child.expect(t, mark, "Low filament threshold: 25%")
+	mark = child.send(t, "\t")
+	child.expect(t, mark, "CONFIG / ALERTS")
+	child.send(t, "\x1b[B\x1b[B\x1b[B\x1b[B\r") // Global filament Off.
+	mark = child.send(t, "\t")
+	child.expect(t, mark, "CONFIG / PRINTERS")
+	mark = child.send(t, "\x1b[B\x1b[B\x1b[B\x1b[B\x1b[B\r") // Printer filament On.
+	child.expect(t, mark, "On (effective: On)")
+	mark = child.resize(t, 59, 17)
+	child.expect(t, mark, "Resize to at least 60 columns")
+	mark = child.resize(t, 60, 18)
+	child.expect(t, mark, "On (effective: On)")
+	mark = child.send(t, "\x1b")
+	child.expect(t, mark, "PRINTERS")
+	child.send(t, "q")
+	child.exited(t, 0)
+	cfg, err := config.Load(child.configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	override := cfg.Alerts.Printers["DEMOH2D"].Filament
+	if cfg.Region != config.RegionChina || cfg.LowFilamentPercent != 25 || cfg.Alerts.Filament || override == nil || !*override || cfg.Alerts.DesktopNotifications {
+		t.Fatalf("CLI did not persist all edits to selected file: %+v", cfg)
+	}
 }
 
 func TestPTYClearAllNoticesRemainsResponsive(t *testing.T) {

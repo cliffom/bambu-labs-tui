@@ -19,6 +19,7 @@ The parent starts the current Go test executable in a new session with a control
 - Raw `j` input changes the selected printer's details, and `m` opens its filament dialog.
 - `q` and raw Ctrl+C stay inside the dialog: a subsequent arrow sequence visibly advances the unit selection, proving the dialog and process remained active.
 - An actual PTY window-size ioctl plus SIGWINCH produces the undersized resize screen. Restoring the size returns to the dialog with its unit selection intact; Escape returns to the dashboard.
+- Config accepts raw Tab/arrow/Enter input across General, Alerts, and Printers, rejects fractional percentage input, preserves its state across minimum-size resizing, and persists general/global/per-printer edits to the launch configuration file before quitting.
 - Dashboard `q` returns normally. OS SIGINT and SIGTERM also return within a bound, separately from raw Ctrl+C keyboard behavior.
 - A test-only wrapper around the real UI raises a panic on raw Ctrl+G. Bubble Tea recovers, the dashboard cleanup helper preserves the error, and the child exits nonzero. There is no production fault-injection flag.
 - For each exit path, terminal settings match the original state, and output includes alternate-screen exit, cursor restoration, and bracketed-paste disable sequences.

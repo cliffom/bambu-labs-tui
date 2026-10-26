@@ -28,7 +28,7 @@ func TestConfigNotificationProbeUsesSoundSnapshotWithoutSaving(t *testing.T) {
 			return nil
 		})
 		m.alertPrefs.NotificationSound = sound
-		m = key(m, ",")
+		m = openAlertConfig(m)
 		m = key(m, "up") // Wrap from the first setting to Test Notification.
 		next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 		m = next.(Model)
@@ -78,7 +78,7 @@ func TestConfigNotificationProbeCancelsOnCloseAndIgnoresStaleResult(t *testing.T
 		<-ctx.Done()
 		return ctx.Err()
 	})
-	m = key(key(m, ","), "up")
+	m = key(openAlertConfig(m), "up")
 	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(Model)
 	result := make(chan tea.Msg, 1)
@@ -104,7 +104,7 @@ func TestConfigNotificationProbeCancelsOnCloseAndIgnoresStaleResult(t *testing.T
 	case <-time.After(time.Second):
 		t.Fatal("close did not release helper")
 	}
-	m = key(m, ",")
+	m = openAlertConfig(m)
 	m.notificationTestPending = true
 	m.notificationTestStatus = "New test pending"
 	next, _ = m.Update(stale)
@@ -116,7 +116,7 @@ func TestConfigNotificationProbeCancelsOnCloseAndIgnoresStaleResult(t *testing.T
 
 func TestConfigNotificationProbeFailureAndHiddenAction(t *testing.T) {
 	m := demoModel().WithNotificationTest(context.Background(), func(context.Context, bool) error { return errors.New("permission denied") })
-	m = key(key(m, ","), "up")
+	m = key(openAlertConfig(m), "up")
 	m = resizeModel(m, 59, 17)
 	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(Model)

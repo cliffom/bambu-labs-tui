@@ -9,7 +9,7 @@ Run these commands from the repository root.
 Update `VERSION` and the default version in `internal/buildinfo/buildinfo.go` to a new, unused release version. Update [docs/CHANGELOG.md](../CHANGELOG.md) and any affected user guides, then run the appropriate checks:
 
 ```sh
-make fmt-check lint lint-actions lint-make
+make docs-check fmt-check lint lint-actions lint-make
 make audit-faults
 make test check release
 ```

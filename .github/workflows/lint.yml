@@ -18,6 +18,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Check documentation policy and links
+        run: make docs-check
       - name: Check Go formatting
         run: make fmt-check
       - name: Audit fault codes against pinned upstream catalogues

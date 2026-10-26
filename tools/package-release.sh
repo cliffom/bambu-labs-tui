@@ -6,6 +6,8 @@ if [[ ! "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; the
   echo 'Invalid release version' >&2
   exit 1
 fi
+python3 tools/check-docs.py
+
 release_stage=$(mktemp -d)
 trap 'rm -rf "$release_stage"' EXIT
 
@@ -44,6 +46,7 @@ for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
   cp "dist/bambu-tui-$target" "$release_stage/bambu-tui"
   archive="bambu-tui_v${release_version}_${target//-/_}.tar.gz"
   COPYFILE_DISABLE=1 tar -czf "dist/$archive" -C "$release_stage" bambu-tui README.md AGENTS.md LICENSE config.example.toml docs assets third_party
+  python3 tools/check-docs.py --archive "dist/$archive"
   archives+=("$archive")
 done
 (

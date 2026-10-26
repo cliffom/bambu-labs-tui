@@ -2,9 +2,12 @@
 
 [Back to the README](../../README.md)
 
-Requires Go 1.26 or newer. Bubble Tea v1, Bubbles, and Lip Gloss are pinned in `go.mod`.
+Read [UI direction](ui-direction.md) before UI changes and [documentation direction](documentation-direction.md) for documentation ownership and required PR evidence.
+
+Requires Go 1.26 or newer and Python 3.10+ for documentation checks. Bubble Tea v1, Bubbles, and Lip Gloss are pinned in `go.mod`.
 
 ```sh
+make docs-check # documentation policy, links, and checker regression tests
 make test    # tests with the race detector
 make check   # go vet
 make fmt     # format Go source

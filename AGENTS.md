@@ -2,6 +2,12 @@
 
 Bambu TUI is a Go terminal application for read-only Bambu Cloud monitoring. Keep printer control outside the project scope. Preserve distinctions between unknown and confirmed telemetry, local notice decisions, and physical fault resolution.
 
+## Required direction and verification
+
+Before making changes, read [UI direction](docs/development/ui-direction.md) for UI work and [documentation direction](docs/development/documentation-direction.md) for every change. Preserve their contracts unless the user requests a change to them; update affected guidance and verification in the same PR. Assess documentation impact and describe it in the PR, including why no documentation update is needed when applicable.
+
+Run `make docs-check` for every PR. For UI changes, extend relevant interaction tests, perform the applicable demo/layout inspection, and report the sizes/states actually checked and any gaps. See the direction guides for the review criteria.
+
 ## Development
 
 Use Go 1.26 or newer, Git, and Make. Run commands from the repository root. Start with [contributing](docs/development/contributing.md) for tool versions and setup.
@@ -30,7 +36,7 @@ Read [architecture and conventions](docs/development/architecture.md) before cha
 Only root `README.md` and `AGENTS.md` belong outside `docs/`. Keep documentation current, consolidate repeated guidance, and update relative links and release tooling when moving documents. Put ongoing validation in the validation record; do not add version-specific readiness documents.
 
 - **User behavior:** [usage and configuration](docs/user/usage.md), [farm view](docs/user/farm-view.md), [alert preferences](docs/user/alerts.md), [action-needed alerts](docs/user/action-needed.md), [diagnostic exports](docs/user/diagnostics.md).
-- **Development and operations:** [contributing](docs/development/contributing.md), [architecture](docs/development/architecture.md), [terminal tests](docs/development/terminal-tests.md), [live-validation record](docs/development/validation.md), [publishing](docs/development/publishing.md).
+- **Development and operations:** [contributing](docs/development/contributing.md), [architecture](docs/development/architecture.md), [UI direction](docs/development/ui-direction.md), [documentation direction](docs/development/documentation-direction.md), [terminal tests](docs/development/terminal-tests.md), [live-validation record](docs/development/validation.md), [publishing](docs/development/publishing.md).
 - **References:** [protocol sources](docs/reference/protocol-sources.md), [branding artwork](docs/reference/branding.md).
 - **Planning and history:** [roadmap](docs/ROADMAP.md), [changelog](docs/CHANGELOG.md).
 

@@ -4,6 +4,10 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## v0.2.1 release preparation
+
+On 2026-10-26 (PDT), VERSION and the direct-build fallback were updated to 0.2.1 and the changelog finalized for lean runtime archives and `macos` download names. Local macOS arm64/Go 1.27.3 passed documentation and formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, race tests, vet, and default `make release` for all four targets. Archive inventory, installation README, helper architecture/signature, and checksum checks passed. The signed/notarized packaging evidence below covers the preceding packaging change; the tagged release workflow will build and verify the final signed assets. Hardware and fresh-Mac interactive validation were not repeated.
+
 ## Unreleased — lean runtime archives (#66)
 
 On 2026-10-26 (PDT), local macOS 27.0 arm64 with Go 1.27.3 passed all 37 Python tooling tests, `make docs-check`, workflow lint with the pinned actionlint, shell syntax checks, and `git diff --check`. Default `make release` produced all four lean runtime archives with `macos`/`linux` download names. Source VERSION remained 0.2.0; these were local packaging candidates for the v0.2.1 change, not a new release.

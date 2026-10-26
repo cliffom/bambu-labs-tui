@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 — Leaner release downloads
 
 - Trim binary release archives to the CLI, macOS notification helper, concise installation README, configuration example, and license notices. Keep full documentation online. Rename macOS download filenames from `darwin` to `macos`, retaining Go build targets and signed/notarized packaging verification.
 

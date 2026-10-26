@@ -41,4 +41,4 @@ Only root `README.md` and `AGENTS.md` belong outside `docs/`. Keep documentation
 - **References:** [protocol sources](docs/reference/protocol-sources.md), [branding artwork](docs/reference/branding.md).
 - **Planning and history:** [roadmap](docs/ROADMAP.md), [changelog](docs/CHANGELOG.md).
 
-The [documentation index](docs/README.md) is the human-facing navigation page. Binary release archives include `docs/user/release-installation.md` as `README.md`, the configuration example, and license notices; full documentation stays in the repository. Keep `tools/package-release.sh`, archive checkers, and `.github/workflows/release.yml` aligned with this layout. The workflow reads release notes from `docs/CHANGELOG.md`.
+The [documentation index](docs/README.md) is the human-facing navigation page. Binary release archives include `docs/user/release-installation.md` as `README.md`, the configuration example, and `THIRD_PARTY_NOTICES.txt`; full documentation stays in the repository. Keep `tools/package-release.sh`, archive checkers, and `.github/workflows/release.yml` aligned with this layout. The workflow reads release notes from `docs/CHANGELOG.md`.

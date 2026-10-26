@@ -4,6 +4,12 @@
 
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
+## Unreleased — consolidated release notices
+
+On 2026-10-26 (PDT), macOS arm64/Go 1.27.3 passed all 42 Python tooling tests, `make docs-check`, shell syntax checks, and default `make release`. All four archives passed inventory, installation README, extracted helper signature/architecture checks, and checksum validation. Their consolidated notices bytes matched across platforms. Each archive excluded the `third_party/` directory, and all 22 notice files from the downloaded published v0.2.3 macOS archive appeared verbatim inside `THIRD_PARTY_NOTICES.txt`. Module/file headings preserve attribution; the collector also includes the union of modules linked into all four release targets.
+
+Synthetic tests cover deterministic ordering, duplicate module entries, complete LICENSE/COPYING/NOTICE text, CRLF/non-ASCII preservation, paths containing spaces, Homebrew Go license fallback, and failure on absent/empty notices or malformed/conflicting manifests. Archive checks reject old notice files/directories and a missing/empty consolidated file. VERSION remains 0.2.3; these were local candidates, not replacement public assets. Application code, UI, and signing/notarization tooling were unchanged; native delivery and hardware were not revalidated.
+
 ## v0.2.3 release preparation
 
 On 2026-10-26 (PDT), VERSION and the direct-build fallback were updated to 0.2.3 and the changelog finalized for Notification activity. Local macOS arm64/Go 1.27.3 passed documentation/formatting checks, pinned Go/workflow/Make lint, upstream fault catalogue audit, vulnerability scanning, all race tests, vet, and default `make release` for all four targets. Archive inventory, installation README, helper architecture/signature checks, and checksums passed. The tagged workflow will build and verify the final Developer ID-signed/notarized assets. The preceding activity layout/interaction evidence and deferred hardware/real-account limitations remain unchanged.

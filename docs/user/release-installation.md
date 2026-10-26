@@ -33,4 +33,4 @@ cp config.example.toml config.toml
 
 For Bambu's China region, set `region = "china"` before logging in. See the [user guide](https://github.com/cliffom/bambu-tui/blob/main/docs/user/usage.md) for default config locations and login troubleshooting, [alert documentation](https://github.com/cliffom/bambu-tui/blob/main/docs/user/alerts.md) for notification settings, and the [documentation index](https://github.com/cliffom/bambu-tui/blob/main/docs/README.md) for full help.
 
-Licensed under MIT (see the included `LICENSE`); dependency notices are in `third_party/`. This project is not affiliated with Bambu Lab.
+Licensed under MIT (see the included `LICENSE`); Go and dependency notices are in `THIRD_PARTY_NOTICES.txt`. This project is not affiliated with Bambu Lab.

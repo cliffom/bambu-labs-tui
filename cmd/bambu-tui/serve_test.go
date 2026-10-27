@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -34,7 +35,20 @@ func TestServeHelperProcess(t *testing.T) {
 		return
 	}
 	var err error
-	if mode == "close" {
+	switch mode {
+	case "cloud":
+		cfg, loadErr := config.Load(os.Getenv("BAMBU_TUI_SERVE_CONFIG"))
+		if loadErr != nil {
+			t.Fatal(loadErr)
+		}
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+		state := cloudServeState(cfg, "synthetic-account", os.Stderr)
+		runner := &monitor.Runner{API: serveAPI{}, Token: "synthetic-token", Dial: func(context.Context) (monitor.Transport, error) {
+			return &serveTransport{closed: make(chan struct{})}, nil
+		}}
+		err = serveMonitor(ctx, cfg, &state, os.Stdout, func(ctx context.Context, events chan<- monitor.Event) { runner.Run(ctx, events, nil) })
+	case "close":
 		cfg, loadErr := config.Load(os.Getenv("BAMBU_TUI_SERVE_CONFIG"))
 		if loadErr != nil {
 			t.Fatal(loadErr)
@@ -48,7 +62,7 @@ func TestServeHelperProcess(t *testing.T) {
 		go func() { var b [1]byte; _, _ = os.Stdin.Read(b[:]); web.Close() }()
 		fmt.Println("Listening on", status.URL)
 		err = serveSession(context.Background(), &state, web, nil, time.Second)
-	} else {
+	default:
 		err = run([]string{"serve", "--demo", "--config", os.Getenv("BAMBU_TUI_SERVE_CONFIG")})
 	}
 	if err != nil {
@@ -71,7 +85,7 @@ func startServeChild(t *testing.T, path, mode string) *serveChild {
 	t.Cleanup(cancel)
 	c := &serveChild{}
 	c.cmd = exec.CommandContext(ctx, os.Args[0], "-test.run=^TestServeHelperProcess$")
-	c.cmd.Env = append(os.Environ(), "BAMBU_TUI_SERVE_CHILD="+mode, "BAMBU_TUI_SERVE_CONFIG="+path)
+	c.cmd.Env = append(os.Environ(), "BAMBU_TUI_SERVE_CHILD="+mode, "BAMBU_TUI_SERVE_CONFIG="+path, "HOME="+filepath.Dir(path), "XDG_CONFIG_HOME="+filepath.Dir(path))
 	c.cmd.Stderr = &c.stderr
 	var err error
 	c.stdin, err = c.cmd.StdinPipe()
@@ -115,100 +129,136 @@ func serveGet(t *testing.T, address string, value any) {
 	}
 }
 
-func TestServeDemoWithoutTerminal(t *testing.T) {
-	for _, signal := range []os.Signal{os.Interrupt, syscall.SIGTERM} {
-		t.Run(signal.String(), func(t *testing.T) {
-			path := ptyWebConfig(t, false)
-			// Saved desktop opt-in must not enable delivery or change on exit.
-			file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := file.WriteString("desktop_notifications=true\n"); err != nil {
-				t.Fatal(err)
-			}
-			_ = file.Close()
-			original, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			original = append([]byte("theme_file='missing-theme.json'\n"), original...)
-			if err := os.WriteFile(path, original, 0o600); err != nil {
-				t.Fatal(err)
-			}
-			child := startServeChild(t, path, "demo")
-			var snapshot struct {
-				Demo      bool   `json:"demo"`
-				Decisions string `json:"decisions"`
-				Printers  []struct {
-					Conditions []struct {
-						ID     string `json:"id"`
-						Hidden bool   `json:"hidden"`
-					} `json:"conditions"`
-				} `json:"printers"`
-			}
-			deadline := time.Now().Add(3 * time.Second)
-			target := ""
-			for target == "" {
-				serveGet(t, child.url+"/api/snapshot", &snapshot)
-				for _, p := range snapshot.Printers {
-					for _, c := range p.Conditions {
-						target = c.ID
+func TestServeWithoutTerminal(t *testing.T) {
+	for _, mode := range []string{"demo", "cloud"} {
+		t.Run(mode, func(t *testing.T) {
+			for _, signal := range []os.Signal{os.Interrupt, syscall.SIGTERM} {
+				t.Run(signal.String(), func(t *testing.T) {
+					path := ptyWebConfig(t, false)
+					// Saved desktop opt-in must not enable delivery or change on exit.
+					file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
+					if err != nil {
+						t.Fatal(err)
 					}
-				}
-				if time.Now().After(deadline) {
-					t.Fatal("no synthetic condition")
-				}
-				if target == "" {
-					time.Sleep(10 * time.Millisecond)
-				}
-			}
-			if !snapshot.Demo || snapshot.Decisions != "session-only" || len(snapshot.Printers) != 2 {
-				t.Fatalf("unexpected snapshot: %+v", snapshot)
-			}
-			var token struct {
-				Token string `json:"token"`
-			}
-			serveGet(t, child.url+"/api/session", &token)
-			request, err := http.NewRequest(http.MethodPost, child.url+"/api/dismiss", strings.NewReader(fmt.Sprintf(`{"target":%q}`, target)))
-			if err != nil {
-				t.Fatal(err)
-			}
-			request.Header.Set("Origin", child.url)
-			request.Header.Set("Content-Type", "application/json")
-			request.Header.Set("X-CSRF-Token", token.Token)
-			response, err := (&http.Client{Timeout: 4 * time.Second}).Do(request)
-			if err != nil {
-				t.Fatal(err)
-			}
-			_ = response.Body.Close()
-			if response.StatusCode != http.StatusOK {
-				t.Fatal(response.Status)
-			}
-			found := false
-			for !found {
-				serveGet(t, child.url+"/api/snapshot", &snapshot)
-				for _, p := range snapshot.Printers {
-					for _, c := range p.Conditions {
-						if c.ID == target && c.Hidden {
-							found = true
+					if _, err := file.WriteString("desktop_notifications=true\n"); err != nil {
+						t.Fatal(err)
+					}
+					_ = file.Close()
+					original, err := os.ReadFile(path)
+					if err != nil {
+						t.Fatal(err)
+					}
+					original = append([]byte("theme_file='missing-theme.json'\n"), original...)
+					if err := os.WriteFile(path, original, 0o600); err != nil {
+						t.Fatal(err)
+					}
+					child := startServeChild(t, path, mode)
+					var snapshot struct {
+						Demo      bool   `json:"demo"`
+						Decisions string `json:"decisions"`
+						Printers  []struct {
+							Conditions []struct {
+								ID     string `json:"id"`
+								Hidden bool   `json:"hidden"`
+							} `json:"conditions"`
+						} `json:"printers"`
+					}
+					deadline := time.Now().Add(3 * time.Second)
+					target := ""
+					for target == "" {
+						serveGet(t, child.url+"/api/snapshot", &snapshot)
+						for _, p := range snapshot.Printers {
+							for _, c := range p.Conditions {
+								target = c.ID
+							}
+						}
+						if time.Now().After(deadline) {
+							t.Fatal("no synthetic condition")
+						}
+						if target == "" {
+							time.Sleep(10 * time.Millisecond)
 						}
 					}
-				}
-				if time.Now().After(deadline) {
-					t.Fatal("decision not published")
-				}
-			}
-			if err := child.cmd.Process.Signal(signal); err != nil {
-				t.Fatal(err)
-			}
-			if err := child.cmd.Wait(); err != nil {
-				t.Fatalf("signal exit: %v: %s", err, child.stderr.String())
-			}
-			assertWebClosed(t, child.url)
-			after, err := os.ReadFile(path)
-			if err != nil || !bytes.Equal(original, after) {
-				t.Fatal("serve changed saved configuration", err)
+					wantDecisions, wantPrinters := "session-only", 2
+					if mode == "cloud" {
+						wantDecisions, wantPrinters = "saved", 1
+					}
+					if snapshot.Demo != (mode == "demo") || snapshot.Decisions != wantDecisions || len(snapshot.Printers) != wantPrinters {
+						t.Fatalf("unexpected snapshot: %+v", snapshot)
+					}
+					var token struct {
+						Token string `json:"token"`
+					}
+					serveGet(t, child.url+"/api/session", &token)
+					request, err := http.NewRequest(http.MethodPost, child.url+"/api/dismiss", strings.NewReader(fmt.Sprintf(`{"target":%q}`, target)))
+					if err != nil {
+						t.Fatal(err)
+					}
+					request.Header.Set("Origin", child.url)
+					request.Header.Set("Content-Type", "application/json")
+					request.Header.Set("X-CSRF-Token", token.Token)
+					response, err := (&http.Client{Timeout: 4 * time.Second}).Do(request)
+					if err != nil {
+						t.Fatal(err)
+					}
+					_ = response.Body.Close()
+					if response.StatusCode != http.StatusOK {
+						t.Fatal(response.Status)
+					}
+					found := false
+					for !found {
+						serveGet(t, child.url+"/api/snapshot", &snapshot)
+						for _, p := range snapshot.Printers {
+							for _, c := range p.Conditions {
+								if c.ID == target && c.Hidden {
+									found = true
+								}
+							}
+						}
+						if time.Now().After(deadline) {
+							t.Fatal("decision not published")
+						}
+					}
+					if err := child.cmd.Process.Signal(signal); err != nil {
+						t.Fatal(err)
+					}
+					if err := child.cmd.Wait(); err != nil {
+						t.Fatalf("signal exit: %v: %s", err, child.stderr.String())
+					}
+					assertWebClosed(t, child.url)
+					if mode == "cloud" {
+						restarted := startServeChild(t, path, mode)
+						deadline = time.Now().Add(3 * time.Second)
+						restored := false
+						for !restored {
+							serveGet(t, restarted.url+"/api/snapshot", &snapshot)
+							for _, p := range snapshot.Printers {
+								for _, c := range p.Conditions {
+									if c.Hidden {
+										restored = true
+									}
+								}
+							}
+							if time.Now().After(deadline) {
+								t.Fatal("saved cloud decision not restored after restart")
+							}
+							if !restored {
+								time.Sleep(time.Millisecond)
+							}
+						}
+						if err := restarted.cmd.Process.Signal(signal); err != nil {
+							t.Fatal(err)
+						}
+						if err := restarted.cmd.Wait(); err != nil {
+							t.Fatal(err, restarted.stderr.String())
+						}
+						assertWebClosed(t, restarted.url)
+					}
+					after, err := os.ReadFile(path)
+					if err != nil || !bytes.Equal(original, after) {
+						t.Fatal("serve changed saved configuration", err)
+					}
+				})
 			}
 		})
 	}
@@ -230,7 +280,7 @@ func TestServeBindFailureAndArgumentErrors(t *testing.T) {
 	if err == nil || !bytes.Contains(output, []byte("already in use")) || bytes.Contains(output, []byte("Listening")) {
 		t.Fatalf("%v: %s", err, output)
 	}
-	for _, args := range [][]string{{"serve"}, {"serve", "--demo", "--theme=default"}, {"serve", "--demo", "--session"}, {"serve", "--demo", "--notify"}} {
+	for _, args := range [][]string{{"serve", "--demo", "--theme=default"}, {"serve", "--demo", "--session"}, {"serve", "--demo", "--notify"}} {
 		if err := run(args); err == nil {
 			t.Fatal("accepted", args)
 		}

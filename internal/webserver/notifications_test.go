@@ -278,6 +278,75 @@ func TestBrowserRateLimitAndExpiry(t *testing.T) {
 	}
 }
 
+func TestBrowserRateLimitConsumesExcessAcrossTabsAndRestart(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		used int
+	}{
+		{"full window", browserBatchLimit},
+		{"one remaining slot", browserBatchLimit - 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			used := tc.used
+			b, ledger, at := browserFixture(t)
+			for range used {
+				observeBrowser(b, browserInput(farm.StateRunning, false))
+				observeBrowser(b, browserInput(farm.StatePaused, false))
+				if result := b.claim(browserRequest{}); result.Error != "" || len(result.Events) != 1 {
+					t.Fatalf("initial attempt: %+v", result)
+				}
+			}
+			olderTab := browserRequest{After: b.sequence}
+			*at = at.Add(59 * time.Second)
+			observeBrowser(b, browserInput(farm.StateRunning, false))
+			input := browserInput(farm.StatePaused, false)
+			input.Snapshot["SYNTHETIC_SECOND_PRINTER"] = input.Snapshot[syntheticPrinter]
+			input.Policies["SYNTHETIC_SECOND_PRINTER"] = input.Policies[syntheticPrinter]
+			observeBrowser(b, input)
+			first := b.claim(olderTab)
+			if first.Error != "" || len(first.Events) != browserBatchLimit-used {
+				t.Fatalf("rate-limited claim: %+v", first)
+			}
+			if len(b.attempts) != browserBatchLimit {
+				t.Fatalf("suppressed events consumed rate slots: %d attempts", len(b.attempts))
+			}
+			// The first tab advances its cursor, but another tab still has the
+			// old cursor when slots reopen before these events expire.
+			*at = at.Add(2 * time.Second)
+			if result := b.claim(olderTab); result.Error != "" || len(result.Events) != 0 {
+				t.Fatalf("older tab replayed rate-limited events: %+v", result)
+			}
+			observeBrowser(b, input)
+			if result := b.claim(olderTab); result.Error != "" || len(result.Events) != 0 {
+				t.Fatalf("observation restored suppressed events: %+v", result)
+			}
+			restarted, _, _ := browserFixture(t)
+			restarted.ledger = ledger
+			observeBrowser(restarted, input)
+			if result := restarted.claim(browserRequest{}); result.Error != "" || len(result.Events) != 0 {
+				t.Fatalf("restart replayed rate-limited events: %+v", result)
+			}
+			observeBrowser(b, browserInput(farm.StateRunning, false))
+			observeBrowser(b, browserInput(farm.StatePaused, false))
+			if result := b.claim(browserRequest{After: first.Cursor}); result.Error != "" || len(result.Events) != 1 {
+				t.Fatalf("fresh recurrence lost after rate window reopened: %+v", result)
+			}
+		})
+	}
+}
+
+func TestBrowserRateLimitStorageFailurePausesDelivery(t *testing.T) {
+	b, _, at := browserFixture(t)
+	observeBrowser(b, browserInput(farm.StatePaused, false))
+	for range browserBatchLimit {
+		b.attempts = append(b.attempts, *at)
+	}
+	b.ledger = failingBrowserLedger{}
+	if result := b.claim(browserRequest{}); result.Error != browserLedgerError || len(result.Events) != 0 || !b.failed.Load() {
+		t.Fatalf("suppression storage failure did not pause delivery: %+v", result)
+	}
+}
+
 func (b *blockedBrowserLedger) ObserveActivity(farm.NotificationSnapshot) (notification_state.Observation, error) {
 	b.once.Do(func() { close(b.entered) })
 	<-b.release

@@ -224,14 +224,17 @@ func (b *browserWorker) claim(request browserRequest) browserResult {
 	}
 	b.attempts = recent
 	limit := browserBatchLimit - len(recent)
-	if limit <= 0 {
-		return result
-	}
 	var ids []string
 	events := map[string]browserEvent{}
 	for _, c := range b.candidates {
 		occurrence, present := b.seen[c.ID]
 		if !present || occurrence.sequence <= request.After || !b.now().Before(occurrence.at.Add(browserEventLifetime)) || !browserEligible(c, latest) {
+			continue
+		}
+		// Reserve excess events too: advancing one tab's cursor cannot
+		// suppress them for another tab or a restarted host.
+		ids = append(ids, c.ID)
+		if len(events) >= limit {
 			continue
 		}
 		policy := latest.Policies[c.PrinterID]
@@ -244,10 +247,6 @@ func (b *browserWorker) claim(request browserRequest) browserResult {
 			title = "Demo: " + title
 		}
 		events[c.ID] = browserEvent{ID: c.ID, Printer: opaque(c.PrinterID), Title: title, Body: body, Sound: policy.Sound}
-		ids = append(ids, c.ID)
-		if len(ids) == limit {
-			break
-		}
 	}
 	if len(ids) == 0 {
 		return result
@@ -262,9 +261,11 @@ func (b *browserWorker) claim(request browserRequest) browserResult {
 	changed := generation != b.submitted || b.failed.Load() || b.ctx.Err() != nil
 	b.mu.Unlock()
 	for _, id := range reserved {
-		b.attempts = append(b.attempts, now)
-		if !changed {
-			result.Events = append(result.Events, events[id])
+		if event, attempted := events[id]; attempted {
+			b.attempts = append(b.attempts, now)
+			if !changed {
+				result.Events = append(result.Events, event)
+			}
 		}
 		delete(b.seen, id)
 	}

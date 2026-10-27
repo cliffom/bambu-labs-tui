@@ -5,6 +5,12 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## v0.2.10 — customizable themes
+
+Release preparation on 2026-10-26 (PDT), local macOS arm64/Go 1.27.3, passed documentation/formatting checks, pinned Go/workflow/Make lint, the upstream fault catalogue audit, vulnerability scanning (no vulnerabilities found), all race tests including UI/PTY coverage, vet, and default `make release` for all four targets. Local ad-hoc candidates passed archive inventories, installation README checks, universal helper architecture/signature checks, and checksum generation. VERSION and the direct-build fallback are 0.2.10; the tag workflow builds signed/notarized distribution assets separately.
+
+The PR #83 entries below record the actual theme/layout inspection at 60×18 and 120×32, with 59×17 fallback/restoration, TrueColor/ANSI256/no-color coverage, and synthetic offline/activity states. Release CI exposed a PTY test race: unacknowledged hidden keys could reach the reducer after SIGWINCH restored the supported size and close Status. The PTY test now checks fallback/restoration without that unsynchronized input; synchronous reducer tests retain hidden-input guard coverage. This changes test synchronization only and adds no new visual, live-account, hardware, real-terminal/font, native notification presentation, clean-Mac, or Intel-runtime evidence. Existing gaps remain open.
+
 ## Status prominence and palette foundation (#82)
 
 On 2026-10-26 (PDT), a v0.2.9-based checkout on macOS arm64/Go 1.27.3 implemented [#82](https://github.com/cliffom/bambu-tui/issues/82). Fresh informational footer messages, including startup delivery ownership, now use bright bold text instead of muted text. Local success and native acceptance use success; warnings/errors retain distinct roles and explicit wording. Footer error text is lighter for contrast on slate. App-owned colors and shared styles are built from the documented semantic palette; reported filament swatches and inherited terminal prose colors remain explicit exceptions. Palette replacement refreshes active/suspended viewport caches without changing behavioral state or recoloring the original model value.

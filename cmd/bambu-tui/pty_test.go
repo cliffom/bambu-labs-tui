@@ -436,7 +436,9 @@ func TestPTYHelpScrollsAtMinimumSizeAndReturnsFromStatus(t *testing.T) {
 	child.expect(t, mark, "STATUS / FEEDBACK")
 	mark = child.resize(t, 59, 17)
 	child.expect(t, mark, "Resize to at least 60 columns")
-	child.send(t, "\x05y") // Neither status toggle nor confirmation runs hidden.
+	// Hidden-key guards are covered synchronously by the UI reducer tests.
+	// PTY writes cannot acknowledge reducer processing before SIGWINCH, so
+	// sending keys here could apply them after the supported size is restored.
 	mark = child.resize(t, 60, 18)
 	child.expect(t, mark, "STATUS / FEEDBACK")
 	mark = child.send(t, "\x1b")

@@ -87,11 +87,11 @@ func TestUndersizedInterfaceBlocksHiddenActionsAndNavigation(t *testing.T) {
 					}
 				}
 				if dialog != "dashboard" {
-					for _, input := range []tea.KeyMsg{{Type: tea.KeyRunes, Runes: []rune("q")}, {Type: tea.KeyCtrlC}} {
+					for _, input := range []tea.KeyMsg{{Type: tea.KeyRunes, Runes: []rune("q")}, {Type: tea.KeyCtrlC}, {Type: tea.KeyCtrlE}} {
 						next, cmd := m.Update(input)
 						m = next.(Model)
 						if cmd != nil || !reflect.DeepEqual(hiddenState(m), original) {
-							t.Fatal("quit escaped a hidden modal")
+							t.Fatalf("key %q changed a hidden modal", input.String())
 						}
 					}
 				}

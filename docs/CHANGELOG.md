@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.10 — Customizable themes
+
+- Make fresh status notices bright and bold, with distinct informational, local-success, warning, and error styling. Preserve feedback priority and lifetime, and keep local success and native notification acceptance separate from physical fault resolution and confirmed presentation.
+- Add six embedded themes: Default, Gruvbox Dark, Hotdog, C64, IBM 3270, and DeskMate II. Select a bundled theme or custom JSON file with `--theme`, `make run THEME=…`, or `make demo THEME=…`; save a default with `theme_file` in the configuration. Launch overrides do not change saved preferences.
+- Load custom theme files at startup without rebuilding. Support partial version 1 JSON color overrides, validate malformed files before authentication, and paint the complete body, dialogs, selections, and footer. Preserve readable offline labels and activity outcomes on selected rows, no-color meaning, and printer-reported filament swatches.
+
 ## 0.2.9 — Consistent status feedback
 
 - Add scrollable Help and a read-only Status / Feedback view on `Ctrl+E`, with complete error messages and recovery guidance. Return to the same dialog, input, confirmation, selection, and scroll while telemetry and asynchronous work continue.

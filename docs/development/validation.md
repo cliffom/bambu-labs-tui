@@ -25,7 +25,9 @@ The real demo server served its H2D/X2D sprites locally. A Chrome 156 response f
 
 ### Condition heading and close-button spacing
 
-On 2026-10-26 (PDT), headless Chrome inspection of the real dashboard HTML/CSS with a synthetic condition fixture at 1440×1000 and 390×844 confirmed a 12px gap below Reported conditions, centered close-button content with zero default padding, and no horizontal overflow. The phone capture was visually inspected. `make docs-check build` passed. This CSS-only correction changes no interaction or user instructions, so usage guidance needs no update. Terminal and live-hardware behavior were not newly checked.
+On 2026-10-26 (PDT), headless Chrome inspection of the real dashboard HTML/CSS with a synthetic condition fixture at 1440×1000 and 390×844 confirmed a 12px gap below Reported conditions and a centered close-button text box with zero default padding, and no horizontal overflow. The phone capture was visually inspected. `make docs-check build` passed. This CSS-only correction changes no interaction or user instructions, so usage guidance needs no update. Terminal and live-hardware behavior were not newly checked.
+
+The initial text-box centering did not correct the glyph's optical alignment in the user's browser. The follow-up replaces both dialog close glyphs with two CSS strokes centered by absolute insets/automatic margins. At 390px and 1440px in Chrome with 2× device scale, both retained centered 12×2px strokes under serif/monospace 40px font overrides; accessible close labels remain. An enlarged phone close-icon capture was visually inspected. `make docs-check build` passed again. Running servers require restart because these assets are embedded in the executable.
 
 ## v0.2.12 — About label styling
 

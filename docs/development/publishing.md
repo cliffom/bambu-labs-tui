@@ -18,7 +18,7 @@ make vuln-check test check release
 
 The lint commands require the pinned tools documented in the [development guide](contributing.md). The catalogue audit requires network access; ordinary tests remain offline. Review the hardware-validation limitations in [validation.md](validation.md) and any feature-specific validation notes.
 
-Commit and push the release preparation to `main`. After CI passes, create and push an annotated tag matching `VERSION`:
+Commit and push the release preparation on a branch, open a pull request targeting `main`, and merge it after CI and lint pass. Repository rules require pull requests; direct pushes to `main` are rejected. Update the local `main` to the merged commit, then create and push an annotated tag matching `VERSION`:
 
 ```sh
 release_tag="v$(cat VERSION)"

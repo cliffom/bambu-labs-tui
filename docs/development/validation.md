@@ -5,6 +5,10 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## v0.2.9 — consistent status feedback
+
+Release preparation on 2026-10-26 (PDT), local macOS arm64/Go 1.27.3, passed documentation/formatting checks, pinned Go/workflow/Make lint, the upstream fault catalogue audit, vulnerability scanning, all race tests including UI/PTY coverage, vet, and default `make release` for all four targets. Local ad-hoc candidates passed archive inventories, installation README checks, universal helper architecture/signature checks, and checksum generation. VERSION and the direct-build fallback are 0.2.9; the tag workflow builds signed/notarized distribution assets separately. The footer audit below records the actual demo/layout evidence and explicit exceptions. Existing live-account, hardware, clean-Mac, native notification presentation, and Intel-runtime limitations remain.
+
 ## Footer and status audit (#79)
 
 On 2026-10-26 (PDT), a v0.2.8-based checkout on local macOS arm64/Go 1.27.3 audited every UI route for [#79](https://github.com/cliffom/bambu-tui/issues/79). The audit found hidden overlapping failures, dashboard hints in Help, inaccessible help overflow, compact hints losing panel context, invisible local decision/late-export feedback, Config test feedback clipping editing controls, and clear-history deleting later arrivals. The implementation addresses these together; the read-only product scope and physical-fault distinctions remain unchanged.

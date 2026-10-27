@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.9 — Consistent status feedback
+
+- Add scrollable Help and a read-only Status / Feedback view on `Ctrl+E`, with complete error messages and recovery guidance. Return to the same dialog, input, confirmation, selection, and scroll while telemetry and asynchronous work continue.
+- Keep footer controls specific to the focused panel and enabled actions. Summarize overlapping failures without hiding essential controls, retain late export/browser failures until recovery, and preserve local action feedback through background notification activity. Keep the slate background continuous across messages, dot separators, hotkeys, and padding.
+- Protect Config apply/reset/cancel instructions from retained notification-test feedback, while keeping pending tests responsive during status inspection. Show notification-worker recheck controls only when available; native acceptance remains distinct from visible delivery.
+- Capture event IDs when opening Clear history so confirmation preserves events arriving afterward. Local notice decisions and read-only monitoring remain independent of physical fault resolution.
+
 ## 0.2.8 — Clearer action-needed alerts
 
 - Emphasize printer/state and independent fault summaries with intervention guidance directly below each fault. Move review status, codes, preferences, and version into secondary text; expose full troubleshooting URLs through the notice inspector and keep browser access with `o`. Use the shared single-row footer with explicit acknowledgement, hide, snooze, and close controls.

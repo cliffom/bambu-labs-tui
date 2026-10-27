@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — Terminal safety and persistence durability
+
+- Remove terminal control characters from unrecognized printer-state labels before rendering (#119), closing a telemetry-driven escape-injection path in printer details. Preserve readable future state labels and the original telemetry used for interpretation.
+- Sync replacement directories and their ancestry before reporting successful configuration, notice, snooze, and notification-ledger saves (#120), including paths newly created by lock setup or an earlier failed save.
+- Treat directory commit failures as unconfirmed persistence even when the new file is already visible. Native and browser notifications pause without delivering an event whose reservation durability was not confirmed; visible reservations remain consumed on recovery.
+- Keep private permissions, atomic snapshot visibility, local decision semantics, and read-only monitoring. Durability depends on filesystem/storage support for sync operations; synthetic checks do not establish physical power-loss recovery.
+
+See [persistence guarantees](user/usage.md#saved-notice-decisions), [architecture](development/architecture.md#shared-types-and-storage), and [validation evidence and limits](development/validation.md#terminal-safety-and-persistence-durability-119-120).
+
 ## 0.3.11 — Retry failed notice and snooze saves
 
 - Add `r retry saves` in Status / Feedback (`Ctrl+E`) for eligible failed notice/snooze writes (#107), with separate saving/saved/failed/session-only status. Recover from transient storage failures without editing existing local decisions.

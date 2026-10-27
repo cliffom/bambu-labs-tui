@@ -104,6 +104,11 @@ i {
   background: currentColor;
 }
 .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
   background: none;
   border: 1px solid var(--border);
   width: 28px;
@@ -948,6 +953,9 @@ dialog p {
 }
 .conditions {
   margin-top: 18px;
+}
+.conditions > h2 {
+  margin-bottom: 12px;
 }
 .condition + .condition {
   margin-top: 12px;

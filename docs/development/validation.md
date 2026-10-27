@@ -23,6 +23,10 @@ The real demo server served its H2D/X2D sprites locally. A Chrome 156 response f
 
 `make fmt-check lint test check build docs-check` passed with the pinned lint override. Added Go tests verify known model aliases, rejection of unknown/partial names, no selection from user-assigned printer names, embedded PNG decoding/transparency, version digests matching cached bytes, fixed image routes, and snapshots retaining no-store caching. This update does not change terminal interaction; the full UI/CLI race and PTY suites passed. Safari/Firefox, physical terminals, and live hardware were not newly checked.
 
+### Condition heading and close-button spacing
+
+On 2026-10-26 (PDT), headless Chrome inspection of the real dashboard HTML/CSS with a synthetic condition fixture at 1440×1000 and 390×844 confirmed a 12px gap below Reported conditions, centered close-button content with zero default padding, and no horizontal overflow. The phone capture was visually inspected. `make docs-check build` passed. This CSS-only correction changes no interaction or user instructions, so usage guidance needs no update. Terminal and live-hardware behavior were not newly checked.
+
 ## v0.2.12 — About label styling
 
 On 2026-10-26 (PDT), macOS arm64/Go 1.27.3 synthetic `make demo` PTY/emulator captures covered the default theme with TrueColor and no color at 120×32 and 60×18, Status / Feedback return, 59×17 fallback/restoration, and dashboard return (16 frames). Rendered contact sheets were inspected for secondary-colored “Theme:” / “Theme Palette:” labels, primary theme values, readable metadata/swatches, and restored navigation. Other themes and ANSI256 have automated coverage only; physical terminal/font and live hardware behavior were not newly validated.

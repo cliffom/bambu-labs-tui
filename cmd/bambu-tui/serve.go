@@ -81,7 +81,7 @@ func serveDemo(ctx context.Context, cfg config.Config, output io.Writer) error {
 
 // Each foreground host has one monitor regardless of browser-client count.
 // Neither host initializes native notification delivery or writes configuration.
-func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session, output, diagnostics io.Writer, run func(context.Context, chan<- monitor.Event), usernames ...string) error {
+func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session, output, diagnostics io.Writer, run func(context.Context, chan<- monitor.Event), usernames ...string) (result error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	if ctx.Err() != nil {
@@ -98,30 +98,48 @@ func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session
 	if status.Error != "" {
 		return errors.New(status.Error)
 	}
-	mode := "cloud"
-	if state.Demo {
-		mode = "demo"
-	}
-	if _, err := fmt.Fprintf(output, "Listening on %s (%s; native desktop notifications disabled)\n", status.URL, mode); err != nil {
+	display := newServeDisplay(output, status.URL, state.Demo)
+	defer func() {
+		wasActive := display.active
+		result = errors.Join(result, display.close())
+		if wasActive {
+			outcome := "stopped"
+			if result != nil {
+				outcome = "failed"
+			}
+			_, err := fmt.Fprintf(output, "Serve %s; dashboard closed.\n", outcome)
+			result = errors.Join(result, err)
+		}
+	}()
+	display.persistence(state)
+	if err := display.begin(); err != nil {
 		return err
 	}
 
 	events := make(chan monitor.Event, eventBufferSize)
 	done := make(chan struct{})
 	go func() { defer close(done); run(ctx, events) }()
-	err := serveSession(ctx, state, web, events, diagnostics, serveShutdownTimeout, session.BrowserPolicy{Alerts: cfg.Alerts, Active: true})
+	err := serveSessionStatus(ctx, state, web, events, diagnostics, serveShutdownTimeout, display, session.BrowserPolicy{Alerts: cfg.Alerts, Active: true})
 	cancel()
 	select {
 	case <-done:
 	case <-time.After(serveShutdownTimeout):
 		err = errors.Join(err, errors.New("monitor shutdown timed out"))
 	}
-	return err
+	display.server = "Stopped"
+	if err != nil {
+		display.server = "Failed"
+	}
+	return errors.Join(err, display.render(time.Now(), true))
 }
 
 // serveSession is the sole mutable-state owner. Jobs receive snapshots and
 // return results here; neither HTTP handlers nor workers touch live farm state.
 func serveSession(ctx context.Context, state *session.Session, web *webserver.Server, events <-chan monitor.Event, diagnostics io.Writer, shutdownTimeout time.Duration, preferences ...session.BrowserPolicy) error {
+	return serveSessionStatus(ctx, state, web, events, diagnostics, shutdownTimeout, nil, preferences...)
+}
+
+func serveSessionStatus(ctx context.Context, state *session.Session, web *webserver.Server, events <-chan monitor.Event, diagnostics io.Writer, shutdownTimeout time.Duration, display *serveDisplay, preferences ...session.BrowserPolicy) error {
 	ticker := time.NewTicker(serveTickInterval)
 	defer ticker.Stop()
 	results := make(chan session.Result, serveStoreCount)
@@ -133,14 +151,22 @@ func serveSession(ctx context.Context, state *session.Session, web *webserver.Se
 			}
 		}
 	}
-	publish := func() { startJobs(); state.Publish(web, time.Now(), preferences...) }
+	var displayErr error
+	publish := func() {
+		startJobs()
+		state.Publish(web, time.Now(), preferences...)
+		if display != nil {
+			display.persistence(state)
+			displayErr = display.render(time.Now(), false)
+		}
+	}
 	publish()
 	listening := web.ListeningDone()
 	var runErr error
 	warnedRejection := false
 running:
 	for {
-		if ctx.Err() != nil {
+		if ctx.Err() != nil || displayErr != nil {
 			break running
 		}
 		select {
@@ -158,6 +184,9 @@ running:
 				}
 				break running
 			}
+			if display != nil {
+				display.observe(event)
+			}
 			if event.StopReason == monitor.StopAuthenticationRejected {
 				runErr = errors.New("cloud session expired or rejected; run bambu-tui login with this config to save a new session, then restart serve")
 				break running
@@ -167,6 +196,9 @@ running:
 				// Emit fixed text once: neither payloads nor error strings are safe
 				// diagnostics, and a bad-report flood must not flood stderr.
 				if !warnedRejection {
+					if display != nil {
+						display.note("Telemetry rejected; keeping last accepted state (further warnings suppressed)")
+					}
 					_, _ = fmt.Fprintln(diagnostics, "Telemetry report rejected; keeping last accepted state and continuing monitoring (further rejection warnings suppressed for this session)")
 					warnedRejection = true
 				}
@@ -181,6 +213,11 @@ running:
 			state.Complete(result)
 		}
 		publish()
+	}
+	runErr = errors.Join(runErr, displayErr)
+	if display != nil {
+		display.server = "Stopping"
+		runErr = errors.Join(runErr, display.render(time.Now(), true))
 	}
 	// Closing the listener prevents further requests while accepted writes drain.
 	web.Close()

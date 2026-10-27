@@ -79,7 +79,7 @@ func (m Model) statusFooter(hints, essential string, width int) string {
 			style = warning
 		}
 	}
-	return style.Render(ansi.Truncate(message, available, "…")) + " · " + footerHints(suffix)
+	return style.Background(footer.GetBackground()).Render(ansi.Truncate(message, available, "…")) + footer.Render(" · ") + footerHints(suffix)
 }
 
 func (m *Model) openStatus() {

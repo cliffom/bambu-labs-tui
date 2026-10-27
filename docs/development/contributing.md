@@ -26,7 +26,7 @@ make notify-helper # universal branded helper beside bin/bambu-tui (macOS + Swif
 make release # all archives/checksums/licenses; requires macOS + Swift
 ```
 
-Both `make run` and `make demo` accept `RUN_ARGS`. To use a repository-local configuration for synthetic notification testing, run `make demo RUN_ARGS='--config ./config.toml'`. The default configuration location still applies when no `--config` argument is supplied.
+Both `make run` and `make demo` accept `RUN_ARGS` and a launch-only `THEME` choice: `make run THEME=gruvbox-dark`, `make demo THEME=gruvbox-dark`, `make demo THEME=hotdog` for a light red/yellow theme, `make demo THEME=c64` for Commodore-inspired blues, `make demo THEME=ibm3270` for monochrome greens, `make demo THEME=deskmate` for the DeskMate II blue/gray palette, or `make run THEME=./my-theme.json`. Custom theme paths resolve from the working directory; `THEME` overrides a `--theme` in `RUN_ARGS` without changing saved preferences. To use a repository-local configuration for synthetic notification testing, run `make demo RUN_ARGS='--config ./config.toml'`. The default configuration location still applies when no `--config` argument is supplied.
 
 `VERSION` is the release version. Make injects version, commit, and UTC build date into `--version`; a source build without Git metadata reports `unknown` for its commit. CI runs pinned vulnerability scans, race tests, and vet on Linux/macOS using the Go version in `go.mod`, checks native credential persistence on macOS, and packages release candidates on macOS so the notification helper can be compiled and signed. A pushed version tag creates a **draft** release for review; it does not publish automatically.
 
@@ -41,6 +41,12 @@ For VS Code, enable `"gopls": { "gofumpt": true }` in your settings to use gofum
 Install the versions in `.golangci-lint-version` and `.actionlint-version` to reproduce the lint checks locally. Get golangci-lint from its [official releases](https://github.com/golangci/golangci-lint/releases), and install actionlint with `go install "github.com/rhysd/actionlint/cmd/actionlint@$(cat .actionlint-version)"`. `make lint` and `make lint-actions` use tools on `PATH`; override `GOLANGCI_LINT` or `ACTIONLINT` when installed elsewhere. Workflow lint also uses ShellCheck when it is available.
 
 Install the pinned [checkmake](https://github.com/checkmake/checkmake) version with `go install "github.com/checkmake/checkmake/cmd/checkmake@$(cat .checkmake-version)"`. Run `make lint-make`, or override `CHECKMAKE` if the binary is installed elsewhere. `checkmake.ini` requires the project's build, auth, run, test, and check targets to exist and be declared phony; other lint rules use their defaults.
+
+## Theme files
+
+For personal themes, edit a JSON file and run the existing binary with `./bin/bambu-tui --theme ./my-theme.json`. Restart to reload it; there is no registration step or build requirement. `make run` and `make demo` remain source-build shortcuts. See the [custom theme format](../user/usage.md#custom-themes).
+
+To ship another bundled example, add a complete `internal/ui/themes/<name>.json` and build. A wildcard `embed.FS` discovers each JSON filename as its theme name; CLI help and generic JSON/canvas/contrast/PTY checks use that inventory. No per-theme Go variable, switch branch, or help-list entry is needed. Keep examples within the palette/contrast contracts in [UI direction](ui-direction.md#palette-and-message-emphasis), and document the design and actual inspection evidence. Explicit custom file paths use the same validator while remaining independent of the bundled examples.
 
 ## macOS notification helper
 

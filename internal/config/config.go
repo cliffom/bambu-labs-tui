@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	ThemeFile          string           `toml:"theme_file,omitempty"`
 	View               ViewPreferences  `toml:"view"`
 	Region             string           `toml:"region"`
 	LowFilamentPercent int              `toml:"low_filament_percent"`

@@ -41,7 +41,7 @@ func (m *Model) syncHelp() {
 }
 
 func (m Model) helpView() string {
-	return m.fullView([]string{accent.Bold(true).Render("KEYBOARD"), muted.Render("Dashboard controls · scroll for more"), "", m.help.View()}, "↑/↓ scroll  PgUp/PgDn page  ?/Esc close")
+	return m.fullView([]string{m.styles.accent.Bold(true).Render("KEYBOARD"), m.styles.secondary.Render("Dashboard controls · scroll for more"), "", m.help.View()}, "↑/↓ scroll  PgUp/PgDn page  ?/Esc close")
 }
 
 func (m *Model) helpKey(key string, msg tea.Msg) tea.Cmd {

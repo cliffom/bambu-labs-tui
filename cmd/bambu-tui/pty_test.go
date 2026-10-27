@@ -43,7 +43,11 @@ func TestPTYHelperProcess(t *testing.T) {
 	var err error
 	switch mode {
 	case "demo":
-		err = run([]string{"--demo", "--config", os.Getenv("BAMBU_TUI_PTY_CONFIG")})
+		args := []string{"--demo", "--config", os.Getenv("BAMBU_TUI_PTY_CONFIG")}
+		if theme := os.Getenv("BAMBU_TUI_PTY_THEME"); theme != "" {
+			args = append(args, "--theme", theme)
+		}
+		err = run(args)
 	case "panic":
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
@@ -114,6 +118,11 @@ func startPTYChild(t *testing.T, mode string) *ptyChild {
 }
 
 func startPTYChildWithConfig(t *testing.T, mode, configPath string) *ptyChild {
+	t.Helper()
+	return startPTYChildWithTheme(t, mode, configPath, "")
+}
+
+func startPTYChildWithTheme(t *testing.T, mode, configPath, theme string) *ptyChild {
 	t.Helper()
 	master, slave, err := pty.Open()
 	if err != nil {
@@ -196,7 +205,7 @@ func startPTYChildWithConfig(t *testing.T, mode, configPath string) *ptyChild {
 		t.Fatal(err)
 	}
 	child.cmd = exec.CommandContext(ctx, executable, "-test.run=^TestPTYHelperProcess$", "-test.count=1")
-	child.cmd.Env = append(os.Environ(), "TERM=xterm-256color", "NO_COLOR=1", "CLICOLOR_FORCE=0", "BAMBU_TUI_PTY_CHILD="+mode, "BAMBU_TUI_PTY_CONFIG="+configPath)
+	child.cmd.Env = append(os.Environ(), "TERM=xterm-256color", "NO_COLOR=1", "CLICOLOR_FORCE=0", "BAMBU_TUI_PTY_CHILD="+mode, "BAMBU_TUI_PTY_CONFIG="+configPath, "BAMBU_TUI_PTY_THEME="+theme)
 	readyRead, readyWrite, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
@@ -439,7 +448,15 @@ func TestPTYHelpScrollsAtMinimumSizeAndReturnsFromStatus(t *testing.T) {
 }
 
 func TestPTYConfigEditsPersistToLaunchFile(t *testing.T) {
-	child := startPTYChild(t, "demo")
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.toml")
+	if err := os.WriteFile(filepath.Join(dir, "custom.json"), []byte(`{"version":1,"colors":{"background":"#282828","text":"#ebdbb2"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(configPath, []byte("theme_file='custom.json'\n[alerts]\nautomatic_modals=false\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	child := startPTYChildWithConfig(t, "demo", configPath)
 	child.expect(t, 0, "Gridfinity baseplate")
 	mark := child.send(t, ",")
 	child.expect(t, mark, "CONFIG / GENERAL")
@@ -470,8 +487,33 @@ func TestPTYConfigEditsPersistToLaunchFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	override := cfg.Alerts.Printers["DEMOH2D"].Filament
-	if cfg.Region != config.RegionChina || cfg.LowFilamentPercent != 25 || cfg.Alerts.Filament || override == nil || !*override || cfg.Alerts.DesktopNotifications {
+	if cfg.ThemeFile != "custom.json" || cfg.Region != config.RegionChina || cfg.LowFilamentPercent != 25 || cfg.Alerts.Filament || override == nil || !*override || cfg.Alerts.DesktopNotifications {
 		t.Fatalf("CLI did not persist all edits to selected file: %+v", cfg)
+	}
+}
+
+func TestPTYThemeOverridePreservesConfiguredThemeThroughSave(t *testing.T) {
+	themes, err := ui.BundledThemeNames()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, theme := range themes {
+		t.Run(theme, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "config.toml")
+			if err := os.WriteFile(path, []byte("theme_file='missing.json'\n[alerts]\nautomatic_modals=false\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			child := startPTYChildWithTheme(t, "demo", path, theme)
+			child.expect(t, 0, "Gridfinity baseplate")
+			mark := child.send(t, "F")
+			child.expect(t, mark, "No printers match.")
+			child.send(t, "q")
+			child.exited(t, 0)
+			cfg, err := config.Load(path)
+			if err != nil || cfg.ThemeFile != "missing.json" || cfg.View.Filter != config.FilterAttention {
+				t.Fatal("launch override changed saved theme", cfg, err)
+			}
+		})
 	}
 }
 

@@ -54,7 +54,7 @@ func filamentUnits(p *farm.Printer) []filamentUnit {
 // filamentSummary keeps the dashboard independent of the number of reported slots.
 func (m Model) filamentSummary(p *farm.Printer, width int) []string {
 	if len(p.AMS) == 0 && len(p.External) == 0 {
-		return []string{detailField("Inventory", "No data reported", width, muted)}
+		return []string{m.detailField("Inventory", "No data reported", width, m.styles.secondary)}
 	}
 	regular, ht, low, unknown := 0, 0, 0, 0
 	for _, unit := range p.AMS {
@@ -94,9 +94,9 @@ func (m Model) filamentSummary(p *farm.Printer, width int) []string {
 		active = strings.Join(paths, " · ")
 	}
 	return []string{
-		detailField("Inventory", fmt.Sprintf("%d AMS · %d AMS HT · %d external", regular, ht, len(p.External)), width, white),
-		detailField("AMS Estimates", fmt.Sprintf("%d low (≤%d%%) · %d unknown", low, m.Farm.LowFilament, unknown), width, white),
-		detailField("Active Path", active, width, white),
+		m.detailField("Inventory", fmt.Sprintf("%d AMS · %d AMS HT · %d external", regular, ht, len(p.External)), width, m.styles.text),
+		m.detailField("AMS Estimates", fmt.Sprintf("%d low (≤%d%%) · %d unknown", low, m.Farm.LowFilament, unknown), width, m.styles.text),
+		m.detailField("Active Path", active, width, m.styles.text),
 	}
 }
 
@@ -219,7 +219,7 @@ func (m *Model) syncFilament() {
 	if p == nil {
 		lines = []string{"This printer is no longer in the account.", "Close the dialog to select another printer."}
 	} else {
-		field := func(label, value string) string { return detailField(label, value, d.view.Width, white) }
+		field := func(label, value string) string { return m.detailField(label, value, d.view.Width, m.styles.text) }
 		lines = []string{field("Printer Name", safe(p.Name)), field("Connection", p.Connection(m.now, m.Farm.Connected))}
 		if u < 0 {
 			lines = append(lines, "", "No AMS or external-spool data reported yet.")
@@ -236,7 +236,7 @@ func (m *Model) syncFilament() {
 				lines = append(lines, field("Humidity", humidity), field("Temperature", temperature))
 			}
 			materialWidth := max(1, d.view.Width-filamentSlotWidth-filamentRemainingWidth-filamentNozzleWidth)
-			lines = append(lines, "", muted.Render(cell("  SLOT", filamentSlotWidth)+cell("MATERIAL", materialWidth)+cell("REMAINING", filamentRemainingWidth)+cell("NOZZLE", filamentNozzleWidth)))
+			lines = append(lines, "", m.styles.secondary.Render(cell("  SLOT", filamentSlotWidth)+cell("MATERIAL", materialWidth)+cell("REMAINING", filamentRemainingWidth)+cell("NOZZLE", filamentNozzleWidth)))
 			for i, slot := range unit.slots {
 				marker, material, remaining := "  ", safe(slot.Material), percent(slot.Remaining)
 				if material == "" {
@@ -256,7 +256,7 @@ func (m *Model) syncFilament() {
 				material += strings.Repeat(" ", max(0, materialWidth-ansi.StringWidth(material)))
 				row := cell(marker+slotName(slot, unit.external), filamentSlotWidth) + material + cell(remaining, filamentRemainingWidth) + cell(slotNozzlePath(slot), filamentNozzleWidth)
 				if i == s {
-					row = selected.Render(row)
+					row = paintSurface(m.styles.selection.Render(row), m.styles.palette.SelectedText, m.styles.palette.SelectedBackground)
 				}
 				lines = append(lines, row)
 			}
@@ -265,9 +265,9 @@ func (m *Model) syncFilament() {
 			} else {
 				slot := unit.slots[s]
 				d.detailsOffset = strings.Count(strings.Join(lines, "\n"), "\n") + 2
-				lines = append(lines, "", accent.Render(slotName(slot, unit.external)+" DETAILS"), field("Filament", slotValue(slot)))
+				lines = append(lines, "", m.styles.accent.Render(slotName(slot, unit.external)+" DETAILS"), field("Filament", m.slotValue(slot)))
 				if unit.external {
-					lines = append(lines, muted.Render("External spool quantity is not reported by the printer."))
+					lines = append(lines, m.styles.secondary.Render("External spool quantity is not reported by the printer."))
 				}
 			}
 		}
@@ -317,15 +317,15 @@ func (m Model) filamentView() string {
 	if len(units) == 0 {
 		navigation = "Inventory unavailable; telemetry continues."
 	}
-	lines := []string{versionedTitle(accent.Bold(true).Render("AMS / FILAMENT"), max(1, m.width-dialogInset)), white.Render(unit), muted.Render(navigation), "", d.view.View(), "", footer}
-	box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(accentColor)).Padding(0, 1).Width(max(1, m.width-dialogBorderInset)).Render(strings.Join(lines, "\n"))
+	lines := []string{m.versionedTitle(m.styles.accent.Bold(true).Render("AMS / FILAMENT"), max(1, m.width-dialogInset)), m.styles.text.Render(unit), m.styles.secondary.Render(navigation), "", d.view.View(), "", footer}
+	box := m.styles.border.Width(max(1, m.width-dialogBorderInset)).Render(strings.Join(lines, "\n"))
 	return fit(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box), m.width, m.height)
 }
 
 // slotValue labels filament attributes while preserving empty and unknown states.
-func slotValue(s farm.Slot) string {
+func (m Model) slotValue(s farm.Slot) string {
 	if s.Present != nil && !*s.Present {
-		return muted.Render("Empty")
+		return m.styles.muted.Render("Empty")
 	}
 	material := safe(s.Material)
 	if material == "" {

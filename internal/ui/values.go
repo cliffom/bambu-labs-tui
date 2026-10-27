@@ -46,14 +46,11 @@ const (
 )
 
 const (
-	accentColor           = "#A3E4BB"
-	footerBackgroundColor = "#3A4652"
 	noticeTimestampLayout = "2006-01-02 15:04:05 MST"
 	versionLabelMaxWidth  = 24
 )
 
 const (
-	warningColor           = "#F4BA72"
 	activeNoticePrefix     = "active:"
 	eventNoticeKeyFormat   = "event:%d"
 	amsUnitKeyFormat       = "ams:%d"

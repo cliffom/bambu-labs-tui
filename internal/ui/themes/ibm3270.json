@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "IBM 3270",
+  "colors": {
+    "text": "#5CFF7A",
+    "background": "#001108",
+    "secondary_text": "#49BC65",
+    "muted_text": "#3EA959",
+    "info": "#A3FFAF",
+    "accent": "#33FF66",
+    "success": "#74FF8F",
+    "warning": "#B2FFB2",
+    "error": "#DAFFDA",
+    "focus": "#33FF66",
+    "border": "#2AC653",
+    "selected_text": "#001108",
+    "selected_background": "#33FF66",
+    "hotkey": "#A3FFAF",
+    "footer_background": "#062A14",
+    "footer_text": "#5CFF7A",
+    "footer_muted": "#3EA959",
+    "footer_info": "#A3FFAF",
+    "footer_success": "#74FF8F",
+    "footer_warning": "#B2FFB2",
+    "footer_error": "#DAFFDA",
+    "footer_hotkey": "#DAFFDA",
+    "footer_separator": "#49BC65"
+  }
+}

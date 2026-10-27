@@ -25,8 +25,7 @@ type (
 func (m *Model) openExport() {
 	p := m.current()
 	if p == nil {
-		m.toast = "Select a printer to export diagnostics"
-		m.toastAt = m.now
+		m.setToast(feedbackInfo, "Select a printer to export diagnostics")
 		return
 	}
 	destination, err := diagnostics.Destination(time.Now())
@@ -84,11 +83,10 @@ func (m *Model) exportResult(result exportResultMsg) {
 			d.problem = "Export failed. Check the destination permissions; Esc then D chooses a new filename."
 		}
 	} else {
-		m.toast = "Diagnostics saved locally: " + result.destination
+		m.setToast(feedbackSuccess, "Diagnostics saved locally: "+result.destination)
 		if result.err != nil {
-			m.toast = "Diagnostic export failed; press D to try again"
+			m.setToast(feedbackError, "Diagnostic export failed; press D to try again")
 		}
-		m.toastAt = m.now
 	}
 }
 
@@ -104,7 +102,7 @@ func (m *Model) syncExport() {
 		name = p.Name
 	}
 	lines := []string{
-		"Export diagnostics for one printer?", detailField("Printer", safe(name), d.view.Width, white), "", detailField("Destination", safe(d.destination), d.view.Width, white), "", diagnostics.Included(), "",
+		"Export diagnostics for one printer?", m.detailField("Printer", safe(name), d.view.Width, m.styles.text), "", m.detailField("Destination", safe(d.destination), d.view.Width, m.styles.text), "", diagnostics.Included(), "",
 		"Unknown values are omitted, not generically redacted. Only allowlisted operational values and structural types are included.",
 		"This is a troubleshooting snapshot, not a complete raw telemetry capture.",
 	}
@@ -135,5 +133,5 @@ func (m Model) exportView() string {
 	} else if d.problem != "" {
 		hints = "Enter retry  Esc close"
 	}
-	return m.fullView([]string{accent.Bold(true).Render("LOCAL DIAGNOSTIC EXPORT"), "↑/↓ or PgUp/PgDn scroll · local file only; no upload", "", d.view.View()}, hints)
+	return m.fullView([]string{m.styles.accent.Bold(true).Render("LOCAL DIAGNOSTIC EXPORT"), "↑/↓ or PgUp/PgDn scroll · local file only; no upload", "", d.view.View()}, hints)
 }

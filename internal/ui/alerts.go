@@ -163,7 +163,7 @@ func (m *Model) syncAlertDialog() {
 		}
 		return "Off"
 	}
-	field := func(name, value string) string { return detailField(name, safe(value), d.view.Width, white) }
+	field := func(name, value string) string { return m.detailField(name, safe(value), d.view.Width, m.styles.text) }
 	lines := []string{
 		field("Printer", p.Name), field("Printer ID", p.ID), field("Alerts", m.alertStatus(p.ID)), "",
 		field("Desktop", label(rules.DesktopNotifications)), field("Sound", label(rules.NotificationSound)), field("Completion", label(rules.CompletedPrints)),
@@ -185,7 +185,7 @@ func (m *Model) syncAlertDialog() {
 
 // alertView renders interruption controls with persistent storage warnings.
 func (m Model) alertView() string {
-	return m.fullView([]string{accent.Bold(true).Render("PRINTER ALERTS / SNOOZE"), "1: 15m · 2: 1h · 3: 4h · u: resume · s / Esc close", "", m.alertDialog.view.View()}, "PgUp/PgDn scroll  s/Esc close")
+	return m.fullView([]string{m.styles.accent.Bold(true).Render("PRINTER ALERTS / SNOOZE"), "1: 15m · 2: 1h · 3: 4h · u: resume · s / Esc close", "", m.alertDialog.view.View()}, "PgUp/PgDn scroll  s/Esc close")
 }
 
 // storageWarning keeps storage and desktop delivery failures visible in every view.

@@ -99,15 +99,15 @@ func TestResponsiveBounds(t *testing.T) {
 }
 
 func TestUnknownAndEmptyFilament(t *testing.T) {
-	if !strings.Contains(ansi.Strip(slotValue(farm.Slot{})), "Unknown") {
+	if !strings.Contains(ansi.Strip(demoModel().slotValue(farm.Slot{})), "Unknown") {
 		t.Fatal("missing unknown")
 	}
 	empty := false
-	if !strings.Contains(ansi.Strip(slotValue(farm.Slot{Present: &empty})), "Empty") {
+	if !strings.Contains(ansi.Strip(demoModel().slotValue(farm.Slot{Present: &empty})), "Empty") {
 		t.Fatal("missing empty")
 	}
 	zero := 0
-	if !strings.Contains(ansi.Strip(slotValue(farm.Slot{Remaining: &zero})), "0%") {
+	if !strings.Contains(ansi.Strip(demoModel().slotValue(farm.Slot{Remaining: &zero})), "0%") {
 		t.Fatal("zero estimate lost")
 	}
 }

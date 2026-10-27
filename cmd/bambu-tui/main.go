@@ -45,7 +45,12 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	themes, err := ui.BundledThemeNames()
+	if err != nil {
+		return err
+	}
 	configPath := flags.String("config", path, "path to non-secret TOML configuration")
+	themeChoice := flags.String("theme", "", "override theme for this launch: "+strings.Join(themes, ", ")+", or JSON path (relative to working directory)")
 	printPath := flags.Bool("config-path", false, "print the default configuration path")
 	demo := flags.Bool("demo", false, "run a simulated H2D/X2D farm without signing in")
 	token := flags.Bool("token", false, "login by pasting an existing access token (masked)")
@@ -55,7 +60,7 @@ func run(args []string) error {
 	notify := flags.Bool("notify", false, "doctor: submit a synthetic desktop notification (macOS)")
 	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
 	flags.Usage = func() {
-		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor] [options]\n\nExamples:\n  bambu-tui --demo\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor] [options]\n\nExamples:\n  bambu-tui --demo --theme gruvbox-dark\n  bambu-tui --theme ./my-theme.json\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -75,11 +80,23 @@ func run(args []string) error {
 		fmt.Println(buildinfo.String())
 		return nil
 	}
+	themeProvided := false
+	flags.Visit(func(f *flag.Flag) {
+		if f.Name == "theme" {
+			themeProvided = true
+		}
+	})
 	if command != commandMonitor && command != commandLogin && command != commandLogout && command != commandDoctor {
 		return errors.New("unknown command; use login, logout, doctor, or --help")
 	}
 	if command != commandLogin && (*token || *code || *sessionOnly) {
 		return errors.New("--token, --email-code, and --session are login options")
+	}
+	if themeProvided && command != commandMonitor && command != commandLogin {
+		return errors.New("--theme is a dashboard or login option")
+	}
+	if themeProvided && *themeChoice == "" {
+		return errors.New("--theme requires a bundled theme name or a JSON file path")
 	}
 	if *token && *code {
 		return errors.New("choose --token or --email-code")
@@ -102,6 +119,17 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	var theme ui.Theme
+	if command == commandMonitor || command == commandLogin {
+		if themeProvided {
+			theme, err = ui.LoadThemeOverride(*themeChoice)
+		} else {
+			theme, err = ui.LoadTheme(*configPath, cfg.ThemeFile)
+		}
+		if err != nil {
+			return err
+		}
+	}
 	store := credentials.Store{Region: cfg.Region}
 	api := cloud.New(cfg.Region)
 	if command == commandDoctor {
@@ -121,7 +149,7 @@ func run(args []string) error {
 		return nil
 	}
 	if *demo {
-		return dashboard(ctx, *configPath, cfg, nil, cloud.Session{}, true)
+		return dashboard(ctx, *configPath, cfg, theme, nil, cloud.Session{}, true)
 	}
 	if command == commandLogin {
 		session, err := authenticate(ctx, api, *token, *code)
@@ -137,13 +165,13 @@ func run(args []string) error {
 			}
 			fmt.Fprintln(os.Stderr, "OS credential store unavailable. Opening a session-only dashboard; the token will not be saved.")
 		}
-		return dashboard(ctx, *configPath, cfg, api, session, false)
+		return dashboard(ctx, *configPath, cfg, theme, api, session, false)
 	}
 	session, err := store.Load()
 	if err != nil {
 		return fmt.Errorf("%w; run bambu-tui login (or bambu-tui --demo)", err)
 	}
-	return dashboard(ctx, *configPath, cfg, api, session, false)
+	return dashboard(ctx, *configPath, cfg, theme, api, session, false)
 }
 
 func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode bool) (cloud.Session, error) {
@@ -216,7 +244,7 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 	return api.Session(ctx, token)
 }
 
-func dashboard(ctx context.Context, configPath string, cfg config.Config, api *cloud.Client, session cloud.Session, demo bool) error {
+func dashboard(ctx context.Context, configPath string, cfg config.Config, theme ui.Theme, api *cloud.Client, session cloud.Session, demo bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	events := make(chan monitor.Event, eventBufferSize)
@@ -232,7 +260,7 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, api *c
 	}()
 	state := farm.New(cfg.LowFilamentPercent)
 	savedConfig := cfg.Clone()
-	model := ui.New(state, events, refresh, demo).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
+	model := ui.New(state, events, refresh, demo).WithPalette(theme.Palette).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
 		if err := config.SaveChanges(configPath, savedConfig, snapshot); err != nil {
 			return err
 		}

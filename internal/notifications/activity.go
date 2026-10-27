@@ -224,6 +224,7 @@ func (w *Worker) recordSuppression(candidate notification_state.Candidate, sourc
 		if !w.status.Disabled {
 			w.status.Revision++
 			w.status.Last = "Desktop notification suppressed: " + ReasonText(reason)
+			w.status.LastKind = MessageInfo
 		}
 	}
 }

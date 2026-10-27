@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "Default",
+  "colors": {
+    "text": "#E4E9F0",
+    "background": null,
+    "secondary_text": "#929BA8",
+    "muted_text": "#929BA8",
+    "info": "#E4E9F0",
+    "accent": "#A3E4BB",
+    "success": "#A3E4BB",
+    "warning": "#F4BA72",
+    "error": "#FF8087",
+    "focus": "#A3E4BB",
+    "border": "#A3E4BB",
+    "selected_text": "#D9F5E4",
+    "selected_background": "#263B36",
+    "hotkey": "#E4E9F0",
+    "footer_background": "#3A4652",
+    "footer_text": "#B8C2CE",
+    "footer_muted": "#929BA8",
+    "footer_info": "#E4E9F0",
+    "footer_success": "#A3E4BB",
+    "footer_warning": "#F4BA72",
+    "footer_error": "#FF9AA1",
+    "footer_hotkey": "#E4E9F0",
+    "footer_separator": "#B8C2CE"
+  }
+}

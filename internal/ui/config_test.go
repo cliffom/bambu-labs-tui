@@ -122,7 +122,7 @@ func TestConfigSaveFailureIsVisibleAndExplicitlyRetried(t *testing.T) {
 	if writes != 1 || !m.alertPrefs.DesktopNotifications || !strings.Contains(ansi.Strip(m.View()), "Save failed") || !m.HasUnsavedPersistence() {
 		t.Fatal("failed save did not preserve session setting and warning")
 	}
-	if !strings.Contains(m.View(), danger.Render("Save failed · r retry; changes may be lost on exit.")) || !strings.Contains(m.View(), "38;2;255;128;135") {
+	if !strings.Contains(m.View(), m.styles.err.Render("Save failed · r retry; changes may be lost on exit.")) || !strings.Contains(m.View(), "38;2;255;128;135") {
 		t.Fatal("save failure should use the shared red failure style")
 	}
 	m = persistenceKey(m, "down")

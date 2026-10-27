@@ -5,12 +5,49 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+func TestInvalidThemeFailsBeforeAuthenticationOrTerminalStartup(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("theme_file='missing.json'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"--config", path}, {"--demo", "--config", path}, {"login", "--session", "--config", path}} {
+		err := run(args)
+		if err == nil || !strings.Contains(err.Error(), "read theme") || !strings.Contains(err.Error(), "missing.json") {
+			t.Fatal(args, err)
+		}
+	}
+	for _, args := range [][]string{{"--theme", "override-missing.json", "--config", path}, {"--demo", "--theme", "override-missing.json", "--config", path}, {"login", "--theme", "override-missing.json", "--config", path}} {
+		err := run(args)
+		if err == nil || !strings.Contains(err.Error(), "override-missing.json") {
+			t.Fatal("override did not take precedence before startup", args, err)
+		}
+	}
+}
+
+func TestThemeFlagValidation(t *testing.T) {
+	for _, tc := range []struct {
+		args    []string
+		message string
+	}{
+		{[]string{"--theme="}, "--theme requires"},
+		{[]string{"doctor", "--theme", "gruvbox-dark"}, "dashboard or login"},
+		{[]string{"logout", "--theme", "default"}, "dashboard or login"},
+	} {
+		if err := run(tc.args); err == nil || !strings.Contains(err.Error(), tc.message) {
+			t.Fatal(tc.args, err)
+		}
+	}
+}
 
 func TestFinishDashboardClassifiesExitBeforeCleanupAndJoinsMonitor(t *testing.T) {
 	unexpected := errors.New("unexpected program failure")

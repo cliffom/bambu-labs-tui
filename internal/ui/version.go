@@ -18,8 +18,8 @@ func versionLabel() string {
 }
 
 // versionedTitle keeps the running version visible in dialog headings.
-func versionedTitle(title string, width int) string {
-	suffix := muted.Render(" · " + versionLabel())
+func (m Model) versionedTitle(title string, width int) string {
+	suffix := m.styles.secondary.Render(" · " + versionLabel())
 	return ansi.Truncate(title, max(0, width-ansi.StringWidth(suffix)), "…") + suffix
 }
 
@@ -29,24 +29,24 @@ func (m Model) dashboardHeader() string {
 	if m.Demo {
 		mode = "DEMO"
 	}
-	connection := warning.Render("CONNECTING")
+	connection := m.styles.warning.Render("CONNECTING")
 	if m.Farm.Connected {
-		connection = accent.Render("CONNECTED")
+		connection = m.styles.accent.Render("CONNECTED")
 	}
 	if m.ended && !m.Demo {
-		connection = danger.Render("SIGN-IN REQUIRED")
+		connection = m.styles.err.Render("SIGN-IN REQUIRED")
 	}
-	prefix := accent.Bold(true).Render("BAMBU TUI ")
-	suffix := muted.Render(" / "+mode+" ") + connection + muted.Render(" / FARM")
+	prefix := m.styles.accent.Bold(true).Render("BAMBU TUI ")
+	suffix := m.styles.secondary.Render(" / "+mode+" ") + connection + m.styles.secondary.Render(" / FARM")
 	version := ansi.Truncate(versionLabel(), max(1, m.width-ansi.StringWidth(prefix+suffix)), "…")
-	header := prefix + muted.Render(version) + suffix
+	header := prefix + m.styles.secondary.Render(version) + suffix
 	clock := m.now.Local().Format("Mon 02 Jan · 15:04:05")
 	available := m.width - ansi.StringWidth(header) - 1
 	if ansi.StringWidth(clock) > available {
 		clock = m.now.Local().Format(time.TimeOnly)
 	}
 	if ansi.StringWidth(clock) <= available {
-		header += strings.Repeat(" ", max(1, m.width-ansi.StringWidth(header)-ansi.StringWidth(clock))) + muted.Render(clock)
+		header += strings.Repeat(" ", max(1, m.width-ansi.StringWidth(header)-ansi.StringWidth(clock))) + m.styles.secondary.Render(clock)
 	}
 	return header
 }

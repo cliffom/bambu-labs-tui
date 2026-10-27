@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "C64",
+  "colors": {
+    "text": "#C7BFFF",
+    "background": "#352879",
+    "secondary_text": "#AAA0E6",
+    "muted_text": "#ADA2E8",
+    "info": "#E0DCFF",
+    "accent": "#B8AFFF",
+    "success": "#9AD284",
+    "warning": "#B8C76F",
+    "error": "#FFABA0",
+    "focus": "#D8D3FF",
+    "border": "#AAA0E6",
+    "selected_text": "#FFFFFF",
+    "selected_background": "#6C5EB5",
+    "hotkey": "#D8D3FF",
+    "footer_background": "#241B59",
+    "footer_text": "#C7BFFF",
+    "footer_muted": "#A095D7",
+    "footer_info": "#E0DCFF",
+    "footer_success": "#9AD284",
+    "footer_warning": "#B8C76F",
+    "footer_error": "#FFABA0",
+    "footer_hotkey": "#FFFFFF",
+    "footer_separator": "#AAA0E6"
+  }
+}

@@ -155,10 +155,11 @@ func TestFailedAndUnconfirmedActivityDoNotLeakBackendData(t *testing.T) {
 	for _, tc := range []struct {
 		err             error
 		outcome, reason string
+		kind            MessageKind
 	}{
-		{errors.New("secret-token /private/account/path raw-telemetry"), OutcomeFailed, ReasonBackend},
-		{fmt.Errorf("private helper: %w", fs.ErrNotExist), OutcomeFailed, ReasonHelper},
-		{context.DeadlineExceeded, OutcomeUnconfirmed, ReasonTimeout},
+		{errors.New("secret-token /private/account/path raw-telemetry"), OutcomeFailed, ReasonBackend, MessageError},
+		{fmt.Errorf("private helper: %w", fs.ErrNotExist), OutcomeFailed, ReasonHelper, MessageError},
+		{context.DeadlineExceeded, OutcomeUnconfirmed, ReasonTimeout, MessageWarning},
 	} {
 		t.Run(tc.reason, func(t *testing.T) {
 			ledger := testLedger(t)
@@ -171,6 +172,9 @@ func TestFailedAndUnconfirmedActivityDoNotLeakBackendData(t *testing.T) {
 				t.Fatal("unexpected worker pause")
 			}
 			stopWorker(t, w)
+			if got := w.Status().LastKind; got != tc.kind {
+				t.Fatalf("outcome %s has message kind %v, want %v", tc.outcome, got, tc.kind)
+			}
 			history := withoutOwnership(w.Status()).History
 			if len(history) != 1 || history[0].Outcome != tc.outcome || history[0].Reason != tc.reason {
 				t.Fatal(history)

@@ -58,6 +58,103 @@ For Low filament threshold, use `←` / `→` to adjust by one percentage point,
 
 See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine alert defaults, per-printer On/Off/Inherit overrides, reset confirmation, Test Notification, and save failures.
 
+### Custom themes
+
+Your own themes are ordinary JSON files loaded from disk at startup. **No Go changes, registration, or rebuild are needed.** Create a file using the partial example below, or copy one of the complete theme examples and edit its colors. Launch an installed or already-built binary with the file path:
+
+```sh
+bambu-tui --theme ./my-theme.json
+# From a source checkout, reuse the binary you already built:
+./bin/bambu-tui --theme ./my-theme.json
+```
+
+Edit the JSON and restart that same binary to apply changes. `make run THEME=./my-theme.json` also works, though `make run` builds the application before launching. The persistent `theme_file` setting below loads your file on each launch. Bundled names are convenient shipped examples; adding a custom file does not require adding it to the application bundle.
+
+Select a bundled theme for one launch, with no setup files:
+
+```sh
+bambu-tui --theme gruvbox-dark
+bambu-tui --demo --theme gruvbox-dark
+```
+
+From a source checkout:
+
+```sh
+make run THEME=gruvbox-dark
+make demo THEME=gruvbox-dark
+```
+
+`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, `ibm3270`, `deskmate`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
+
+For an unmistakable light-theme demonstration, try **Hotdog**, inspired by the red/yellow Hotdog Stand look:
+
+```sh
+bambu-tui --theme hotdog
+make run THEME=hotdog
+make demo THEME=hotdog
+```
+
+Hotdog uses a very light cream background, dark body text, vivid red headings/borders, a yellow selection, and a red status bar with bright yellow/white text. Its complete [hotdog.json](../../internal/ui/themes/hotdog.json) is also available as a starting point for customization.
+
+For Commodore-inspired blues, use **C64**:
+
+```sh
+bambu-tui --theme c64
+make run THEME=c64
+make demo THEME=c64
+```
+
+C64 uses a deep blue body, light blue/lavender text and borders, blue selections, and a darker blue status bar. Its base/selection blues and green/yellow accents draw from [VICE's Pepto PAL palette](https://github.com/VICE-Team/svn-mirror/blob/main/vice/data/C64/pepto-pal.vpl); text and feedback colors are brightened for monitoring readability. The complete [c64.json](../../internal/ui/themes/c64.json) is available for customization.
+
+For the green-screen terminal look, use **IBM 3270**:
+
+```sh
+bambu-tui --theme ibm3270
+make run THEME=ibm3270
+make demo THEME=ibm3270
+```
+
+IBM 3270 uses a near-black green body, phosphor-green text and borders, a reverse green selection, and a dark green status bar. App-owned colors stay in shades of green; text labels and emphasis distinguish information, success, warning, and errors. Reported filament swatches retain their actual colors. The name references [IBM's 3270 green-screen interfaces](https://www.ibm.com/docs/en/om-shared?topic=deployment-decision-10-which-user-interfaces-use). The complete [ibm3270.json](../../internal/ui/themes/ibm3270.json) is available for customization.
+
+For the classic **DeskMate II** blue/gray text-mode look:
+
+```sh
+bambu-tui --theme deskmate
+make run THEME=deskmate
+make demo THEME=deskmate
+```
+
+DeskMate uses the four colors in the preserved [blue/gray text-mode screen capture](https://nerdlypleasures.blogspot.com/2024/07/tandy-deskmate-tandys-ace-in-hole.html): blue `#0000AA`, light gray `#AAAAAA`, dark gray `#555555`, and black `#000000`. It maps those colors to a blue body with gray text, gray selections with black text, and a gray status bar. Labels and emphasis retain message meaning in this limited-palette theme. Reported filament swatches retain their actual colors. The [original Tandy manual](https://www.manualslib.com/manual/1336444/Tandy-1000.html?page=34) describes user-selectable foreground/background and highlighted colors, so period color schemes varied. Its complete [deskmate.json](../../internal/ui/themes/deskmate.json) can be customized without rebuilding.
+
+For a persistent custom file, set `theme_file` **before any TOML table** in the configuration file:
+
+```toml
+theme_file = "gruvbox-dark.json"
+```
+
+Relative paths resolve beside the active configuration file (`--config` selects it); absolute paths work too. Theme files load once at startup. Restart after editing or selecting a theme. Config and farm-view saves preserve this setting and unrelated external edits. Removing the setting restores the built-in default. Theme loading does not change your terminal settings.
+
+Download [gruvbox-dark.json](../../internal/ui/themes/gruvbox-dark.json) beside your config to try the complete sample, or copy [default.json](../../internal/ui/themes/default.json) to customize the current palette. All bundled themes are embedded in the binary; selecting one by name needs no external theme file. The Gruvbox sample uses a dark body background, warm neutrals, aqua focus, and distinct feedback colors, drawing from the [requested palette](https://www.color-hex.com/color-palette/1026676) and [official Gruvbox colors](https://github.com/morhetz/gruvbox/blob/master/colors/gruvbox.vim). It uses brighter variants for prominent status text.
+
+A small override file is sufficient; omitted colors retain the current defaults:
+
+```json
+{
+  "version": 1,
+  "name": "My theme",
+  "colors": {
+    "background": "#282828",
+    "text": "#ebdbb2",
+    "footer_info": "#fbf1c7",
+    "footer_background": "#3c3836"
+  }
+}
+```
+
+`version` and the `colors` object are required; `name` is optional descriptive metadata. Keys use exact snake_case names; the complete examples list every role. Colors accept `#RRGGBB` strings. Only `background` also accepts `null`, which inherits the terminal background as the default theme does. Unknown/duplicate keys, invalid colors, unsupported versions, unreadable files, and files larger than 64 KiB stop startup with an error; there is no silent fallback. JSON is the supported format. Themes are selected through `--theme` or `theme_file`; there is no interactive picker or live reload.
+
+Use contrasting text/background pairs, particularly `text`/`background`, `selected_text`/`selected_background`, and all `footer_*` text roles against `footer_background`. Supplied colors are used as written; the loader validates syntax rather than measuring or correcting contrast. Limited-color terminals approximate RGB values, and `NO_COLOR=1` keeps readable labels and selection markers without colors. Reported filament swatches retain the printer's color instead of using theme accents. See [palette roles and contrast assumptions](../development/ui-direction.md#palette-and-message-emphasis).
+
 ## Keyboard and navigation
 
 | Key | Action |
@@ -88,7 +185,11 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 | `Esc` | Close help and focus the printer list |
 | `q` / `Ctrl+C` | Quit from the dashboard; close any modal first |
 
-Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color. The footer follows the focused panel. Long feedback shortens before essential controls; multiple failures show an error count. `^E status` means `Ctrl+E`: open **Status / Feedback** for complete messages and recovery guidance, using arrows/page keys or Home/End to scroll. It preserves the current dialog, input, selection, confirmation, and scroll while telemetry and saves continue. Ordinary transient feedback lasts eight seconds; storage, export, browser, and delivery failures remain until their source reports recovery. This view does not acknowledge notices or confirm physical fault resolution.
+Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color.
+
+The footer follows the focused panel. Fresh informational messages, including delivery ownership and refresh requests, use bright bold text. In the default theme, confirmed local actions use green; warnings use amber and errors use red, with amber dashboard warnings for persistent storage/delivery problems. Custom themes retain these semantic roles with their chosen colors. Labels remain meaningful without color, and ownership does not confirm notification delivery or printer fault resolution.
+
+Long feedback shortens before essential controls; multiple failures show an error count. `^E status` means `Ctrl+E`: open **Status / Feedback** for complete messages and recovery guidance, using arrows/page keys or Home/End to scroll. It preserves the current dialog, input, selection, confirmation, and scroll while telemetry and saves continue. Ordinary transient feedback lasts eight seconds; storage, export, browser, and delivery failures remain until their source reports recovery. This view does not acknowledge notices or confirm physical fault resolution.
 
 When the terminal is smaller than 60 columns × 18 rows, the resize screen blocks hidden navigation, review/snooze actions, exports, and confirmations. `Esc` still closes the current dialog or returns to its parent; `q` / `Ctrl+C` still quit from the dashboard. Telemetry and asynchronous saves/results continue. Resize back to resume the same dialog and any pending confirmation. The compact persistence shutdown screen retains its exit/cancel controls.
 

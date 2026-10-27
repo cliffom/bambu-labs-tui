@@ -56,6 +56,7 @@ var configOptions = [...]configOption{
 // running cloud connection or the account/region owning persistence workers.
 func (m Model) WithConfiguration(cfg config.Config) Model {
 	cfg = cfg.Clone()
+	m.configThemeFile = cfg.ThemeFile
 	m.configRegion, m.activeRegion = cfg.Region, cfg.Region
 	m.restoreView(cfg.View)
 	m.alertPrefs = cfg.Alerts
@@ -70,7 +71,7 @@ func (m Model) WithConfigPersistence(path string, save func(config.Config) error
 }
 
 func (m Model) configuration() config.Config {
-	return config.Config{View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
+	return config.Config{ThemeFile: m.configThemeFile, View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
 }
 
 func (m Model) configPrinterIDs() []string {
@@ -404,14 +405,14 @@ func (m Model) configRows() []string {
 
 func (m Model) configView() string {
 	sectionNames := []string{"General", "Alerts", "Printers"}
-	bindings := headerHints("Tab section  ↑/↓  Enter edit  Esc / , close  ^E status")
+	bindings := m.headerHints("Tab section  ↑/↓  Enter edit  Esc / , close  ^E status")
 	if m.configEditing {
-		bindings = headerHints("Enter apply  Esc cancel  , close  ^E status")
+		bindings = m.headerHints("Enter apply  Esc cancel  , close  ^E status")
 	} else if m.configResetConfirm {
-		bindings = headerHints("Enter reset  Esc cancel  , close  ^E status")
+		bindings = m.headerHints("Enter reset  Esc cancel  , close  ^E status")
 	}
 	tabs := append([]string(nil), sectionNames...)
-	tabs[m.configSection] = accent.Bold(true).Render("[" + tabs[m.configSection] + "]")
+	tabs[m.configSection] = m.styles.accent.Bold(true).Render("[" + tabs[m.configSection] + "]")
 	title := "CONFIG / " + strings.ToUpper(sectionNames[m.configSection])
 	if m.configSection == configPrinters && m.configTarget() != "" {
 		label := m.configTarget()
@@ -420,7 +421,7 @@ func (m Model) configView() string {
 		}
 		title += " · " + safe(label)
 	}
-	lines := []string{accent.Bold(true).Render(title), bindings, strings.Join(tabs, " · "), ""}
+	lines := []string{m.styles.accent.Bold(true).Render(title), bindings, strings.Join(tabs, " · "), ""}
 	rows := m.configRows()
 	visible := max(1, m.height-configReservedRows)
 	start := max(0, m.configSelection-visible+1)
@@ -431,7 +432,7 @@ func (m Model) configView() string {
 		}
 		row := ansi.Truncate(marker+rows[i], max(1, m.width-2), "…")
 		if i == m.configSelection {
-			row = selected.Render(row)
+			row = paintSurface(m.styles.selection.Render(row), m.styles.palette.SelectedText, m.styles.palette.SelectedBackground)
 		}
 		lines = append(lines, row)
 	}
@@ -440,7 +441,7 @@ func (m Model) configView() string {
 	}
 	status := ""
 	if m.configInputError != "" {
-		status = danger.Render(m.configInputError)
+		status = m.styles.err.Render(m.configInputError)
 	} else if m.configStorageError != "" {
 		message := "Save failed · r retry; changes may be lost on exit."
 		if count := len(m.statusProblems()); count > 1 {
@@ -449,15 +450,15 @@ func (m Model) configView() string {
 		if m.configEditing || m.configResetConfirm {
 			message = "Save failed · ^E status; finish/cancel before retry."
 		}
-		status = danger.Render(message)
+		status = m.styles.err.Render(message)
 	} else if len(m.statusProblems()) > 0 {
-		status = danger.Render(m.problemSummary(max(1, m.width-15)) + " · ^E status")
+		status = m.styles.err.Render(m.problemSummary(max(1, m.width-15)) + " · ^E status")
 	} else if m.configRegion != m.activeRegion {
-		status = warning.Render("Region pending: restart and log in; current session unchanged.")
+		status = m.styles.warning.Render("Region pending: restart and log in; current session unchanged.")
 	} else if m.configSection == configPrinters {
-		status = muted.Render("←/→ change · Inherit uses global defaults · scroll ↑/↓")
+		status = m.styles.secondary.Render("←/→ change · Inherit uses global defaults · scroll ↑/↓")
 	}
-	lines = append(lines, ansi.Truncate(status, max(1, m.width-2), "…"), ansi.Truncate("Config file location: "+safe(m.configPath), max(1, m.width-2), "…"), muted.Render("Saving normalizes TOML and removes comments."))
+	lines = append(lines, ansi.Truncate(status, max(1, m.width-2), "…"), ansi.Truncate("Config file location: "+safe(m.configPath), max(1, m.width-2), "…"), m.styles.secondary.Render("Saving normalizes TOML and removes comments."))
 	return m.frame(lines, m.configFooter())
 }
 
@@ -503,13 +504,8 @@ func (m Model) configFooter() string {
 	if !m.notificationTestPending && !m.notificationTestFailed && elapsed >= notificationTestFeedbackLifetime {
 		return helper
 	}
-	rendered := accent.Bold(true).Render(feedback)
-	if m.notificationTestFailed {
-		rendered = danger.Bold(true).Render(feedback)
-	} else if !m.notificationTestPending && elapsed >= notificationTestDimAfter {
-		rendered = muted.Render(feedback)
-	}
-	const separator = " · "
+	rendered := m.styles.feedback(m.notificationTestFeedbackKind()).Render(feedback)
+	separator := m.styles.footerSeparator.Render(" · ")
 	helperWidth := max(1, m.width-2-ansi.StringWidth(rendered)-ansi.StringWidth(separator))
 	return ansi.Truncate(helper, helperWidth, "…") + separator + rendered
 }

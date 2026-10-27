@@ -66,20 +66,20 @@ func (m Model) statusFooter(hints, essential string, width int) string {
 		if ansi.StringWidth(hints) > available {
 			hints = essential
 		}
-		return footerHints(hints + "  " + inspect)
+		return m.footerHints(hints + "  " + inspect)
 	}
 	suffix := essential + "  " + inspect
 	available := max(1, width-ansi.StringWidth(suffix)-3)
 	message := safe(m.toast)
-	style := muted
+	style := m.styles.feedback(m.toastKind)
 	if len(m.statusProblems()) > 0 {
 		message = m.problemSummary(available)
-		style = danger
+		style = m.styles.footerError
 		if !m.hasOpenDialog() {
-			style = warning
+			style = m.styles.footerWarning
 		}
 	}
-	return style.Background(footer.GetBackground()).Render(ansi.Truncate(message, available, "…")) + footer.Render(" · ") + footerHints(suffix)
+	return style.Render(ansi.Truncate(message, available, "…")) + m.styles.footerSeparator.Render(" · ") + m.footerHints(suffix)
 }
 
 func (m *Model) openStatus() {
@@ -114,17 +114,17 @@ func (m *Model) syncStatus() {
 		lines = append(lines, "No current storage, export, browser, or delivery errors.")
 	}
 	for _, problem := range problems {
-		lines = append(lines, danger.Bold(true).Render(problem.name+" error"), safe(problem.message), problem.recovery, "")
+		lines = append(lines, m.styles.err.Bold(true).Render(problem.name+" error"), safe(problem.message), problem.recovery, "")
 	}
 	if m.notificationTestStatus != "" && !m.notificationTestFailed {
-		lines = append(lines, "Last notification test: "+m.notificationTestStatus, "Acceptance does not confirm a banner or sound.", "")
+		lines = append(lines, m.styles.secondary.Render("Last notification test: ")+m.styles.message(m.notificationTestFeedbackKind()).Render(m.notificationTestStatus), "Acceptance does not confirm a banner or sound.", "")
 	}
 	if m.toast != "" {
-		lines = append(lines, "Recent feedback: "+safe(m.toast))
+		lines = append(lines, m.styles.secondary.Render("Recent feedback: ")+m.styles.message(m.toastKind).Render(safe(m.toast)))
 	}
 	m.status.SetContent(ansi.Wrap(strings.Join(lines, "\n"), m.status.Width, ""))
 }
 
 func (m Model) statusView() string {
-	return m.frame([]string{accent.Bold(true).Render("STATUS / FEEDBACK"), muted.Render("↑/↓ or PgUp/PgDn scroll · Esc / Ctrl+E back"), "", m.status.View()}, footerHints("Esc back  ^E close"))
+	return m.frame([]string{m.styles.accent.Bold(true).Render("STATUS / FEEDBACK"), m.styles.secondary.Render("↑/↓ or PgUp/PgDn scroll · Esc / Ctrl+E back"), "", m.status.View()}, m.footerHints("Esc back  ^E close"))
 }

@@ -13,17 +13,17 @@ import (
 const detailLabelWidth = 15
 
 // detailField aligns values and indents wrapped continuations to the same column.
-func detailField(label, value string, width int, style lipgloss.Style) string {
+func (m Model) detailField(label, value string, width int, style lipgloss.Style) string {
 	prefix := fmt.Sprintf("%-*s  ", detailLabelWidth, label+":")
 	indent := ansi.StringWidth(prefix)
 	if width <= indent {
-		return wrapLines([]string{muted.Render(label + ":"), style.Render(value)}, width)
+		return wrapLines([]string{m.styles.secondary.Render(label + ":"), style.Render(value)}, width)
 	}
 	rows := strings.Split(ansi.Wrap(value, width-indent, ""), "\n")
 	for i, row := range rows {
 		lead := strings.Repeat(" ", indent)
 		if i == 0 {
-			lead = muted.Render(prefix)
+			lead = m.styles.secondary.Render(prefix)
 		}
 		rows[i] = lead + style.Render(row)
 	}
@@ -34,9 +34,9 @@ func detailField(label, value string, width int, style lipgloss.Style) string {
 func (m Model) detailText(w int) string {
 	p := m.current()
 	if p == nil {
-		return muted.Render(m.emptyPrinterList())
+		return m.styles.secondary.Render(m.emptyPrinterList())
 	}
-	field := func(label, value string) string { return detailField(label, value, w, white) }
+	field := func(label, value string) string { return m.detailField(label, value, w, m.styles.text) }
 	job := safe(p.Job)
 	if job == "" {
 		job = "No reported job"
@@ -63,7 +63,7 @@ func (m Model) detailText(w int) string {
 		}
 	}
 	lines := []string{
-		detailField("Printer Name", safe(p.Name), w, accent.Bold(true)),
+		m.detailField("Printer Name", safe(p.Name), w, m.styles.accent.Bold(true)),
 		field("Printer Model", model),
 		field("Firmware", firmwareVersionText(p)),
 		field("FW Status", m.firmwareStatus(p)),
@@ -96,7 +96,7 @@ func (m Model) detailText(w int) string {
 	if !p.LastReport.IsZero() {
 		lastReport = p.LastReport.Local().Format(time.TimeOnly)
 	}
-	lines = append(lines, detailField("Last Report", lastReport, w, muted), "", accent.Render("FILAMENT · m details"))
+	lines = append(lines, m.detailField("Last Report", lastReport, w, m.styles.secondary), "", m.styles.accent.Render("FILAMENT · m details"))
 	lines = append(lines, m.filamentSummary(p, w)...)
 	var visibleFaults []farm.Fault
 	for _, f := range p.Faults {
@@ -105,16 +105,16 @@ func (m Model) detailText(w int) string {
 		}
 	}
 	if len(visibleFaults) > 0 {
-		lines = append(lines, "", warning.Render("PRINTER NOTICES / FAULTS"))
+		lines = append(lines, "", m.styles.warning.Render("PRINTER NOTICES / FAULTS"))
 		for _, f := range visibleFaults {
-			style := muted
+			style := m.styles.secondary
 			switch f.Level {
 			case farm.LevelError:
-				style = danger
+				style = m.styles.err
 			case farm.LevelWarning:
-				style = warning
+				style = m.styles.warning
 			}
-			lines = append(lines, detailField("Notice", safe(f.Text), w, style), detailField("Fault Code", safe(f.Code), w, muted))
+			lines = append(lines, m.detailField("Notice", safe(f.Text), w, style), m.detailField("Fault Code", safe(f.Code), w, m.styles.secondary))
 		}
 	}
 	return wrapLines(lines, w)

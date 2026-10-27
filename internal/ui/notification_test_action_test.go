@@ -56,12 +56,12 @@ func TestConfigNotificationProbeUsesSoundSnapshotWithoutSaving(t *testing.T) {
 			if strings.Contains(strings.Join(rows[:len(rows)-1], "\n"), "Test accepted") || !strings.Contains(rows[len(rows)-1], " · "+m.notificationTestStatus) {
 				t.Fatal("test result belongs after helper text in the status bar")
 			}
-			if !strings.Contains(m.configFooter(), accent.Bold(true).Render(m.notificationTestStatus)) {
+			if !strings.Contains(m.configFooter(), m.styles.footerSuccess.Render(m.notificationTestStatus)) {
 				t.Fatal("fresh test result should be prominent green")
 			}
 		}
 		m.now = m.notificationTestStatusAt.Add(notificationTestDimAfter)
-		if !strings.Contains(m.configFooter(), muted.Render(m.notificationTestStatus)) {
+		if !strings.Contains(m.configFooter(), m.styles.footerMuted.Render(m.notificationTestStatus)) {
 			t.Fatal("accepted test result should dim before expiry")
 		}
 		m.now = m.notificationTestStatusAt.Add(notificationTestFeedbackLifetime)

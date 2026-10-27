@@ -236,7 +236,7 @@ func (m Model) overviewLines() []string {
 	if policy := m.alertSummary(); ansi.StringWidth(attention+policy) <= m.width {
 		attention += policy
 	}
-	return []string{muted.Render(state), muted.Render(attention)}
+	return []string{m.styles.secondary.Render(state), m.styles.secondary.Render(attention)}
 }
 
 // emptyPrinterList distinguishes unmatched filters from discovery and empty accounts.

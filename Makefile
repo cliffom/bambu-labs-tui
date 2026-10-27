@@ -7,6 +7,8 @@ CHECKMAKE ?= checkmake
 GOVULNCHECK ?= go run golang.org/x/vuln/cmd/govulncheck@$(shell cat .govulncheck-version)
 AUTH_ARGS ?= --email-code
 RUN_ARGS ?=
+THEME ?=
+export THEME
 MACOS_SIGN_IDENTITY ?=
 MACOS_NOTARY_PROFILE ?=
 MACOS_NOTARY_KEYCHAIN ?=
@@ -26,10 +28,10 @@ auth: build
 	./bin/bambu-tui login $(AUTH_ARGS)
 
 run: build
-	./bin/bambu-tui $(RUN_ARGS)
+	./bin/bambu-tui $(RUN_ARGS) $${THEME:+--theme "$$THEME"}
 
 demo: build
-	./bin/bambu-tui --demo $(RUN_ARGS)
+	./bin/bambu-tui --demo $(RUN_ARGS) $${THEME:+--theme "$$THEME"}
 
 test:
 	go test -race ./...

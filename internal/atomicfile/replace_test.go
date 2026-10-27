@@ -6,9 +6,84 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
+
+type failingDirectory struct {
+	syncErr, closeErr error
+	closed            bool
+}
+
+func (d *failingDirectory) Sync() error { return d.syncErr }
+
+func (d *failingDirectory) Close() error { d.closed = true; return d.closeErr }
+
+func TestReplaceCommitsDirectoryAncestryAndRetriesAmbiguousFailure(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "new", "nested")
+	path := filepath.Join(dir, "state.json")
+	// A lock owner may have already created the path without syncing it.
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{dir, filepath.Dir(dir), root}
+	for parent := filepath.Dir(root); ; parent = filepath.Dir(parent) {
+		want = append(want, parent)
+		if parent == filepath.Dir(parent) {
+			break
+		}
+	}
+	failure := errors.New("directory commit failed")
+	for _, failAt := range []string{dir, root, ""} {
+		var synced []string
+		err := replace(path, ".state-*", []byte("complete replacement"), func(parent string) error {
+			// Every commit must follow the complete replacement, not precede it.
+			data, err := os.ReadFile(path)
+			if err != nil || string(data) != "complete replacement" {
+				t.Fatalf("directory sync preceded replacement: %q, %v", data, err)
+			}
+			synced = append(synced, parent)
+			if parent == failAt {
+				return failure
+			}
+			return syncDirectory(parent)
+		})
+		expected := want
+		if failAt != "" {
+			expected = want[:slices.Index(want, failAt)+1]
+			if !errors.Is(err, failure) || !strings.Contains(err.Error(), "commit directory") {
+				t.Fatalf("ambiguous commit returned success or lost cause: %v", err)
+			}
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Equal(synced, expected) {
+			t.Fatalf("directory commit order: %v, want %v", synced, expected)
+		}
+		files, err := os.ReadDir(dir)
+		if err != nil || len(files) != 1 || files[0].Name() != "state.json" {
+			t.Fatalf("post-rename failure leaked a temporary file: %v, %v", files, err)
+		}
+	}
+}
+
+func TestDirectoryCommitPropagatesOpenSyncAndCloseFailures(t *testing.T) {
+	if err := syncDirectory(filepath.Join(t.TempDir(), "missing")); !errors.Is(err, os.ErrNotExist) || !strings.Contains(err.Error(), "open directory") {
+		t.Fatalf("open error lost: %v", err)
+	}
+	syncFailure, closeFailure := errors.New("sync failed"), errors.New("close failed")
+	for _, tc := range []struct{ syncErr, closeErr error }{
+		{syncFailure, nil}, {nil, closeFailure}, {syncFailure, closeFailure}, {nil, nil},
+	} {
+		dir := &failingDirectory{syncErr: tc.syncErr, closeErr: tc.closeErr}
+		err := syncAndClose(dir)
+		if !dir.closed || (tc.syncErr != nil && !errors.Is(err, tc.syncErr)) || (tc.closeErr != nil && !errors.Is(err, tc.closeErr)) || (tc.syncErr == nil && tc.closeErr == nil && err != nil) {
+			t.Fatalf("directory was not closed or errors lost: %+v, %v", dir, err)
+		}
+	}
+}
 
 func TestReplaceUsesPrivateFilesAndAtomicReplacement(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "private", "snapshot.json")

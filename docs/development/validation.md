@@ -5,6 +5,18 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Terminal safety and persistence durability (#119, #120)
+
+The v0.4.0 candidate was checked on 2026-10-27 (PDT), macOS 27.0.1 (26A434) arm64 with Go 1.27.3. Synthetic telemetry regressions exercise known, missing, future, OSC 52, CSI, and C0/C1-containing printer states through the UI reducer and final rendering in TrueColor, ANSI256, and no-color profiles at 120 × 32, 60 × 18, and 59 × 17. Unknown printable labels remain readable and raw telemetry stays unchanged. Synthetic future/escape-containing state frames were inspected as rendered text at those sizes; at 60 × 18 only the first printer-detail fields fit without scrolling, while the full state field is covered directly and in the wide rendering.
+
+Storage regressions verify deepest-first directory commits through the root, pre-created nested paths, failure after a visible replacement, no temporary-file leaks, repeated ancestry commits on retry, and directory-open/sync/close error handling. Native and browser consumer fixtures model a visible reservation followed by a commit error: no send/browser event occurs, delivery pauses, and a fresh worker honors the visible reservation. These model failures; they do not reproduce physical power loss.
+
+Actual `make demo` runs with temporary configurations in xterm-256color PTYs were inspected through pyte-rendered text at 120 × 32, 60 × 18, 59 × 17, and wide restoration in TrueColor, ANSI256, and no-color environments. The printing state labels, selected/unselected rows, stacked/wide layouts, resize guard, and quit/screen restoration remained usable. This is emulator-based text inspection, not physical-terminal/font evidence. Layout fixtures can be reproduced with `go test ./internal/ui -run '^TestTelemetryStateCannotInjectTerminalControls$' -v`.
+
+`make docs-check fmt-check lint test check build vuln-check lint-actions lint-make audit-faults release` passed with pinned tools. The full Go suite includes race and real CLI PTY checks; all 28 browser script tests passed. Release packaging verified all four v0.4.0 macOS/Linux archives, documentation/inventory checks, and the universal ad-hoc signed helper. The native CLI reported 0.4.0. Distribution signing and notarization remain the release workflow's responsibility.
+
+Physical-terminal clipboard effects, live accounts/printers, Linux runtime, storage-device power-loss recovery, native/browser banner delivery, distribution signing/notarization, and clean-Mac installation have not been newly validated. Filesystem/device durability remains conditional on the supported OS sync operations being honored.
+
 ## Explicit persistence retry (#107)
 
 The v0.3.11 candidate was checked on 2026-10-27 (PDT), macOS 27.0.1 (26A434) arm64 with Go 1.27.3, using synthetic telemetry and injected storage failures. Session regressions cover independent notice/snooze eligibility, transient recovery, repeated queued/in-flight requests, failed retries without automatic loops, stale success/failure completions for the same revision, edits before capture and during retry, immutable snapshots, browser-only notice retry, and protected unreadable/unsupported/demo stores. UI interactions cover live telemetry while retrying, suspended confirmation restoration, unchanged attention/notification identities, shutdown waiting/cancellation, and blocked hidden retry input.

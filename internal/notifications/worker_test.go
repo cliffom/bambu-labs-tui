@@ -16,13 +16,14 @@ import (
 
 type workerLedger struct {
 	notification_state.Store
-	observed    chan struct{}
-	recorded    chan notification_state.Attempt
-	observeGate func()
-	reserveGate func()
-	observeErr  error
-	reserveErr  error
-	recordErr   error
+	observed        chan struct{}
+	recorded        chan notification_state.Attempt
+	observeGate     func()
+	reserveGate     func()
+	observeErr      error
+	reserveErr      error
+	reserveAfterErr error
+	recordErr       error
 }
 
 func (l *workerLedger) ObserveActivity(s farm.NotificationSnapshot) (notification_state.Observation, error) {
@@ -44,7 +45,11 @@ func (l *workerLedger) ReserveBatch(ids []string) ([]string, error) {
 	if l.reserveGate != nil {
 		l.reserveGate()
 	}
-	return l.Store.ReserveBatch(ids)
+	claimed, err := l.Store.ReserveBatch(ids)
+	if err == nil && l.reserveAfterErr != nil {
+		return claimed, l.reserveAfterErr
+	}
+	return claimed, err
 }
 
 func (l *workerLedger) RecordResult(id string, a notification_state.Attempt) error {
@@ -59,6 +64,35 @@ func (l *workerLedger) RecordResult(id string, a notification_state.Attempt) err
 func testLedger(t *testing.T) *workerLedger {
 	t.Helper()
 	return &workerLedger{Store: notification_state.Store{Path: filepath.Join(t.TempDir(), "ledger.json")}, observed: make(chan struct{}, workerQueueCapacity+4), recorded: make(chan notification_state.Attempt, 16)}
+}
+
+func TestWorkerDoesNotSendAfterAmbiguousReservationCommit(t *testing.T) {
+	ledger := testLedger(t)
+	// Model a post-rename directory-sync failure: a reservation can be visible
+	// on reload even though its durability could not be acknowledged.
+	ledger.reserveAfterErr = errors.New("commit directory: sync failed")
+	var calls atomic.Int32
+	send := func(context.Context, Message) error { calls.Add(1); return nil }
+	w := NewWorker(context.Background(), ledger, send)
+	w.Submit(incidentFrame())
+	awaitPaused(t, w)
+	stopWorker(t, w)
+	if calls.Load() != 0 || w.Status().Accepted != 0 {
+		t.Fatal("sender ran after unconfirmed reservation durability")
+	}
+	ledger.reserveAfterErr = nil
+	// A fresh worker must honor the visible reservation, not replay it.
+	w = NewWorker(context.Background(), ledger, send)
+	w.mu.Lock()
+	w.latest = frame{Input: incidentFrame()}
+	w.mu.Unlock()
+	if !w.process(frame{Input: incidentFrame()}) {
+		t.Fatal("restart could not read the reserved occurrence")
+	}
+	stopWorker(t, w)
+	if calls.Load() != 0 {
+		t.Fatal("restart replayed the ambiguous attempt")
+	}
 }
 
 func incidentFrame() Input {

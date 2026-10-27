@@ -171,12 +171,41 @@ func TestBrowserBaselinesUnknownAndExpiry(t *testing.T) {
 }
 
 type (
-	failingBrowserLedger struct{}
-	blockedBrowserLedger struct {
+	ambiguousBrowserLedger struct{ notification_state.Store }
+	failingBrowserLedger   struct{}
+	blockedBrowserLedger   struct {
 		entered, release chan struct{}
 		once             sync.Once
 	}
 )
+
+func (l ambiguousBrowserLedger) ReserveBatch(ids []string) ([]string, error) {
+	claimed, err := l.Store.ReserveBatch(ids)
+	if err != nil {
+		return nil, err
+	}
+	return claimed, errors.New("commit directory: sync failed")
+}
+
+func TestBrowserDoesNotReturnEventsAfterAmbiguousReservationCommit(t *testing.T) {
+	b, ledger, _ := browserFixture(t)
+	b.ledger = ambiguousBrowserLedger{ledger}
+	input := browserInput(farm.StatePaused, false)
+	observeBrowser(b, input)
+	result := b.claim(browserRequest{})
+	if result.Error != browserLedgerError || len(result.Events) != 0 || !b.failed.Load() {
+		t.Fatalf("unconfirmed reservation returned events: %+v", result)
+	}
+	// The file can contain the reservation despite the failed acknowledgment.
+	// Restart must not recreate a pending attempt or replay it to another tab.
+	b, _, _ = browserFixture(t)
+	b.ledger = ledger
+	observeBrowser(b, input)
+	result = b.claim(browserRequest{})
+	if result.Error != "" || len(result.Events) != 0 {
+		t.Fatalf("restart replayed an ambiguous attempt: %+v", result)
+	}
+}
 
 func (failingBrowserLedger) ObserveActivity(farm.NotificationSnapshot) (notification_state.Observation, error) {
 	return notification_state.Observation{}, errors.New("PRIVATE ERROR")

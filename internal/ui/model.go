@@ -427,7 +427,10 @@ func stateLabel(s string) string {
 	case farm.StateUnknown:
 		return "Unknown"
 	default:
-		return strings.ToLower(s)
+		if label := strings.ToLower(safe(s)); label != "" {
+			return label
+		}
+		return "Unknown"
 	}
 }
 

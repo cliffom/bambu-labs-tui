@@ -64,7 +64,9 @@ func (m Model) WithConfiguration(cfg config.Config) Model {
 	m.configRegion, m.activeRegion = cfg.Region, cfg.Region
 	m.restoreView(cfg.View)
 	m.alertPrefs = cfg.Alerts
-	m.SetLowFilament(cfg.LowFilamentPercent, m.now)
+	// Startup reviews are restored after configuration. Reconciliation must wait
+	// until then so saved decisions and occurrence timestamps can be applied.
+	m.Farm.LowFilament = cfg.LowFilamentPercent
 	m.syncPanels()
 	return m
 }

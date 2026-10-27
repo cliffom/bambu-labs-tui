@@ -39,6 +39,13 @@ const (
 	configOverrideCount  = 3
 )
 
+const (
+	configWebEnabledAction = iota
+	configWebPortAction
+	configWebStatusAction
+	configWebActionCount
+)
+
 var configOptions = [...]configOption{
 	{config.DesktopNotifications, "Desktop notifications", "Show macOS alerts while this TUI runs."},
 	{config.NotificationSound, "Notification sound", "Request sound on desktop notifications."},
@@ -118,7 +125,7 @@ func (m Model) configTarget() string {
 func (m Model) configRowCount() int {
 	switch m.configSection {
 	case configWebServer:
-		return 2
+		return configWebActionCount
 	case configGeneral:
 		return 2
 	case configPrinters:
@@ -153,6 +160,10 @@ func (m *Model) configKey(key string, msg tea.Msg) tea.Cmd {
 	switch key {
 	case keyEscape, keyConfig:
 		m.closeDialog()
+	case keyServerStatus:
+		if m.configSection == configWebServer {
+			m.openServerStatus()
+		}
 	case keyNextPanel, keyPreviousPanel:
 		delta := 1
 		if key == keyPreviousPanel {
@@ -199,7 +210,13 @@ func (m *Model) configKey(key string, msg tea.Msg) tea.Cmd {
 func (m *Model) changeConfig(direction int, activate bool) {
 	switch m.configSection {
 	case configWebServer:
-		if m.configSelection == 0 {
+		if m.configSelection == configWebStatusAction {
+			if activate {
+				m.openServerStatus()
+			}
+			return
+		}
+		if m.configSelection == configWebEnabledAction {
 			m.webEnabled = !m.webEnabled
 		} else if activate {
 			m.configEditing, m.configInputError, m.configReplaceInput = true, "", true
@@ -399,7 +416,7 @@ func (m Model) configRows() []string {
 		if m.configEditing {
 			port = "[" + m.configInput + "▏]  Enter apply / Esc cancel"
 		}
-		return []string{"Enable web server: " + configOnOff(m.webEnabled), "Port: " + port}
+		return []string{"Enable web server: " + configOnOff(m.webEnabled), "Port: " + port, "Server Status (W)"}
 	case configGeneral:
 		region := m.configRegion
 		if region != m.activeRegion {
@@ -463,17 +480,7 @@ func (m Model) configView() string {
 	lines := []string{m.styles.accent.Bold(true).Render(title), bindings, strings.Join(tabs, " · "), ""}
 	rows := m.configRows()
 	if m.configSection == configWebServer {
-		state := "Stopped"
-		if m.webBusy {
-			state = "Starting…"
-			if !m.webEnabled {
-				state = "Stopping…"
-			}
-		} else if m.webStatus.URL != "" {
-			state = "Running"
-		} else if m.webStatus.Error != "" {
-			state = "Failed · r retry"
-		}
+		state, _ := m.webLifecycle()
 		lines = append(lines, "Status: "+state)
 		if m.webStatus.URL != "" {
 			lines = append(lines, "URL: "+m.webStatus.URL)
@@ -534,7 +541,10 @@ func (m Model) configHelp() string {
 	}
 	switch m.configSection {
 	case configWebServer:
-		if m.configSelection == 1 {
+		if m.configSelection == configWebStatusAction {
+			return "Enter / W opens live read-only Server Status."
+		}
+		if m.configSelection == configWebPortAction {
 			return "←/→ adjust; Enter type port; applies immediately."
 		}
 		return "Enter toggles localhost HTTP; r retries a failed start."

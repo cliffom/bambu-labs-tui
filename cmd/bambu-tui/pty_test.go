@@ -43,7 +43,7 @@ func TestPTYHelperProcess(t *testing.T) {
 	}
 	var err error
 	switch mode {
-	case "demo":
+	case "demo", "demo-color", "demo-ansi256":
 		args := []string{"--demo", "--config", os.Getenv("BAMBU_TUI_PTY_CONFIG")}
 		if theme := os.Getenv("BAMBU_TUI_PTY_THEME"); theme != "" {
 			args = append(args, "--theme", theme)
@@ -240,8 +240,11 @@ func startPTYChildWithTheme(t *testing.T, mode, configPath, theme string) *ptyCh
 	}
 	child.cmd = exec.CommandContext(ctx, executable, "-test.run=^TestPTYHelperProcess$", "-test.count=1")
 	child.cmd.Env = append(os.Environ(), "TERM=xterm-256color", "NO_COLOR=1", "CLICOLOR_FORCE=0", "BAMBU_TUI_PTY_CHILD="+mode, "BAMBU_TUI_PTY_CONFIG="+configPath, "BAMBU_TUI_PTY_THEME="+theme)
-	if mode == "serve-color" {
+	if mode == "serve-color" || mode == "demo-color" {
 		child.cmd.Env = append(child.cmd.Env, "NO_COLOR=", "CLICOLOR_FORCE=1", "COLORTERM=truecolor", "CI=")
+	}
+	if mode == "demo-ansi256" {
+		child.cmd.Env = append(child.cmd.Env, "NO_COLOR=", "CLICOLOR_FORCE=1", "COLORTERM=", "CI=")
 	}
 	readyRead, readyWrite, err := os.Pipe()
 	if err != nil {

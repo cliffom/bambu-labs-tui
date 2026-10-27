@@ -19,13 +19,17 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for a future release.** Establish hardware-backed feasibility before promising compatibility or delivery; v0.3.0 introduces the local web dashboard.
 
+## v0.3.9 — TUI server inspection
+
+[#113](https://github.com/cliffom/bambu-tui/issues/113) adds live read-only Server Status on `W` and in Config > Web Server, with listener/monitor states, separate session/listener uptime, bounded diagnostics, storage warnings, and the existing grouped client ledger. It uses shared dialog routing and immutable observations while preserving Config, feedback return paths, ongoing monitoring/persistence, and localhost boundaries. See [usage](user/usage.md#tui-server-status) and [validation evidence and gaps](development/validation.md#tui-server-status-113). This completes the next v0.3.x dashboard follow-up before v0.4.x feature work.
+
 ## v0.3.8 — Foreground server status
 
 [#110](https://github.com/cliffom/bambu-tui/issues/110) adds a compact colored foreground status display, bounded diagnostics, and a session-only grouped HTTP client ledger to both serve modes. Noninteractive output remains plain, and localhost/read-only monitoring, persistence, and notification behavior are preserved. See [usage](user/usage.md#foreground-server-status) and [validation evidence and limits](development/validation.md#foreground-serve-status-110).
 
 ## v0.3.7 — Browser system notifications
 
-[#91](https://github.com/cliffom/bambu-tui/issues/91) completes the planned [v0.3.x dashboard follow-ups](https://github.com/cliffom/bambu-tui/milestone/12): explicit browser enable/test/disable controls, Go-generated incident/completion events, separate durable browser claims across tabs/reloads/host restarts, and documented permission/lifecycle limits. Both server modes retain localhost binding and the display-data allowlist. Browser delivery is independent from native macOS opt-in, and closing a system notification never dismisses a notice or establishes physical resolution. See [browser notification policy](user/alerts.md#browser-system-notifications), [architecture](development/architecture.md#browser-notification-worker), and [validation evidence and gaps](development/validation.md#browser-system-notifications-91).
+[#91](https://github.com/cliffom/bambu-tui/issues/91) delivers browser notifications in the [v0.3.x dashboard follow-ups](https://github.com/cliffom/bambu-tui/milestone/12): explicit browser enable/test/disable controls, Go-generated incident/completion events, separate durable browser claims across tabs/reloads/host restarts, and documented permission/lifecycle limits. Both server modes retain localhost binding and the display-data allowlist. Browser delivery is independent from native macOS opt-in, and closing a system notification never dismisses a notice or establishes physical resolution. See [browser notification policy](user/alerts.md#browser-system-notifications), [architecture](development/architecture.md#browser-notification-worker), and [validation evidence and gaps](development/validation.md#browser-system-notifications-91).
 
 ## v0.3.6 — Saved-decision integrity
 

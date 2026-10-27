@@ -284,11 +284,7 @@ func (d *serveDisplay) serverTone() serveTone {
 }
 
 func serveClientLine(event webserver.ClientEvent) string {
-	action := "Disconnected"
-	if event.Connected {
-		action = "Connected"
-	}
-	return fmt.Sprintf("%s %s #%d %s | %s", event.At.Local().Format("15:04:05"), action, event.Client, event.IP, event.UserAgent)
+	return event.DisplayLine()
 }
 
 // Redirected output uses sequence cursors so polling never reprints the ledger.

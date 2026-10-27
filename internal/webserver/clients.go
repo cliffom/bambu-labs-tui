@@ -2,6 +2,7 @@ package webserver
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -198,3 +199,13 @@ func (c *clientConnections) snapshot() ClientStatus {
 }
 
 func (s *Server) Clients() ClientStatus { return s.clients.snapshot() }
+
+// DisplayLine is shared by terminal presenters. Metadata has already crossed the
+// bounded client-ledger sanitizer; no request paths or other headers are kept.
+func (e ClientEvent) DisplayLine() string {
+	action := "Disconnected"
+	if e.Connected {
+		action = "Connected"
+	}
+	return fmt.Sprintf("%s %s #%d %s | %s", e.At.Local().Format("15:04:05"), action, e.Client, e.IP, e.UserAgent)
+}

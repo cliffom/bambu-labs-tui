@@ -7,13 +7,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/alertstore"
+	"github.com/cliffom/bambu-tui/internal/accountstore"
 	"github.com/cliffom/bambu-tui/internal/cloud"
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/credentials"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/noticestore"
 	"github.com/cliffom/bambu-tui/internal/session"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
@@ -44,7 +43,12 @@ func serveCloud(ctx context.Context, cfg config.Config, output, diagnostics io.W
 		}
 		return err
 	}
-	state := cloudServeState(cfg, account.Username, diagnostics)
+	stores, err := accountstore.Open(cfg.Region, account.Username)
+	if err != nil {
+		return err
+	}
+	defer stores.Close()
+	state := cloudServeState(cfg, stores, diagnostics)
 	runner := monitor.New(cloud.New(cfg.Region), account)
 	return serveMonitor(ctx, cfg, &state, output, diagnostics, func(ctx context.Context, events chan<- monitor.Event) {
 		runner.Run(ctx, events, nil)
@@ -52,24 +56,16 @@ func serveCloud(ctx context.Context, cfg config.Config, output, diagnostics io.W
 }
 
 // Stores use the same account/region scope and failed-load protection as the TUI.
-func cloudServeState(cfg config.Config, username string, diagnostics io.Writer) session.Session {
+func cloudServeState(cfg config.Config, stores *accountstore.Store, diagnostics io.Writer) session.Session {
 	state := session.New(farm.New(cfg.LowFilamentPercent), false)
-	notices, loadErr := noticestore.New(cfg.Region, username)
-	var reviews map[string]farm.Review
-	if loadErr == nil {
-		reviews, loadErr = notices.Load()
-	}
+	reviews, loadErr := stores.LoadReviews()
 	state.Farm.RestoreReviews(reviews)
-	state.WithNoticePersistence(notices.Save, loadErr)
+	state.WithNoticePersistence(stores.SaveReviews, loadErr)
 	if loadErr != nil {
 		_, _ = fmt.Fprintln(diagnostics, "Notice persistence: saved data unavailable; decisions apply only to this session; repair the notice store and restart")
 	}
-	snoozes, snoozeErr := alertstore.New(cfg.Region, username)
-	var deadlines map[string]time.Time
-	if snoozeErr == nil {
-		deadlines, snoozeErr = snoozes.Load()
-	}
-	state.WithSnoozePersistence(deadlines, snoozes.Save, snoozeErr)
+	deadlines, snoozeErr := stores.LoadSnoozes()
+	state.WithSnoozePersistence(deadlines, stores.SaveSnoozes, snoozeErr)
 	if snoozeErr != nil {
 		_, _ = fmt.Fprintln(diagnostics, "Alert persistence: saved data unavailable; changes apply only to this session; repair the snooze store and restart")
 	}

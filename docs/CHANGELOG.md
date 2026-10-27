@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.6 — Exclusive saved-decision ownership
+
+- Prevent concurrent cloud TUIs and foreground servers from overwriting saved notice decisions or snoozes (#104). One host per account/region owns both stores before loading; another exits with stop-and-retry guidance.
+- Protect notice restores, resets, resolution/recurrence, snooze changes, and automatic cleanup while preserving asynchronous/coalesced saves, failed-load protection, bounded shutdown, and independent notification deduplication.
+- Release ownership on exit/crash; reject delayed saves after handoff. All cloud hosts sharing storage must use v0.3.6 or newer. External file edits are not live synchronized; stop the host before changing saved state.
+
+See [saved notice decisions](user/usage.md#saved-notice-decisions) and [validation](development/validation.md#account-persistence-ownership-104) for the policy and evidence limits.
+
 ## 0.3.5 — Recover from rejected foreground telemetry
 
 - Keep foreground cloud serving alive after malformed or over-limit telemetry reports; accept subsequent valid reports on the same session (#103).

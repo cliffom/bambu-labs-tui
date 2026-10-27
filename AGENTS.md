@@ -29,7 +29,7 @@ Use the pinned tools documented in the contributing guide; Make supports overrid
 - `internal/session`: shared serial owner for farm mutations/reconciliation, local browser decisions, immutable publishing, and persistence jobs.
 - `internal/ui`: Bubble Tea adapter, dialogs, panels, notification integration, and interactive shutdown.
 - `internal/webserver`: session-owned localhost HTTP lifecycle, embedded dashboard, and allowlisted immutable display snapshots.
-- `internal/config`, `internal/credentials`, `internal/noticestore`, `internal/alertstore`, `internal/notification_state`, `internal/atomicfile`: configuration and storage.
+- `internal/config`, `internal/credentials`, `internal/accountstore`, `internal/noticestore`, `internal/alertstore`, `internal/notification_state`, `internal/atomicfile`: configuration and storage.
 - `internal/diagnostics`: allowlisted local exports.
 
 Read [architecture and conventions](docs/development/architecture.md) before changing ownership, concurrency, persistence, or protocol handling. Keep regression fixtures synthetic or sanitized; never commit credentials, private telemetry, or unredacted account/printer identifiers. Automated coverage does not establish live hardware validation.

@@ -67,7 +67,7 @@ Render at most once per second during monitoring. Keep at most three recent diag
 
 ## Browser dashboard readability
 
-Keep browser cards keyed by printer identity through monitoring updates. Patch changing telemetry and accessible labels in place; preserve connected image elements and unchanged source attributes so lazy/async-decoded sprites do not restart on each poll. Filtering, ordering, discovery/removal, and model-image/fallback changes must still reconcile correctly while retaining keyboard focus where the printer remains visible.
+Keep browser cards at the width established by the available grid columns when filters leave only one or two results; reserve empty columns instead of stretching the remaining cards. Reflow to fewer columns on narrower screens, and let empty-result messaging span the grid. Keep browser cards keyed by printer identity through monitoring updates. Patch changing telemetry and accessible labels in place; preserve connected image elements and unchanged source attributes so lazy/async-decoded sprites do not restart on each poll. Filtering, ordering, discovery/removal, and model-image/fallback changes must still reconcile correctly while retaining keyboard focus where the printer remains visible.
 
 Use one inherited modern console-style font stack throughout the dashboard, including headings, metadata, numeric readings, form controls, and dialogs. The local system-monospace stack includes SF Mono/Menlo/Monaco, Consolas, and DejaVu Sans Mono, with a generic monospace fallback; do not introduce a separate serif family through font shorthands. Font assets must not require a CDN request.
 

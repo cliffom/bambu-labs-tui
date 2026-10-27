@@ -2,6 +2,8 @@
 
 ## 0.3.10 — Active printers first
 
+- Preserve browser printer-card column widths when filtering down to one or two results, while retaining responsive single-column layouts.
+
 - Group online non-idle printers before reported idle/finished printers, with offline devices always last in both the TUI and browser dashboard (#116). Apply Name, Attention, State, or Finish sorting within each group, retaining deterministic name/ID ties.
 - Keep unknown/missing states outside confirmed idle and preserve last-known telemetry and explicit device connectivity. Reorder on telemetry/device changes while retaining selection, panel focus, and details scroll; filters and saved preferences continue to apply.
 

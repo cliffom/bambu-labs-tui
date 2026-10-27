@@ -157,3 +157,151 @@ test("failed-save retry remains available through hidden messages, including fee
   view.toggle();
   assert.doesNotMatch(view.html(), /Hidden condition/);
 });
+
+// Minimal tree operations for card reconciliation; card() is replaced with a
+// synthetic tree builder so these tests exercise identity/lifetime, not parsing.
+function cardTree(name, attributes = {}, children = []) {
+  const node = {
+    nodeType: name === "#text" ? 3 : 1, nodeName: name,
+    nodeValue: name === "#text" ? String(attributes) : null,
+    attrs: name === "#text" ? {} : {...attributes}, childNodes: [], parent: null,
+    attributeWrites: 0, moves: 0,
+    get attributes() { return Object.entries(this.attrs).map(([name, value]) => ({name, value})); },
+    get children() { return this.childNodes.filter((n) => n.nodeType === 1); },
+    get dataset() { return {id: this.attrs["data-id"]}; },
+    get firstElementChild() { return this.children[0] || null; },
+    hasAttribute(name) { return Object.hasOwn(this.attrs, name); },
+    getAttribute(name) { return this.attrs[name] ?? null; },
+    setAttribute(name, value) { this.attrs[name] = value; this.attributeWrites++; },
+    removeAttribute(name) { delete this.attrs[name]; this.attributeWrites++; },
+    appendChild(child) { return this.insertBefore(child, null); },
+    insertBefore(child, before) {
+      child.moves++;
+      child.remove();
+      const index = before ? this.childNodes.indexOf(before) : this.childNodes.length;
+      assert.notEqual(index, -1);
+      this.childNodes.splice(index, 0, child);
+      child.parent = this;
+      return child;
+    },
+    remove() {
+      if (!this.parent) return;
+      this.parent.childNodes.splice(this.parent.childNodes.indexOf(this), 1);
+      this.parent = null;
+    },
+    replaceWith(next) {
+      const parent = this.parent;
+      parent.insertBefore(next, this);
+      this.remove();
+    },
+  };
+  for (const child of children) node.appendChild(child);
+  return node;
+}
+function cards() {
+  const elements = new Map();
+  const container = cardTree("DIV");
+  Object.defineProperty(container, "innerHTML", {
+    set(value) {
+      for (const child of [...this.childNodes]) child.remove();
+      this.appendChild(cardTree("DIV", {class: "empty"}, [cardTree("#text", value)]));
+    },
+  });
+  const document = {
+    hidden: true, activeElement: null, addEventListener() {},
+    querySelector(selector) {
+      if (selector === "#cards") return container;
+      if (!elements.has(selector)) elements.set(selector, {addEventListener() {}});
+      return elements.get(selector);
+    },
+    createElement(name) {
+      assert.equal(name, "template");
+      return {content: {}, set innerHTML(printer) {
+        this.content.firstElementChild = cardTree("BUTTON", {
+          "data-id": printer.id, class: printer.attention ? "card warning" : "card",
+          "aria-label": printer.name,
+        }, [
+          cardTree("H3", {}, [cardTree("#text", printer.name)]),
+          cardTree("DIV", {class: "printer-view"}, [
+            printer.image ? cardTree("IMG", {src: printer.image, loading: "lazy", decoding: "async"}) : cardTree("SVG"),
+            cardTree("SPAN", {}, [cardTree("#text", printer.attention ? "INSPECT CONDITIONS" : "MONITORING")]),
+          ]),
+          cardTree("STRONG", {}, [cardTree("#text", printer.progress)]),
+          ...(printer.attention ? [cardTree("P", {}, [cardTree("#text", "Action needed")])] : []),
+        ]);
+      }};
+    },
+  };
+  const context = vm.createContext({document, setInterval() {}, clearTimeout() {}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,
+    "../internal/webserver/assets/app.js"), "utf8"), context);
+  vm.runInContext('card = (printer) => printer; snapshot = {printers: []}', context);
+  return {container, update(printers) {
+    context.printers = printers;
+    vm.runInContext("snapshot.printers = printers; renderCards(printers)", context);
+  }};
+}
+
+test("polls update telemetry without disconnecting cards or rewriting unchanged image attributes", () => {
+  const view = cards();
+  const printer = {id: "one", name: "Synthetic printer", image: "/printers/h2d.png", progress: 12};
+  view.update([printer]);
+  const card = view.container.children[0];
+  const image = card.children[1].children[0];
+  const moves = card.moves;
+  for (let progress = 13; progress <= 20; progress++) {
+    view.update([{...printer, name: "Updated name", progress, attention: progress % 2 === 0}]);
+    assert.equal(view.container.children[0], card);
+    assert.equal(card.children[1].children[0], image);
+    assert.equal(image.attributeWrites, 0);
+    assert.equal(card.moves, moves);
+    assert.equal(image.parent.parent.parent, view.container);
+    assert.equal(card.children[0].childNodes[0].nodeValue, "Updated name");
+    assert.equal(card.children[2].childNodes[0].nodeValue, String(progress));
+    assert.equal(card.children.length, progress % 2 === 0 ? 4 : 3);
+    assert.equal(card.getAttribute("aria-label"), "Updated name");
+    assert.equal(card.getAttribute("class"), progress % 2 === 0 ? "card warning" : "card");
+  }
+});
+
+test("reordering, filtering, discovery, and empty views keep the correct printer identities", () => {
+  const view = cards();
+  const a = {id: 'a"quoted', name: "Alpha", image: "/a.png", progress: 0};
+  const b = {id: "b", name: "Beta", image: "/b.png", progress: 0};
+  view.update([a, b]);
+  const [first, second] = view.container.children;
+  view.update([b, a]);
+  assert.deepEqual(view.container.children, [second, first]);
+  const firstMoves = first.moves;
+  view.update([a]);
+  assert.equal(first.moves, firstMoves);
+  assert.deepEqual(view.container.children, [first]);
+  assert.equal(second.parent, null);
+  view.update([a, b, {id: "c", name: "New", progress: 1}]);
+  assert.equal(view.container.children[0], first);
+  assert.equal(view.container.children.length, 3);
+  view.update([]);
+  assert.equal(first.parent, null);
+  assert.equal(view.container.children[0].getAttribute("class"), "empty");
+  view.update([b]);
+  assert.equal(view.container.children.length, 1);
+  assert.equal(view.container.children[0].dataset.id, "b");
+});
+
+test("changed model images and transitions to/from generic artwork update in place", () => {
+  const view = cards();
+  const printer = {id: "one", name: "Printer", progress: 1, image: "/a.png"};
+  view.update([printer]);
+  const card = view.container.children[0];
+  const image = card.children[1].children[0];
+  view.update([{...printer, image: "/b.png"}]);
+  assert.equal(card.children[1].children[0], image);
+  assert.equal(image.getAttribute("src"), "/b.png");
+  assert.equal(image.attributeWrites, 1);
+  view.update([{...printer, image: null}]);
+  assert.equal(card.children[1].children[0].nodeName, "SVG");
+  view.update([printer]);
+  assert.equal(card.children[1].children[0].nodeName, "IMG");
+  assert.equal(card.children[1].children[0].getAttribute("src"), "/a.png");
+  assert.equal(view.container.children[0], card);
+});

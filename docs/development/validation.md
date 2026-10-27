@@ -5,6 +5,14 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Foreground telemetry rejection (#103)
+
+On 2026-10-27 (PDT), v0.3.5 was checked on macOS arm64 with Go 1.27.3 using synthetic reports and temporary configuration. Foreground owner/HTTP regressions send bursts of malformed JSON, oversized reports, excessive nesting/collections, and cumulatively over-limit partial reports, then accept valid partial telemetry on the same listener/session. They compare browser readings, freshness/ETA timestamps, condition lifetimes, occurrence targets, and local hiding; snoozes remain intact. Diagnostics are exactly one fixed warning per session, independent of report content or burst size. Existing tests retain authentication rejection, reconnect, unexpected stream/listener termination, signal shutdown, and persistence-drain coverage.
+
+`make docs-check fmt-check lint test check build` passed with pinned golangci-lint v2.15.0 via `GOLANGCI_LINT`; the full race suite includes TUI/PTY tests. The new recovery tests and existing monitor-outcome tests passed 20 race-enabled repetitions. `make vuln-check` found no known vulnerabilities. `make release` produced all four v0.3.5 macOS/Linux archives and checksums with universal helper compilation/ad-hoc signing and archive inventory/documentation checks. `git diff --check` passed.
+
+No UI markup, layout, or interaction changed; no new browser-size or terminal visual inspection was performed. Real cloud accounts, H2D/X2D hardware, Linux runtime, and distribution signing/notarization were not validated for this fix. Synthetic checks do not establish live-printer recovery.
+
 ## Cloud-backed terminal-free server (#98)
 
 On 2026-10-27 (PDT), v0.3.4 was checked on macOS arm64 with Go 1.27.3 using fake cloud/native services, synthetic telemetry, and temporary configuration/stores. No real account or printer was accessed. Tests cover missing/invalid/unavailable saved sessions, cancellable native command startup, HTTP/MQTT authentication rejection through a typed monitor stop reason, transient HTTP reconnect, cancellation, and unexpected monitor termination. Shared foreground-host tests retain occupied-port/output failure and unexpected-listener coverage. Terminal-free subprocess tests exercise both demo and fake-cloud monitoring with saved web enablement off, unused terminal themes, saved desktop opt-in preserved, snapshots/local hiding, SIGINT/SIGTERM, listener closure, unchanged configuration, and cloud decisions restored after restart. Store tests cover account/region isolation, corrupt-load write protection, and expired snooze cleanup; host tests cover browser explicit save retry, failed/pending writes, bounded drain timeout, and coalesced latest snapshots.

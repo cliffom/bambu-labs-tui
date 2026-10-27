@@ -47,7 +47,7 @@ func TestServeHelperProcess(t *testing.T) {
 		runner := &monitor.Runner{API: serveAPI{}, Token: "synthetic-token", Dial: func(context.Context) (monitor.Transport, error) {
 			return &serveTransport{closed: make(chan struct{})}, nil
 		}}
-		err = serveMonitor(ctx, cfg, &state, os.Stdout, func(ctx context.Context, events chan<- monitor.Event) { runner.Run(ctx, events, nil) })
+		err = serveMonitor(ctx, cfg, &state, os.Stdout, os.Stderr, func(ctx context.Context, events chan<- monitor.Event) { runner.Run(ctx, events, nil) })
 	case "close":
 		cfg, loadErr := config.Load(os.Getenv("BAMBU_TUI_SERVE_CONFIG"))
 		if loadErr != nil {
@@ -61,7 +61,7 @@ func TestServeHelperProcess(t *testing.T) {
 		state := session.New(farm.New(10), true)
 		go func() { var b [1]byte; _, _ = os.Stdin.Read(b[:]); web.Close() }()
 		fmt.Println("Listening on", status.URL)
-		err = serveSession(context.Background(), &state, web, nil, time.Second)
+		err = serveSession(context.Background(), &state, web, nil, io.Discard, time.Second)
 	default:
 		err = run([]string{"serve", "--demo", "--config", os.Getenv("BAMBU_TUI_SERVE_CONFIG")})
 	}
@@ -330,7 +330,7 @@ func TestServeDrainsPendingPersistence(t *testing.T) {
 			}, nil)
 			state.SetSnooze("TEST", time.Hour, at)
 			result := make(chan error, 1)
-			go func() { result <- serveSession(ctx, &state, web, nil, 100*time.Millisecond) }()
+			go func() { result <- serveSession(ctx, &state, web, nil, io.Discard, 100*time.Millisecond) }()
 			select {
 			case <-started:
 			case <-time.After(time.Second):
@@ -402,7 +402,7 @@ func TestServeShutdownDrainsLatestCoalescedNoticeSnapshot(t *testing.T) {
 	}, nil)
 	state.Dismiss(keys[0])
 	result := make(chan error, 1)
-	go func() { result <- serveSession(ctx, &state, web, nil, time.Second) }()
+	go func() { result <- serveSession(ctx, &state, web, nil, io.Discard, time.Second) }()
 	select {
 	case <-started:
 	case <-time.After(time.Second):

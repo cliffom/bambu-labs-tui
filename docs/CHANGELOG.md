@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.5 — Recover from rejected foreground telemetry
+
+- Keep foreground cloud serving alive after malformed or over-limit telemetry reports; accept subsequent valid reports on the same session (#103).
+- Preserve last accepted telemetry, freshness timestamps, condition lifetimes, and local decisions on rejection. Rejected reports cannot establish resolution or completion.
+- Emit one fixed, sanitized rejection warning per server session without payloads, identifiers, or backend errors. Authentication rejection, monitor/listener failures, and bounded shutdown retain their existing behavior.
+
+See [usage](user/usage.md#terminal-free-cloud-server) and the [validation record](development/validation.md#foreground-telemetry-rejection-103) for evidence and limits.
+
 ## 0.3.4 — Cloud-backed terminal-free server
 
 - Add foreground `bambu-tui serve` with saved cloud credentials and optional `--config`, without a TTY or interactive login. Report missing/invalid/unavailable credentials with recovery guidance; cancel bounded native-store startup on signals.

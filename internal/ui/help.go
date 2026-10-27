@@ -26,7 +26,7 @@ func (m *Model) syncHelp() {
 		"W              Live Server Status and grouped HTTP client activity",
 		"N              Recent notification outcomes and suppression reasons",
 		"A              About Bambu TUI, platform, and theme colors",
-		"Ctrl+E         Inspect full status/errors; Esc returns to the same screen",
+		"Ctrl+E         Inspect status/errors; r retries failed notice/snooze saves",
 		"!              Reopen unreviewed action-needed alerts",
 		"a              Toggle local acknowledgement of an active notice",
 		"c              Dismiss active notice / delete historical event",

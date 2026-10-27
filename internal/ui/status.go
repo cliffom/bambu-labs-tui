@@ -19,8 +19,8 @@ func (m Model) statusProblems() []statusProblem {
 	for _, problem := range []statusProblem{
 		{"Web server", m.webStatus.Error, "Open Config (,) > Web Server, choose another port or press r to retry, or disable the server."},
 		{"Config", m.configStorageError, "Return to the dashboard, open Config (,), then press r to retry. During editing, finish or cancel the edit first."},
-		{"Notices", m.NoticeStorageError, "Failed writes retry after another local notice change. Unavailable saved data is preserved; check local storage before restarting."},
-		{"snoozes", m.AlertStorageError, "Failed writes retry after another snooze change. Unavailable saved data is preserved; check local storage before restarting."},
+		{"Notices", m.NoticeStorageError, "Failed writable stores offer r here to retry. Unavailable saved data is preserved; check local storage before restarting."},
+		{"snoozes", m.AlertStorageError, "Failed writable stores offer r here to retry. Unavailable saved data is preserved; check local storage before restarting."},
 		{"Desktop", m.notificationError, "Inspect notification activity (N from the dashboard). An idle paused or standby worker offers r to recheck; consumed attempts are never retried."},
 		{"Export", m.exportError, "Return to the dashboard and press D to preview another local export."},
 		{"Browser", m.browserError, "Use the full troubleshooting URL in the notice inspector, or press o there to try again."},
@@ -94,6 +94,12 @@ func (m *Model) statusKey(key string, msg tea.Msg) tea.Cmd {
 		m.closeDialog()
 		return nil
 	}
+	if key == keyRefreshOrRestore {
+		if m.RetryPersistence(true, true) {
+			m.setToast(feedbackInfo, "Save retry requested for failed notices/snoozes")
+		}
+		return nil
+	}
 	if key == keyHome || key == keyFirst {
 		m.status.GotoTop()
 		return nil
@@ -109,7 +115,10 @@ func (m *Model) statusKey(key string, msg tea.Msg) tea.Cmd {
 
 func (m *Model) syncStatus() {
 	m.status.Width, m.status.Height = max(1, m.width-2), max(1, m.height-4)
-	lines := []string{"Local feedback only. Printer faults remain in Notices.", ""}
+	lines := []string{
+		"Local feedback only. Printer faults remain in Notices.",
+		"Notice saves: " + m.ReviewSaveState(), "Snooze saves: " + m.SnoozeSaveState(), "",
+	}
 	problems := m.statusProblems()
 	if len(problems) == 0 {
 		lines = append(lines, "No current storage, export, browser, or delivery errors.")
@@ -127,5 +136,9 @@ func (m *Model) syncStatus() {
 }
 
 func (m Model) statusView() string {
-	return m.frame([]string{m.styles.accent.Bold(true).Render("STATUS / FEEDBACK"), m.styles.secondary.Render("↑/↓ or PgUp/PgDn scroll · Esc / Ctrl+E back"), "", m.status.View()}, m.footerHints("Esc back  ^E close"))
+	hints := "Esc back  ^E close"
+	if reviews, snoozes := m.CanRetryPersistence(); reviews || snoozes {
+		hints = "r retry saves  " + hints
+	}
+	return m.frame([]string{m.styles.accent.Bold(true).Render("STATUS / FEEDBACK"), m.styles.secondary.Render("↑/↓ or PgUp/PgDn scroll · Esc / Ctrl+E back"), "", m.status.View()}, m.footerHints(hints))
 }

@@ -17,7 +17,10 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 1. **Record current operational evidence ([#38](https://github.com/cliffom/bambu-tui/issues/38)).** Run the remaining applicable live checks on the current release: saved login/restart/logout, notice and snooze persistence/recurrence, pause/completion, firmware/telemetry comparisons, and keyboard/modal behavior during updates. Record host OS/terminal, application version, model/firmware, and actual results in the validation record. Preserve the existing reconnect evidence and explicitly record unavailable scenarios. This follows up the closed original validation issue #6.
 2. **Measure large-farm behavior ([#39](https://github.com/cliffom/bambu-tui/issues/39)).** Benchmark report/tick updates, navigation, dialogs, and rendering with representative synthetic farm sizes and notice/history loads. Record time and allocations, then profile material costs before proposing optimization. No performance defect is assumed, and fragile wall-clock CI thresholds are outside scope.
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
-4. **Investigate LAN monitoring for a future release.** Establish hardware-backed feasibility before promising compatibility or delivery; v0.3.0 introduces the local web dashboard.
+
+## v0.3.11 — Explicit save recovery
+
+[#107](https://github.com/cliffom/bambu-tui/issues/107) adds `r retry saves` in Status / Feedback for eligible failed notice/snooze writes, shared session retry policy for browser notices, and separate durability status. Retries preserve local decisions and occurrence/delivery identities, protect failed-load stores, and participate in bounded shutdown. This recovery follow-up targets v0.3.x; broader notification retention (#105) and session-boundary refactoring (#106) remain v0.4.x work. See [saved decisions](user/usage.md#saved-notice-decisions) and [validation](development/validation.md#explicit-persistence-retry-107).
 
 ## v0.3.10 — Active printers first
 
@@ -113,11 +116,9 @@ Notifications apply only while the TUI session is running. Quitting ends monitor
 
 The release gate is configurable, testable, deduplicated macOS desktop notifications with visible failure/suppression outcomes and verified shutdown of monitoring and delivery when the TUI exits. Saved reviews and snoozing must remain consistent with delivery. [Saved farm views (#24)](https://github.com/cliffom/bambu-tui/issues/24) restore the last filter/sort from the active configuration, with safe per-field fallbacks and a dashboard `0` reset to All / Name. View changes reuse asynchronous configuration saves without persisting telemetry or changing reviews/snoozes.
 
-## Future — LAN monitoring
+## LAN monitoring
 
-[Investigate and prototype read-only LAN monitoring (#12)](https://github.com/cliffom/bambu-tui/issues/12). Verify protocol/authentication requirements and feasibility on available hardware. Plan secure credential storage, mixed cloud/LAN farms, source indicators, identity matching, partial reports, and reconnect handling.
-
-Ship only documented, hardware-tested model/firmware combinations with consistent cloud/LAN state. Document unsupported combinations and defer them rather than claiming compatibility.
+Read-only LAN monitoring is not planned; [#12](https://github.com/cliffom/bambu-tui/issues/12) was closed as not planned.
 
 ## Scope and validation
 

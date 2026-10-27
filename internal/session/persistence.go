@@ -15,6 +15,8 @@ type (
 	WriteState struct {
 		Attempted, Saved, Failed uint64
 		InFlight                 bool
+		attempt                  uint64
+		retry                    bool
 	}
 	// Job owns an immutable snapshot. Run it outside the serial state owner and
 	// deliver its Result back to Complete before asking for the next jobs.
@@ -22,20 +24,24 @@ type (
 	Result struct {
 		Snoozes  bool
 		Revision uint64
+		Attempt  uint64
 		Err      error
 	}
 )
 
 func (p *WriteState) start(revision uint64, save func() error, snoozes bool) Job {
-	if p.InFlight || p.Attempted == revision {
+	if p.InFlight || (p.Attempted == revision && !p.retry) {
 		return nil
 	}
 	p.InFlight, p.Attempted = true, revision
-	return func() Result { return Result{Snoozes: snoozes, Revision: revision, Err: save()} }
+	p.retry = false
+	p.attempt++
+	attempt := p.attempt
+	return func() Result { return Result{Snoozes: snoozes, Revision: revision, Attempt: attempt, Err: save()} }
 }
 
 func (m *Session) Persistence() (reviews, snoozes Job) {
-	if m.saveReviews != nil && !m.reviewWrites.InFlight && m.reviewWrites.Attempted != m.Farm.ReviewRevision() {
+	if m.saveReviews != nil && !m.reviewWrites.InFlight && (m.reviewWrites.Attempted != m.Farm.ReviewRevision() || m.reviewWrites.retry) {
 		snapshot, save := m.Farm.Reviews(), m.saveReviews
 		reviews = m.reviewWrites.start(m.Farm.ReviewRevision(), func() error { return save(snapshot) }, false)
 	}
@@ -43,7 +49,7 @@ func (m *Session) Persistence() (reviews, snoozes Job) {
 		m.snoozeRevision++
 		m.snoozesDirty = false
 	}
-	if m.saveSnoozes != nil && !m.snoozeWrites.InFlight && m.snoozeWrites.Attempted != m.snoozeRevision {
+	if m.saveSnoozes != nil && !m.snoozeWrites.InFlight && (m.snoozeWrites.Attempted != m.snoozeRevision || m.snoozeWrites.retry) {
 		snapshot := make(map[string]time.Time, len(m.Snoozes))
 		for id, until := range m.Snoozes {
 			snapshot[id] = until
@@ -61,7 +67,7 @@ func (m *Session) Complete(msg Result) {
 		p, warning = &m.snoozeWrites, &m.AlertStorageError
 		failure = "Could not save snoozes; changes may be lost on restart"
 	}
-	if !p.InFlight || p.Attempted != msg.Revision {
+	if !p.InFlight || p.Attempted != msg.Revision || p.attempt != msg.Attempt {
 		return
 	}
 	p.InFlight = false
@@ -74,8 +80,55 @@ func (m *Session) Complete(msg Result) {
 	}
 }
 
+// CanRetryPersistence reports failed writable stores with no queued or running
+// attempt. Loading failures and demo stores never grant write permission.
+func (m Session) CanRetryPersistence() (reviews, snoozes bool) {
+	eligible := func(p WriteState) bool { return p.Failed != 0 && !p.InFlight && !p.retry }
+	return m.saveReviews != nil && eligible(m.reviewWrites), m.saveSnoozes != nil && eligible(m.snoozeWrites)
+}
+
+// RetryPersistence queues the selected eligible stores without changing domain
+// revisions or local decisions. Persistence captures the latest complete values.
+// Repeated requests while queued/in flight are ignored, not deferred retries.
+func (m *Session) RetryPersistence(reviews, snoozes bool) bool {
+	r, s := m.CanRetryPersistence()
+	r, s = reviews && r, snoozes && s
+	if r {
+		m.reviewWrites.retry = true
+	}
+	if s {
+		m.snoozeWrites.retry = true
+	}
+	return r || s
+}
+
+func saveState(writable bool, warning string, p WriteState, revision uint64, dirty bool) string {
+	switch {
+	case !writable && warning != "":
+		return "session-only (saved data unavailable)"
+	case !writable:
+		return "session-only"
+	case p.InFlight || p.retry:
+		return "saving"
+	case warning != "":
+		return "failed"
+	case dirty || p.Saved != revision:
+		return "saving"
+	default:
+		return "saved"
+	}
+}
+
+func (m Session) ReviewSaveState() string {
+	return saveState(m.saveReviews != nil, m.NoticeStorageError, m.reviewWrites, m.Farm.ReviewRevision(), false)
+}
+
+func (m Session) SnoozeSaveState() string {
+	return saveState(m.saveSnoozes != nil, m.AlertStorageError, m.snoozeWrites, m.snoozeRevision, m.snoozesDirty)
+}
+
 func (m Session) PersistencePending() bool {
-	return m.reviewWrites.InFlight || m.snoozeWrites.InFlight || m.configWrites.InFlight
+	return m.reviewWrites.InFlight || m.reviewWrites.retry || m.snoozeWrites.InFlight || m.snoozeWrites.retry || m.configWrites.InFlight
 }
 
 func (m Session) HasUnsavedPersistence() bool {

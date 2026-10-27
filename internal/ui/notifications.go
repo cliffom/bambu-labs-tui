@@ -52,7 +52,10 @@ func (m *Model) syncNotifications() {
 	m.notificationError = status.Error
 	if status.Revision != m.notificationRevision {
 		m.notificationRevision = status.Revision
-		m.toast, m.toastAt = status.Last, m.now
+		// Local feedback keeps its display interval through background activity.
+		if m.toast == "" || m.now.Sub(m.toastAt) >= toastLifetime {
+			m.toast, m.toastAt = status.Last, m.now
+		}
 	}
 }
 

@@ -269,5 +269,5 @@ func (m Model) attentionView() string {
 		hints = "Enter notice  p printer  o link  " + hints
 	}
 	lines := []string{danger.Bold(true).Render("ACTION NEEDED"), accent.Bold(true).Render(ansi.Truncate(fmt.Sprintf("Printer %d / %d · %s", d.index+1, len(d.groups), safe(d.groups[d.index].name)), max(1, m.width), "…")), muted.Render("Tab printer · ↑/↓ scroll · Enter notice · p printer · o link"), d.view.View()}
-	return m.fullView(lines, footerHints(hints))
+	return m.fullView(lines, hints)
 }

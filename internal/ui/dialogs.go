@@ -5,11 +5,12 @@ import tea "github.com/charmbracelet/bubbletea"
 type (
 	dialogKind uint8
 
-	// dialogState owns focus. Only alerts opened from attention suspend a parent;
-	// reset confirmation remains an explicit substate of the decisions dialog.
+	// dialogState owns focus. Status can suspend any owner, including alerts
+	// over attention; reset confirmations remain substates of their owner.
 	dialogState struct {
 		active   dialogKind
 		returnTo dialogKind
+		resume   dialogKind
 	}
 
 	dialogRoute struct {
@@ -35,6 +36,7 @@ const (
 	dialogNotificationActivity
 	dialogExport
 	dialogShutdown
+	dialogStatus
 )
 
 // routeFor is the single catalog for dialog input, rendering, and lifecycle.
@@ -42,11 +44,11 @@ const (
 func routeFor(kind dialogKind) dialogRoute {
 	switch kind {
 	case dialogHelp:
-		return dialogRoute{key: (*Model).helpKey, view: func(m Model) string { return m.dashboardView(true) }}
+		return dialogRoute{key: (*Model).helpKey, view: Model.helpView, sync: (*Model).syncHelp, clear: func(m *Model) { m.help.GotoTop() }}
 	case dialogInspector:
 		return dialogRoute{key: (*Model).inspectorKey, view: Model.inspectorView, sync: (*Model).syncInspector, clear: func(m *Model) { m.inspected = nil }}
 	case dialogClearHistory:
-		return dialogRoute{key: (*Model).clearHistoryKey, view: Model.clearHistoryView}
+		return dialogRoute{key: (*Model).clearHistoryKey, view: Model.clearHistoryView, clear: func(m *Model) { m.clearHistoryEvents = nil }}
 	case dialogClearNotices:
 		return dialogRoute{key: (*Model).clearNoticesKey, view: Model.clearNoticesView, clear: func(m *Model) { m.clearNotices = nil }}
 	case dialogAttention:
@@ -63,6 +65,8 @@ func routeFor(kind dialogKind) dialogRoute {
 		return dialogRoute{key: (*Model).configKey, view: Model.configView, sync: (*Model).syncConfig, clear: (*Model).clearConfig}
 	case dialogExport:
 		return dialogRoute{key: (*Model).exportKey, view: Model.exportView, sync: (*Model).syncExport, clear: func(m *Model) { m.exportDialog = nil }}
+	case dialogStatus:
+		return dialogRoute{key: (*Model).statusKey, view: Model.statusView, sync: (*Model).syncStatus}
 	case dialogShutdown:
 		return dialogRoute{
 			key: (*Model).shutdownKey, view: Model.shutdownView, compact: true,
@@ -73,9 +77,13 @@ func routeFor(kind dialogKind) dialogRoute {
 	}
 }
 
-// openDialog replaces the owner, except for the intentional attention -> alerts
-// return path. Concrete payloads are installed by the caller after this transition.
+// openDialog replaces the owner, except for status inspection and the attention
+// -> alerts return path. Concrete payloads are installed by the caller after this transition.
 func (m *Model) openDialog(kind dialogKind) {
+	if kind == dialogStatus {
+		m.dialog = dialogState{active: kind, returnTo: m.dialog.active, resume: m.dialog.returnTo}
+		return
+	}
 	if kind == dialogAlerts && m.dialog.active == dialogAttention {
 		m.dialog = dialogState{active: kind, returnTo: dialogAttention}
 		return
@@ -98,9 +106,11 @@ func (m *Model) dismissDialog(kind dialogKind) {
 		clear(m)
 	}
 	if m.dialog.active == kind {
-		m.dialog.active, m.dialog.returnTo = m.dialog.returnTo, dialogNone
+		m.dialog.active, m.dialog.returnTo, m.dialog.resume = m.dialog.returnTo, m.dialog.resume, dialogNone
 	} else if m.dialog.returnTo == kind {
-		m.dialog.returnTo = dialogNone
+		m.dialog.returnTo, m.dialog.resume = m.dialog.resume, dialogNone
+	} else if m.dialog.resume == kind {
+		m.dialog.resume = dialogNone
 	}
 }
 
@@ -123,30 +133,28 @@ func (m Model) acceptsKey(key string) bool {
 // explicitly suspended parent during telemetry, resizing, and async completion.
 func (m *Model) syncDialogs() {
 	m.syncAttention(false)
-	for _, kind := range []dialogKind{m.dialog.returnTo, m.dialog.active} {
+	for _, kind := range []dialogKind{m.dialog.resume, m.dialog.returnTo, m.dialog.active} {
 		if sync := routeFor(kind).sync; sync != nil {
 			sync(m)
 		}
 	}
 }
 
-func (m *Model) helpKey(key string, _ tea.Msg) tea.Cmd {
-	switch key {
-	case keyHelp:
-		m.closeDialog()
-	case keyEscape:
-		m.closeDialog()
-		m.focus = panelPrinters
+func (m *Model) openClearHistory() {
+	m.openDialog(dialogClearHistory)
+	for _, event := range m.Farm.Events {
+		m.clearHistoryEvents = append(m.clearHistoryEvents, event.ID)
 	}
-	return nil
 }
 
 func (m *Model) clearHistoryKey(key string, _ tea.Msg) tea.Cmd {
 	switch key {
 	case keyYes, keyYesUpper:
-		m.Farm.ClearEvents()
+		for _, id := range m.clearHistoryEvents {
+			m.Farm.DeleteEvent(id)
+		}
 		m.closeDialog()
-		m.toast, m.toastAt = "Session event history cleared; active conditions remain", m.now
+		m.toast, m.toastAt = "Confirmed history cleared; newer events and active conditions kept", m.now
 	case keyEscape, keyDecisionsOrNo, keyNoUpper:
 		m.closeDialog()
 	}
@@ -170,7 +178,7 @@ func (m *Model) shutdownKey(key string, _ tea.Msg) tea.Cmd {
 
 func (m Model) shutdownView() string {
 	if m.quitting {
-		return fit("Saving settings/notices/snoozes and stopping notifications (up to 5 seconds).\nEsc cancels quitting; saves continue in the background.", m.width, m.height)
+		return fit(wrapLines([]string{"Esc cancels quitting; saves continue.", "Saving settings/notices/snoozes and stopping notifications (up to 5 seconds)."}, m.width), m.width, m.height)
 	}
-	return fit("Storage failed or did not finish within 5 seconds; changes may be lost.\nPress q / Ctrl+C to exit anyway, or Esc to keep using the app.\n"+m.storageWarning(), m.width, m.height)
+	return fit(wrapLines([]string{"q / Ctrl+C exits anyway; Esc cancels.", "Storage failed or did not finish within 5 seconds; changes may be lost.", m.storageWarning()}, m.width), m.width, m.height)
 }

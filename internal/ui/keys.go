@@ -30,6 +30,7 @@ const (
 	keyDecisionsOrNo        = "n"
 	keyNoUpper              = "N"
 	keyHelp                 = "?"
+	keyStatus               = "ctrl+e"
 	keyAttention            = "!"
 	keyDiagnostics          = "D"
 	keyFilter               = "F"

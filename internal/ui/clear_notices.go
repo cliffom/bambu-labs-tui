@@ -76,5 +76,5 @@ func (m Model) clearNoticesView() string {
 		"Resolved conditions return unreviewed if they recur.",
 		"No printer commands are sent or faults resolved.", "",
 		"y: clear all notices     n / Esc: cancel",
-	}, "y clear all notices · n / Esc cancel")
+	}, "y clear notices  n/Esc cancel")
 }

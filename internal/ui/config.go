@@ -404,7 +404,12 @@ func (m Model) configRows() []string {
 
 func (m Model) configView() string {
 	sectionNames := []string{"General", "Alerts", "Printers"}
-	bindings := white.Bold(true).Render("Tab") + muted.Render(" section · ") + white.Bold(true).Render("↑/↓") + muted.Render(" select · ") + white.Bold(true).Render("Enter") + muted.Render(" edit · ") + white.Bold(true).Render("Esc / ,") + muted.Render(" close")
+	bindings := headerHints("Tab section  ↑/↓  Enter edit  Esc / , close  ^E status")
+	if m.configEditing {
+		bindings = headerHints("Enter apply  Esc cancel  , close  ^E status")
+	} else if m.configResetConfirm {
+		bindings = headerHints("Enter reset  Esc cancel  , close  ^E status")
+	}
 	tabs := append([]string(nil), sectionNames...)
 	tabs[m.configSection] = accent.Bold(true).Render("[" + tabs[m.configSection] + "]")
 	title := "CONFIG / " + strings.ToUpper(sectionNames[m.configSection])
@@ -437,19 +442,23 @@ func (m Model) configView() string {
 	if m.configInputError != "" {
 		status = danger.Render(m.configInputError)
 	} else if m.configStorageError != "" {
-		status = danger.Render("Save failed · r retry; changes may be lost on exit.")
-	} else if message := m.storageWarning(); message != "" {
-		status = warning.Render(message)
+		message := "Save failed · r retry; changes may be lost on exit."
+		if count := len(m.statusProblems()); count > 1 {
+			message = fmt.Sprintf("Save failed · r retry · %d errors · ^E status", count)
+		}
+		if m.configEditing || m.configResetConfirm {
+			message = "Save failed · ^E status; finish/cancel before retry."
+		}
+		status = danger.Render(message)
+	} else if len(m.statusProblems()) > 0 {
+		status = danger.Render(m.problemSummary(max(1, m.width-15)) + " · ^E status")
 	} else if m.configRegion != m.activeRegion {
 		status = warning.Render("Region pending: restart and log in; current session unchanged.")
 	} else if m.configSection == configPrinters {
 		status = muted.Render("←/→ change · Inherit uses global defaults · scroll ↑/↓")
 	}
 	lines = append(lines, ansi.Truncate(status, max(1, m.width-2), "…"), ansi.Truncate("Config file location: "+safe(m.configPath), max(1, m.width-2), "…"), muted.Render("Saving normalizes TOML and removes comments."))
-	hints := m.configFooter()
-	result := strings.Split(m.fullView(lines, hints), "\n")
-	result[len(result)-1] = m.footerRow(hints)
-	return strings.Join(result, "\n")
+	return m.frame(lines, m.configFooter())
 }
 
 func (m Model) configHelp() string {
@@ -487,7 +496,7 @@ func (m Model) configHelp() string {
 func (m Model) configFooter() string {
 	helper := m.configHelp()
 	feedback := m.notificationTestStatus
-	if feedback == "" {
+	if feedback == "" || m.configEditing || m.configResetConfirm {
 		return helper
 	}
 	elapsed := m.now.Sub(m.notificationTestStatusAt)

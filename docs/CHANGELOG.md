@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.8 — Foreground server status and client activity
+
+- Add a live foreground status display for `serve` and `serve --demo`, with the localhost URL, mode, HTTP/monitoring state, reconnect status, uptime, and bounded sanitized diagnostics (#110).
+- Use the default semantic palette for healthy, warning, and failed states, preserving no-color text, narrow layouts, plain redirected logs, Ctrl+C guidance, and bounded shutdown.
+- Add a session-only HTTP client ledger with timestamps, IPs, and sanitized first-request user agents. Group parallel/replacement sockets by IP/user agent, ignore sockets without requests, and use a five-second disconnect grace to avoid connection noise.
+- Bound client tracking/history, report omissions, and keep client metadata out of browser telemetry and persistent storage. Preserve localhost binding, read-only printer monitoring, notification policy, and saved local decisions.
+
+See [foreground server status](user/usage.md#foreground-server-status) and [validation](development/validation.md#foreground-serve-status-110). Client groups are best-effort display identities; browser socket idle timeouts can delay disconnect reporting.
+
 ## 0.3.7 — Opt-in browser system notifications
 
 - Add explicit Enable/Test/Disable controls for desktop browser system notifications in both TUI-owned and foreground dashboards (#91). Show capability, permission, submission errors, and unconfirmed presentation separately.

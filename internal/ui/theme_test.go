@@ -108,6 +108,41 @@ func TestThemePathsAndBoundedRead(t *testing.T) {
 	}
 }
 
+func TestThemeOverrideNamesAndWorkingDirectory(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	if err := os.Mkdir("configuration", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for path, name := range map[string]string{"custom theme.json": "Working directory", "configuration/custom theme.json": "Config directory"} {
+		data := []byte(`{"version":1,"name":"` + name + `","colors":{"background":"#123456"}}`)
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	theme, err := LoadThemeOverride("custom theme.json")
+	if err != nil || theme.Name != "Working directory" {
+		t.Fatal(theme, err)
+	}
+	theme, err = LoadTheme("configuration/config.toml", "custom theme.json")
+	if err != nil || theme.Name != "Config directory" {
+		t.Fatal(theme, err)
+	}
+	theme, err = LoadThemeOverride("default")
+	if err != nil || theme.Palette != DefaultPalette() {
+		t.Fatal(theme, err)
+	}
+	theme, err = LoadThemeOverride("gruvbox-dark")
+	if err != nil || theme.Name != "Gruvbox Dark" || theme.Palette.Background != "#282828" {
+		t.Fatal(theme, err)
+	}
+	for _, name := range []string{"", "missing.json", "gruvbox-dakr"} {
+		if _, err := LoadThemeOverride(name); err == nil {
+			t.Fatal("invalid override silently accepted", name)
+		}
+	}
+}
+
 func TestThemeCanvasCoversEverySurfaceAndResize(t *testing.T) {
 	profile := lipgloss.ColorProfile()
 	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })

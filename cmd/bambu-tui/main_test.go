@@ -26,6 +26,27 @@ func TestInvalidThemeFailsBeforeAuthenticationOrTerminalStartup(t *testing.T) {
 			t.Fatal(args, err)
 		}
 	}
+	for _, args := range [][]string{{"--theme", "override-missing.json", "--config", path}, {"--demo", "--theme", "override-missing.json", "--config", path}, {"login", "--theme", "override-missing.json", "--config", path}} {
+		err := run(args)
+		if err == nil || !strings.Contains(err.Error(), "override-missing.json") {
+			t.Fatal("override did not take precedence before startup", args, err)
+		}
+	}
+}
+
+func TestThemeFlagValidation(t *testing.T) {
+	for _, tc := range []struct {
+		args    []string
+		message string
+	}{
+		{[]string{"--theme="}, "--theme requires"},
+		{[]string{"doctor", "--theme", "gruvbox-dark"}, "dashboard or login"},
+		{[]string{"logout", "--theme", "default"}, "dashboard or login"},
+	} {
+		if err := run(tc.args); err == nil || !strings.Contains(err.Error(), tc.message) {
+			t.Fatal(tc.args, err)
+		}
+	}
 }
 
 func TestFinishDashboardClassifiesExitBeforeCleanupAndJoinsMonitor(t *testing.T) {

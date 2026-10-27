@@ -46,6 +46,7 @@ func run(args []string) error {
 		return err
 	}
 	configPath := flags.String("config", path, "path to non-secret TOML configuration")
+	themeChoice := flags.String("theme", "", "override theme for this launch: default, gruvbox-dark, or JSON path (relative to working directory)")
 	printPath := flags.Bool("config-path", false, "print the default configuration path")
 	demo := flags.Bool("demo", false, "run a simulated H2D/X2D farm without signing in")
 	token := flags.Bool("token", false, "login by pasting an existing access token (masked)")
@@ -55,7 +56,7 @@ func run(args []string) error {
 	notify := flags.Bool("notify", false, "doctor: submit a synthetic desktop notification (macOS)")
 	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
 	flags.Usage = func() {
-		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor] [options]\n\nExamples:\n  bambu-tui --demo\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor] [options]\n\nExamples:\n  bambu-tui --demo --theme gruvbox-dark\n  bambu-tui --theme ./my-theme.json\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -75,11 +76,23 @@ func run(args []string) error {
 		fmt.Println(buildinfo.String())
 		return nil
 	}
+	themeProvided := false
+	flags.Visit(func(f *flag.Flag) {
+		if f.Name == "theme" {
+			themeProvided = true
+		}
+	})
 	if command != commandMonitor && command != commandLogin && command != commandLogout && command != commandDoctor {
 		return errors.New("unknown command; use login, logout, doctor, or --help")
 	}
 	if command != commandLogin && (*token || *code || *sessionOnly) {
 		return errors.New("--token, --email-code, and --session are login options")
+	}
+	if themeProvided && command != commandMonitor && command != commandLogin {
+		return errors.New("--theme is a dashboard or login option")
+	}
+	if themeProvided && *themeChoice == "" {
+		return errors.New("--theme requires default, gruvbox-dark, or a JSON file path")
 	}
 	if *token && *code {
 		return errors.New("choose --token or --email-code")
@@ -104,7 +117,11 @@ func run(args []string) error {
 	}
 	var theme ui.Theme
 	if command == commandMonitor || command == commandLogin {
-		theme, err = ui.LoadTheme(*configPath, cfg.ThemeFile)
+		if themeProvided {
+			theme, err = ui.LoadThemeOverride(*themeChoice)
+		} else {
+			theme, err = ui.LoadTheme(*configPath, cfg.ThemeFile)
+		}
 		if err != nil {
 			return err
 		}

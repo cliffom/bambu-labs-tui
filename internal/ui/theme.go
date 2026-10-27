@@ -15,6 +15,9 @@ import (
 //go:embed themes/default.json
 var defaultTheme []byte
 
+//go:embed themes/gruvbox-dark.json
+var gruvboxDarkTheme []byte
+
 const maximumThemeBytes = 64 * 1024
 
 var themeRGB = regexp.MustCompile(`^#[[:xdigit:]]{6}$`)
@@ -23,6 +26,21 @@ var themeRGB = regexp.MustCompile(`^#[[:xdigit:]]{6}$`)
 type Theme struct {
 	Name    string
 	Palette Palette
+}
+
+// LoadThemeOverride accepts a bundled name or a file relative to the working
+// directory. This is a launch-only CLI choice; configuration paths are separate.
+func LoadThemeOverride(choice string) (Theme, error) {
+	switch choice {
+	case "default":
+		return ParseTheme(defaultTheme)
+	case "gruvbox-dark":
+		return ParseTheme(gruvboxDarkTheme)
+	case "":
+		return Theme{}, fmt.Errorf("--theme requires default, gruvbox-dark, or a JSON file path")
+	default:
+		return LoadTheme("", choice)
+	}
 }
 
 // LoadTheme resolves relative files beside the active TOML configuration.

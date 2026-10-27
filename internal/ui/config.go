@@ -481,7 +481,7 @@ func (m Model) configView() string {
 		if m.webStatus.URL != "" {
 			lines = append(lines, "URL: "+m.webStatus.URL)
 		}
-		lines = append(lines, "Localhost only · read-only · stops when this TUI exits.", "")
+		lines = append(lines, "Localhost only · local notice decisions · stops on exit.", "")
 	}
 	visible := max(1, m.height-configReservedRows)
 	if m.configSection == configWebServer {

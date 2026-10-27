@@ -284,6 +284,9 @@ func (m *Model) syncInspector() {
 		if item.Acknowledged {
 			status = "Active · acknowledged locally"
 		}
+		if m.Farm.Active[item.ActiveKey].Dismissed {
+			status += " · hidden locally"
+		}
 	} else if item.ActiveKey != "" {
 		status = "Resolved by printer / telemetry"
 	}
@@ -303,7 +306,11 @@ func (m *Model) syncInspector() {
 		if m.Demo || m.saveReviews == nil || m.noticeStorageError != "" {
 			persistence = "Acknowledgements and dismissals apply only to this session."
 		}
-		lines = append(lines, "", "a: toggle acknowledgement · c: dismiss from this TUI", persistence, "Resolved conditions return unreviewed if they recur.", "Printer-side dismissal is not sent by this monitoring application.")
+		actions := "a: toggle acknowledgement · c: dismiss locally"
+		if m.Farm.Active[item.ActiveKey].Dismissed {
+			actions = "Hidden locally; restore visibility in Notice Decisions (n from dashboard)."
+		}
+		lines = append(lines, "", actions, persistence, "Resolved conditions return unreviewed if they recur.", "Printer-side dismissal is not sent by this monitoring application.")
 	} else if item.EventID != 0 {
 		lines = append(lines, "", "c: remove this event from the current session's history")
 	}
@@ -317,6 +324,9 @@ func (m Model) inspectorView() string {
 	footer := "Esc/Enter back"
 	if m.inspected.Active {
 		footer = "a ack  c dismiss  Esc/Enter back"
+		if m.Farm.Active[m.inspected.ActiveKey].Dismissed {
+			footer = "a ack  Esc/Enter back"
+		}
 	} else if m.inspected.EventID != 0 {
 		footer = "c delete event  Esc/Enter back"
 	}

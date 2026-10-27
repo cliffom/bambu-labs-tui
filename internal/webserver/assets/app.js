@@ -21,6 +21,9 @@ const labels = {
   SLICING: "Slicing",
 };
 const stateLabel = (state) => labels[state] || state || "Unknown";
+let commandPending = null, commandMessage = "";
+let showHiddenMessages = false;
+let csrfToken = null;
 let snapshot = null,
   filter = "all",
   query = "",
@@ -186,13 +189,26 @@ function renderDetail() {
     return;
   }
   const scroll = $("#detail").scrollTop;
+  const focusedAction = document.activeElement?.dataset.dismiss;
+  const focusedToggle = document.activeElement?.id === "toggle-hidden-messages";
+  const hiddenCount = p.conditions.filter((c) => c.hidden).length;
+  const conditions = p.conditions.filter((c) => showHiddenMessages || !c.hidden);
   $("#detail-title").textContent = p.name;
   const metric = (label, value) =>
     `<div>${prefix(p)}${label}<strong>${value}</strong></div>`;
-  body.innerHTML = `<span class="pill ${current(p) ? "" : "warn"}">${escapeHTML(status(p))}</span><p>${escapeHTML(p.model || "Unknown model")} · Last report: ${escapeHTML(localTime(p.last_report))}<br>${current(p) ? "Readings from the latest monitoring snapshot." : "Current state is unconfirmed. Available readings are last-known; missing values remain unknown."}</p><h2>${escapeHTML(p.job || "No reported job")}</h2><p>${prefix(p)}Stage: ${escapeHTML(p.stage || "Unknown")}</p><div class="detail-grid">${metric("Reported state", escapeHTML(stateLabel(p.state)))}${metric("Progress", p.progress === null ? "Unknown" : unknown(p.progress) + "%")}${metric("Layer", unknown(p.layer) + " / " + unknown(p.total_layers))}${metric("Bed / target", temperature(p.bed))}${metric("Chamber", temperature(p.chamber))}${metric("Finish estimate", escapeHTML(remaining(p)))}</div><div class="temperature-list">${p.nozzles.map((n) => `<span>${prefix(p)}${n.id === 0 ? "Right nozzle" : n.id === 1 ? "Left nozzle" : "Nozzle " + unknown(n.id)}: ${temperature(n.temperature)}${n.active ? " · reported active" : ""}</span>`).join("") || "Nozzle readings unknown"}</div><p class="muted">Remaining-time report: ${escapeHTML(localTime(p.remaining_reported))}. Estimates do not confirm completion.</p><div class="conditions"><h2>Reported conditions</h2>${p.conditions.length ? p.conditions.map((c) => `<div class="condition"><h3>${escapeHTML(c.text)}</h3>${c.guidance ? `<p><strong>Next:</strong> ${escapeHTML(c.guidance)}</p>` : ""}<p class="meta">${escapeHTML(c.level)} · Code: ${escapeHTML(c.code || "Not provided")}<br>Local review: ${c.reviewed ? "Reviewed" : "Unreviewed"}${c.hidden ? " · Hidden in TUI" : ""}<br>First app-observed: ${escapeHTML(localTime(c.since))}</p><p>Physical resolution is unconfirmed. Inspecting this view makes no local notice decision.</p></div>`).join("") : "<p>No active notices in this snapshot. Missing or disconnected data does not confirm physical fault resolution.</p>"}</div><h2 style="margin-top:25px">${prefix(p)}AMS & filament</h2>${p.ams.length ? p.ams.map((unit) => `<p>${escapeHTML(unit.label)} · Humidity: ${unit.humidity === null ? "Unknown" : unknown(unit.humidity) + "%"} · Temperature: ${unit.temperature === null ? "Unknown" : unknown(unit.temperature) + "°C"}</p>${slotCards(unit.slots)}`).join("") : "<p>AMS configuration unknown.</p>"}<h2 style="margin-top:20px">${prefix(p)}External filament</h2>${slotCards(p.external)}`;
+  body.innerHTML = `<span class="pill ${current(p) ? "" : "warn"}">${escapeHTML(status(p))}</span><p>${escapeHTML(p.model || "Unknown model")} · Last report: ${escapeHTML(localTime(p.last_report))}<br>${current(p) ? "Readings from the latest monitoring snapshot." : "Current state is unconfirmed. Available readings are last-known; missing values remain unknown."}</p><h2>${escapeHTML(p.job || "No reported job")}</h2><p>${prefix(p)}Stage: ${escapeHTML(p.stage || "Unknown")}</p><div class="detail-grid">${metric("Reported state", escapeHTML(stateLabel(p.state)))}${metric("Progress", p.progress === null ? "Unknown" : unknown(p.progress) + "%")}${metric("Layer", unknown(p.layer) + " / " + unknown(p.total_layers))}${metric("Bed / target", temperature(p.bed))}${metric("Chamber", temperature(p.chamber))}${metric("Finish estimate", escapeHTML(remaining(p)))}</div><div class="temperature-list">${p.nozzles.map((n) => `<span>${prefix(p)}${n.id === 0 ? "Right nozzle" : n.id === 1 ? "Left nozzle" : "Nozzle " + unknown(n.id)}: ${temperature(n.temperature)}${n.active ? " · reported active" : ""}</span>`).join("") || "Nozzle readings unknown"}</div><p class="muted">Remaining-time report: ${escapeHTML(localTime(p.remaining_reported))}. Estimates do not confirm completion.</p><div class="conditions"><h2>Reported conditions</h2><p role="status" aria-live="polite">${escapeHTML(commandMessage)}</p><p>Local decision storage: ${escapeHTML(snapshot.decisions || "Unknown")}. Hiding never fixes the printer.</p>${hiddenCount ? `<p><button id="toggle-hidden-messages" aria-pressed="${showHiddenMessages}">${showHiddenMessages ? "Hide hidden messages" : "View hidden messages"} (${hiddenCount})</button></p>` : ""}${conditions.length ? conditions.map((c) => `<div class="condition"><h3>${escapeHTML(c.text)}</h3>${c.guidance ? `<p><strong>Next:</strong> ${escapeHTML(c.guidance)}</p>` : ""}<p class="meta">${escapeHTML(c.level)} · Code: ${escapeHTML(c.code || "Not provided")}<br>Local review: ${c.reviewed ? "Reviewed" : "Unreviewed"}${c.hidden ? " · Hidden locally" : ""}<br>First app-observed: ${escapeHTML(localTime(c.since))}</p><p>Physical resolution is unconfirmed. Inspecting this view makes no local notice decision.</p>${!c.hidden ? `<button data-dismiss="${escapeHTML(c.id)}" aria-disabled="${Boolean(commandPending || feedUnavailable())}">${commandPending === c.id ? "Pending…" : "Hide notice locally"}</button>` : snapshot.decisions === "failed" ? `<button data-dismiss="${escapeHTML(c.id)}" data-retry="true" aria-disabled="${Boolean(commandPending || feedUnavailable())}">Retry saving local decisions</button>` : `<p>Applied locally · ${escapeHTML(snapshot.decisions || "storage unknown")}</p>`}</div>`).join("") : p.conditions.length ? "<p>All reported messages are hidden locally. Physical resolution remains unconfirmed.</p>" : "<p>No active notices in this snapshot. Missing or disconnected data does not confirm physical fault resolution.</p>"}</div><h2 style="margin-top:25px">${prefix(p)}AMS & filament</h2>${p.ams.length ? p.ams.map((unit) => `<p>${escapeHTML(unit.label)} · Humidity: ${unit.humidity === null ? "Unknown" : unknown(unit.humidity) + "%"} · Temperature: ${unit.temperature === null ? "Unknown" : unknown(unit.temperature) + "°C"}</p>${slotCards(unit.slots)}`).join("") : "<p>AMS configuration unknown.</p>"}<h2 style="margin-top:20px">${prefix(p)}External filament</h2>${slotCards(p.external)}`;
   $("#detail").scrollTop = scroll;
+  if (focusedAction) {
+    const next = document.querySelector(`[data-dismiss="${CSS.escape(focusedAction)}"]`);
+    if (next) next.focus({preventScroll: true});
+    else $("#close-detail").focus({preventScroll: true});
+  }
+  if (focusedToggle) {
+    ($("#toggle-hidden-messages") || $("#close-detail")).focus({preventScroll: true});
+  }
 }
 function inspect(id) {
+  showHiddenMessages = false;
   selected = id;
   renderDetail();
   $("#detail").showModal();
@@ -242,7 +258,42 @@ async function poll() {
     timer = setTimeout(poll, 3000);
   }
 }
+async function dismissNotice(target, retry) {
+  if (commandPending || feedUnavailable()) return;
+  commandPending = target;
+  commandMessage = "Pending local decision…";
+  renderDetail();
+  try {
+    if (!csrfToken) {
+      const session = await fetch("/api/session", {cache: "no-store", signal: AbortSignal.timeout(5000)});
+      if (!session.ok) throw new Error();
+      csrfToken = (await session.json()).token;
+    }
+    const response = await fetch("/api/dismiss", {
+      method: "POST", headers: {"Content-Type": "application/json", "X-CSRF-Token": csrfToken},
+      body: JSON.stringify({target, retry}), signal: AbortSignal.timeout(5000)
+    });
+    if (!response.ok) {
+      csrfToken = null;
+      commandMessage = "Request failed or outcome unknown. Refresh the state before retrying; the notice may already be hidden.";
+    } else {
+      commandMessage = "Applied locally. Check storage status below for saving, saved, session-only, or failed. Physical resolution remains unconfirmed.";
+    }
+  } catch {
+    commandMessage = "Outcome unknown. Refresh the state before retrying; this does not confirm a saved decision.";
+  } finally {
+    commandPending = null;
+    if ($("#detail").open) renderDetail();
+  }
+}
 document.addEventListener("click", (event) => {
+  if (event.target.closest("#toggle-hidden-messages")) {
+    showHiddenMessages = !showHiddenMessages;
+    renderDetail();
+    return;
+  }
+  const action = event.target.closest("[data-dismiss]");
+  if (action) { dismissNotice(action.dataset.dismiss, action.dataset.retry === "true"); return; }
   const f = event.target.closest("[data-filter]");
   if (f) {
     filter = f.dataset.filter;

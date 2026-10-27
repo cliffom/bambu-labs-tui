@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 — Browser notice dismissal
+
+- Add per-occurrence **Hide notice locally** in the browser inspector. Apply the same saved local dismissal as the TUI without acknowledging, snoozing, controlling the printer, or claiming physical resolution. Keep reported conditions visible with hidden/review labels.
+- Synchronize both interfaces through the session reducer and shared persistence queue. Show pending requests, applied local decisions, saving, saved, session-only, and failed storage states; offer explicit save retry while preserving failed-load protection and bounded shutdown.
+- Protect the bounded POST route with exact Host/Origin checks, a random session CSRF token, strict JSON requests, and opaque session occurrence targets. Reject stale/replaced targets and preserve independent notices. Visible browser tabs receive changes on their next three-second poll; independent processes do not synchronize.
+
+See the [validation record](development/validation.md#browser-notice-dismissal-92) for synthetic checks and remaining limits.
+
 ## 0.3.0 — Local web dashboard
 
 - Add an optional, read-only browser dashboard sharing the running TUI's monitoring state. Inspect farm summaries, searchable/filterable printer cards, print progress, remaining-time estimates, temperatures, AMS/external filament, and reported conditions with intervention guidance. Preserve explicit unknown and last-known readings; browser inspection does not change local notice decisions or establish physical fault resolution.

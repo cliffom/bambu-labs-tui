@@ -75,7 +75,8 @@ func TestPTYWebSettingsAndShutdown(t *testing.T) {
 	assertWebClosed(t, address)
 	mark = child.send(t, "\r")
 	address = ptyWebURL(t, child, mark)
-	child.send(t, "\x1b")
+	mark = child.send(t, "\x1b")
+	child.expect(t, mark, "› PRINTERS")
 	child.send(t, "q")
 	child.exited(t, 0)
 	assertWebClosed(t, address)
@@ -143,7 +144,8 @@ func TestPTYWebOccupiedPortShowsErrorAndRetriesExplicitly(t *testing.T) {
 	if address != fmt.Sprintf("http://127.0.0.1:%d", port) {
 		t.Fatal("retry changed configured port", address)
 	}
-	child.send(t, "\x1b")
+	mark = child.send(t, "\x1b")
+	child.expect(t, mark, "› PRINTERS")
 	child.send(t, "q")
 	child.exited(t, 0)
 	assertWebClosed(t, address)

@@ -34,6 +34,8 @@ The CLI's signal context owns SIGINT/SIGTERM; Bubble Tea's duplicate signal hand
 
 Assertions wait for newly emitted semantic text or explicit completion signals, with five-second step bounds and a thirty-second child lifetime limit. They use no timing sleeps or full ANSI-frame golden files. The transcript is capped at 1 MiB. A minimal cursor-position reply lets startup color probes fall back from unsupported OSC queries; the harness does not implement a screen emulator.
 
+Wait for the dashboard to render after Escape before sending `q`; adjacent Escape and `q` bytes can decode as Alt+Q instead of two keys.
+
 Do not send keys with no observable acknowledgement immediately before resizing: PTY writes and SIGWINCH do not guarantee reducer processing order, so queued keys can arrive after the supported size is restored. Keep hidden-input guard assertions in the synchronous UI reducer tests; PTY tests verify the fallback screen and restored dialog state.
 
 After `Program.Run` and monitor cleanup return, the child signals a private control pipe and waits for the parent's acknowledgement through another pipe. The parent inspects terminal settings at that point, then releases process exit and checks the status and cleanup sequences. This handshake is necessary because macOS revokes a controlling slave terminal when its session leader exits. It also avoids competing with the app's terminal input reader. The child must still exit within five seconds of acknowledgement.

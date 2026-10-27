@@ -80,6 +80,7 @@ type (
 		configSelection            int
 		configSection              configSection
 		configPrinterID            string
+		configThemeFile            string
 		configRegion               string
 		activeRegion               string
 		configEditing              bool
@@ -458,6 +459,10 @@ func (m *Model) syncPanels() {
 }
 
 func (m Model) View() string {
+	return m.styles.canvas(m.view(), m.width, m.height)
+}
+
+func (m Model) view() string {
 	route := routeFor(m.dialog.active)
 	if !m.terminalFits() && !route.compact {
 		if m.hasOpenDialog() {

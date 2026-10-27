@@ -56,6 +56,7 @@ var configOptions = [...]configOption{
 // running cloud connection or the account/region owning persistence workers.
 func (m Model) WithConfiguration(cfg config.Config) Model {
 	cfg = cfg.Clone()
+	m.configThemeFile = cfg.ThemeFile
 	m.configRegion, m.activeRegion = cfg.Region, cfg.Region
 	m.restoreView(cfg.View)
 	m.alertPrefs = cfg.Alerts
@@ -70,7 +71,7 @@ func (m Model) WithConfigPersistence(path string, save func(config.Config) error
 }
 
 func (m Model) configuration() config.Config {
-	return config.Config{View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
+	return config.Config{ThemeFile: m.configThemeFile, View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
 }
 
 func (m Model) configPrinterIDs() []string {
@@ -431,7 +432,7 @@ func (m Model) configView() string {
 		}
 		row := ansi.Truncate(marker+rows[i], max(1, m.width-2), "…")
 		if i == m.configSelection {
-			row = m.styles.selection.Render(row)
+			row = paintSurface(m.styles.selection.Render(row), m.styles.palette.SelectedText, m.styles.palette.SelectedBackground)
 		}
 		lines = append(lines, row)
 	}

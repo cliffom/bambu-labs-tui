@@ -439,7 +439,15 @@ func TestPTYHelpScrollsAtMinimumSizeAndReturnsFromStatus(t *testing.T) {
 }
 
 func TestPTYConfigEditsPersistToLaunchFile(t *testing.T) {
-	child := startPTYChild(t, "demo")
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.toml")
+	if err := os.WriteFile(filepath.Join(dir, "custom.json"), []byte(`{"version":1,"colors":{"background":"#282828","text":"#ebdbb2"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(configPath, []byte("theme_file='custom.json'\n[alerts]\nautomatic_modals=false\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	child := startPTYChildWithConfig(t, "demo", configPath)
 	child.expect(t, 0, "Gridfinity baseplate")
 	mark := child.send(t, ",")
 	child.expect(t, mark, "CONFIG / GENERAL")
@@ -470,7 +478,7 @@ func TestPTYConfigEditsPersistToLaunchFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	override := cfg.Alerts.Printers["DEMOH2D"].Filament
-	if cfg.Region != config.RegionChina || cfg.LowFilamentPercent != 25 || cfg.Alerts.Filament || override == nil || !*override || cfg.Alerts.DesktopNotifications {
+	if cfg.ThemeFile != "custom.json" || cfg.Region != config.RegionChina || cfg.LowFilamentPercent != 25 || cfg.Alerts.Filament || override == nil || !*override || cfg.Alerts.DesktopNotifications {
 		t.Fatalf("CLI did not persist all edits to selected file: %+v", cfg)
 	}
 }

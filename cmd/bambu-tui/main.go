@@ -102,6 +102,13 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	var theme ui.Theme
+	if command == commandMonitor || command == commandLogin {
+		theme, err = ui.LoadTheme(*configPath, cfg.ThemeFile)
+		if err != nil {
+			return err
+		}
+	}
 	store := credentials.Store{Region: cfg.Region}
 	api := cloud.New(cfg.Region)
 	if command == commandDoctor {
@@ -121,7 +128,7 @@ func run(args []string) error {
 		return nil
 	}
 	if *demo {
-		return dashboard(ctx, *configPath, cfg, nil, cloud.Session{}, true)
+		return dashboard(ctx, *configPath, cfg, theme, nil, cloud.Session{}, true)
 	}
 	if command == commandLogin {
 		session, err := authenticate(ctx, api, *token, *code)
@@ -137,13 +144,13 @@ func run(args []string) error {
 			}
 			fmt.Fprintln(os.Stderr, "OS credential store unavailable. Opening a session-only dashboard; the token will not be saved.")
 		}
-		return dashboard(ctx, *configPath, cfg, api, session, false)
+		return dashboard(ctx, *configPath, cfg, theme, api, session, false)
 	}
 	session, err := store.Load()
 	if err != nil {
 		return fmt.Errorf("%w; run bambu-tui login (or bambu-tui --demo)", err)
 	}
-	return dashboard(ctx, *configPath, cfg, api, session, false)
+	return dashboard(ctx, *configPath, cfg, theme, api, session, false)
 }
 
 func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode bool) (cloud.Session, error) {
@@ -216,7 +223,7 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 	return api.Session(ctx, token)
 }
 
-func dashboard(ctx context.Context, configPath string, cfg config.Config, api *cloud.Client, session cloud.Session, demo bool) error {
+func dashboard(ctx context.Context, configPath string, cfg config.Config, theme ui.Theme, api *cloud.Client, session cloud.Session, demo bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	events := make(chan monitor.Event, eventBufferSize)
@@ -232,7 +239,7 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, api *c
 	}()
 	state := farm.New(cfg.LowFilamentPercent)
 	savedConfig := cfg.Clone()
-	model := ui.New(state, events, refresh, demo).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
+	model := ui.New(state, events, refresh, demo).WithPalette(theme.Palette).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
 		if err := config.SaveChanges(configPath, savedConfig, snapshot); err != nil {
 			return err
 		}

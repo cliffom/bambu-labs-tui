@@ -52,7 +52,7 @@ func TestViewMergePreservesIndependentExternalEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, []byte("region='china'\n[view]\nfilter='attention'\nsort='finish'\n[alerts]\nnotification_sound=true\n"), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("region='china'\ntheme_file='external.json'\n[view]\nfilter='attention'\nsort='finish'\n[alerts]\nnotification_sound=true\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	after := before.Clone()
@@ -61,7 +61,7 @@ func TestViewMergePreservesIndependentExternalEdits(t *testing.T) {
 		t.Fatal(err)
 	}
 	loaded, err := Load(path)
-	if err != nil || loaded.View != (ViewPreferences{FilterPrinting, SortFinish}) || loaded.Region != RegionChina || !loaded.Alerts.NotificationSound {
+	if err != nil || loaded.View != (ViewPreferences{FilterPrinting, SortFinish}) || loaded.Region != RegionChina || !loaded.Alerts.NotificationSound || loaded.ThemeFile != "external.json" {
 		t.Fatal(loaded, err)
 	}
 	before = loaded.Clone()
@@ -71,7 +71,7 @@ func TestViewMergePreservesIndependentExternalEdits(t *testing.T) {
 		t.Fatal(err)
 	}
 	loaded, err = Load(path)
-	if err != nil || loaded.View != before.View {
+	if err != nil || loaded.View != before.View || loaded.ThemeFile != "external.json" {
 		t.Fatal("Config save lost view", loaded, err)
 	}
 }

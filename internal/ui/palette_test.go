@@ -272,11 +272,11 @@ func TestPaletteRolesReachFieldsFocusSelectionAndFilament(t *testing.T) {
 	assertPaint(t, m.activityOutcome(notifications.Activity{Outcome: notifications.OutcomeFailed}), "Failed", p.Error, "", false)
 	assertPaint(t, m.activityOutcome(notifications.Activity{Outcome: notifications.OutcomeUnconfirmed}), "Unconfirmed", p.Warning, "", false)
 	m = key(m, "m")
-	assertPaint(t, m.View(), "┌", p.Border, "", false)
+	assertPaint(t, m.View(), "┌", p.Border, p.Background, false)
 	m = key(m, "esc")
 	m.setToast(feedbackInfo, "Palette information")
 	m = key(m, "ctrl+e")
-	assertPaint(t, m.View(), "Palette information", p.Info, "", true)
+	assertPaint(t, m.View(), "Palette information", p.Info, p.Background, true)
 }
 
 func TestNotificationMessageKindsAndLocalFeedbackPriority(t *testing.T) {
@@ -352,7 +352,7 @@ func TestApplicationColorLiteralsBelongToPalette(t *testing.T) {
 	}
 	hex := regexp.MustCompile(`"#[[:xdigit:]]{6}"`)
 	for _, name := range files {
-		if name == "palette.go" || strings.HasSuffix(name, "_test.go") {
+		if strings.HasSuffix(name, "_test.go") {
 			continue
 		}
 		data, err := os.ReadFile(name)
@@ -360,7 +360,7 @@ func TestApplicationColorLiteralsBelongToPalette(t *testing.T) {
 			t.Fatal(err)
 		}
 		if hex.Match(data) {
-			t.Fatal("application color literal outside the palette", name)
+			t.Fatal("application color literal outside the JSON palette definitions", name)
 		}
 	}
 }

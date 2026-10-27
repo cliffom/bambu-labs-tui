@@ -256,7 +256,7 @@ func (m *Model) syncFilament() {
 				material += strings.Repeat(" ", max(0, materialWidth-ansi.StringWidth(material)))
 				row := cell(marker+slotName(slot, unit.external), filamentSlotWidth) + material + cell(remaining, filamentRemainingWidth) + cell(slotNozzlePath(slot), filamentNozzleWidth)
 				if i == s {
-					row = m.styles.selection.Render(row)
+					row = paintSurface(m.styles.selection.Render(row), m.styles.palette.SelectedText, m.styles.palette.SelectedBackground)
 				}
 				lines = append(lines, row)
 			}

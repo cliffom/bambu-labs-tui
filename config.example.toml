@@ -1,6 +1,9 @@
 # Copy to the path printed by `bambu-tui --config-path`.
 region = "global" # global or china
 low_filament_percent = 10
+# Optional JSON theme, loaded at startup. Relative paths resolve beside this file.
+# Download complete examples from internal/ui/themes/ in the repository.
+# theme_file = "gruvbox-dark.json"
 
 # Farm view follows this config path across accounts/regions, including demo.
 # F/S saves changes; dashboard 0 resets both. Unknown values fall back independently.

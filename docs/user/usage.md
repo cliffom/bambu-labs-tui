@@ -58,6 +58,37 @@ For Low filament threshold, use `←` / `→` to adjust by one percentage point,
 
 See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine alert defaults, per-printer On/Off/Inherit overrides, reset confirmation, Test Notification, and save failures.
 
+### Custom themes
+
+Set `theme_file` **before any TOML table** in the configuration file:
+
+```toml
+theme_file = "gruvbox-dark.json"
+```
+
+Relative paths resolve beside the active configuration file (`--config` selects it); absolute paths work too. Theme files load once at startup. Restart after editing or selecting a theme. Config and farm-view saves preserve this setting and unrelated external edits. Removing the setting restores the built-in default. Theme loading does not change your terminal settings.
+
+Download [gruvbox-dark.json](../../internal/ui/themes/gruvbox-dark.json) beside your config to try the complete sample, or copy [default.json](../../internal/ui/themes/default.json) to customize the current palette. The default is embedded in the binary, so ordinary startup needs no theme file. The Gruvbox sample uses a dark body background, warm neutrals, aqua focus, and distinct feedback colors, drawing from the [requested palette](https://www.color-hex.com/color-palette/1026676) and [official Gruvbox colors](https://github.com/morhetz/gruvbox/blob/master/colors/gruvbox.vim). It uses brighter variants for prominent status text.
+
+A small override file is sufficient; omitted colors retain the current defaults:
+
+```json
+{
+  "version": 1,
+  "name": "My theme",
+  "colors": {
+    "background": "#282828",
+    "text": "#ebdbb2",
+    "footer_info": "#fbf1c7",
+    "footer_background": "#3c3836"
+  }
+}
+```
+
+`version` and the `colors` object are required; `name` is optional descriptive metadata. Keys use exact snake_case names; the complete examples list every role. Colors accept `#RRGGBB` strings. Only `background` also accepts `null`, which inherits the terminal background as the default theme does. Unknown/duplicate keys, invalid colors, unsupported versions, unreadable files, and files larger than 64 KiB stop startup with an error; there is no silent fallback. JSON is the supported format. Theme selection is file-configured; there is no picker or live reload.
+
+Use contrasting text/background pairs, particularly `text`/`background`, `selected_text`/`selected_background`, and all `footer_*` text roles against `footer_background`. Supplied colors are used as written; the loader validates syntax rather than measuring or correcting contrast. Limited-color terminals approximate RGB values, and `NO_COLOR=1` keeps readable labels and selection markers without colors. Reported filament swatches retain the printer's color instead of using theme accents. See [palette roles and contrast assumptions](../development/ui-direction.md#palette-and-message-emphasis).
+
 ## Keyboard and navigation
 
 | Key | Action |
@@ -90,7 +121,7 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 
 Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color.
 
-The footer follows the focused panel. Fresh informational messages, including delivery ownership and refresh requests, use bright bold text. Confirmed local actions use green; warnings use amber and errors use red, with the existing amber dashboard warning for persistent storage/delivery problems. Labels remain meaningful without color, and ownership does not confirm notification delivery or printer fault resolution.
+The footer follows the focused panel. Fresh informational messages, including delivery ownership and refresh requests, use bright bold text. In the default theme, confirmed local actions use green; warnings use amber and errors use red, with amber dashboard warnings for persistent storage/delivery problems. Custom themes retain these semantic roles with their chosen colors. Labels remain meaningful without color, and ownership does not confirm notification delivery or printer fault resolution.
 
 Long feedback shortens before essential controls; multiple failures show an error count. `^E status` means `Ctrl+E`: open **Status / Feedback** for complete messages and recovery guidance, using arrows/page keys or Home/End to scroll. It preserves the current dialog, input, selection, confirmation, and scroll while telemetry and saves continue. Ordinary transient feedback lasts eight seconds; storage, export, browser, and delivery failures remain until their source reports recovery. This view does not acknowledge notices or confirm physical fault resolution.
 

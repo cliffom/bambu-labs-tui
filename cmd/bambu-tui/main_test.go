@@ -5,12 +5,28 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+func TestInvalidThemeFailsBeforeAuthenticationOrTerminalStartup(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("theme_file='missing.json'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"--config", path}, {"--demo", "--config", path}, {"login", "--session", "--config", path}} {
+		err := run(args)
+		if err == nil || !strings.Contains(err.Error(), "read theme") || !strings.Contains(err.Error(), "missing.json") {
+			t.Fatal(args, err)
+		}
+	}
+}
 
 func TestFinishDashboardClassifiesExitBeforeCleanupAndJoinsMonitor(t *testing.T) {
 	unexpected := errors.New("unexpected program failure")

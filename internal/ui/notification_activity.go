@@ -167,7 +167,7 @@ func (m Model) notificationActivityView() string {
 			prefix := marker + entry.At.Local().Format("15:04:05") + " " + safe(entry.Printer)
 			row := ansi.Truncate(prefix, max(1, width-ansi.StringWidth(suffix)), "…") + suffix
 			if i == d.index {
-				row = m.styles.selection.Render(row)
+				row = paintSurface(m.styles.selection.Render(row), m.styles.palette.SelectedText, m.styles.palette.SelectedBackground)
 			}
 			lines = append(lines, row)
 		}

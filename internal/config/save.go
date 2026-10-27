@@ -20,6 +20,9 @@ func SaveChanges(path string, before, after Config) error {
 	if err != nil {
 		return err
 	}
+	if before.ThemeFile != after.ThemeFile {
+		cfg.ThemeFile = after.ThemeFile
+	}
 	if before.Region != after.Region {
 		cfg.Region = after.Region
 	}

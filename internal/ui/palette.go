@@ -3,16 +3,33 @@ package ui
 import "github.com/charmbracelet/lipgloss"
 
 type (
-	// Palette defines application colors by role. Unstyled body prose inherits
-	// terminal colors; reported filament colors are telemetry, outside this palette.
+	// Palette defines application colors by role. An empty Background inherits
+	// the terminal background; reported filament colors remain telemetry.
 	// Equal default colors are separate roles so future themes can vary them.
 	Palette struct {
-		Text, SecondaryText, MutedText                       lipgloss.Color
-		Info, Accent, Success, Warning, Error, Focus, Border lipgloss.Color
-		SelectedText, SelectedBackground, Hotkey             lipgloss.Color
-		FooterBackground, FooterText, FooterMuted            lipgloss.Color
-		FooterInfo, FooterSuccess, FooterWarning             lipgloss.Color
-		FooterError, FooterHotkey, FooterSeparator           lipgloss.Color
+		Text               lipgloss.Color `json:"text"`
+		Background         lipgloss.Color `json:"background"`
+		SecondaryText      lipgloss.Color `json:"secondary_text"`
+		MutedText          lipgloss.Color `json:"muted_text"`
+		Info               lipgloss.Color `json:"info"`
+		Accent             lipgloss.Color `json:"accent"`
+		Success            lipgloss.Color `json:"success"`
+		Warning            lipgloss.Color `json:"warning"`
+		Error              lipgloss.Color `json:"error"`
+		Focus              lipgloss.Color `json:"focus"`
+		Border             lipgloss.Color `json:"border"`
+		SelectedText       lipgloss.Color `json:"selected_text"`
+		SelectedBackground lipgloss.Color `json:"selected_background"`
+		Hotkey             lipgloss.Color `json:"hotkey"`
+		FooterBackground   lipgloss.Color `json:"footer_background"`
+		FooterText         lipgloss.Color `json:"footer_text"`
+		FooterMuted        lipgloss.Color `json:"footer_muted"`
+		FooterInfo         lipgloss.Color `json:"footer_info"`
+		FooterSuccess      lipgloss.Color `json:"footer_success"`
+		FooterWarning      lipgloss.Color `json:"footer_warning"`
+		FooterError        lipgloss.Color `json:"footer_error"`
+		FooterHotkey       lipgloss.Color `json:"footer_hotkey"`
+		FooterSeparator    lipgloss.Color `json:"footer_separator"`
 	}
 
 	styles struct {
@@ -21,27 +38,25 @@ type (
 		footer, footerHotkey, footerSeparator                       lipgloss.Style
 		footerInfo, footerSuccess, footerWarning, footerError       lipgloss.Style
 		footerMuted                                                 lipgloss.Style
+		palette                                                     Palette
 	}
 )
 
 // DefaultPalette returns an independent value, never shared mutable theme state.
 func DefaultPalette() Palette {
-	return Palette{
-		Text: "#E4E9F0", SecondaryText: "#929BA8", MutedText: "#929BA8",
-		Info: "#E4E9F0", Accent: "#A3E4BB", Success: "#A3E4BB", Warning: "#F4BA72", Error: "#FF8087",
-		Focus: "#A3E4BB", Border: "#A3E4BB",
-		SelectedText: "#D9F5E4", SelectedBackground: "#263B36", Hotkey: "#E4E9F0",
-		FooterBackground: "#3A4652", FooterText: "#B8C2CE", FooterMuted: "#929BA8",
-		FooterInfo: "#E4E9F0", FooterSuccess: "#A3E4BB", FooterWarning: "#F4BA72",
-		FooterError: "#FF9AA1", FooterHotkey: "#E4E9F0", FooterSeparator: "#B8C2CE",
+	theme, err := ParseTheme(defaultTheme)
+	if err != nil {
+		panic("invalid embedded default theme: " + err.Error())
 	}
+	return theme.Palette
 }
 
 func newStyles(p Palette) *styles {
 	text := func(color lipgloss.Color) lipgloss.Style { return lipgloss.NewStyle().Foreground(color) }
 	foot := func(color lipgloss.Color) lipgloss.Style { return text(color).Background(p.FooterBackground) }
 	return &styles{
-		text: text(p.Text), secondary: text(p.SecondaryText), muted: text(p.MutedText),
+		palette: p,
+		text:    text(p.Text), secondary: text(p.SecondaryText), muted: text(p.MutedText),
 		info: text(p.Info).Bold(true), accent: text(p.Accent), success: text(p.Success), warning: text(p.Warning), err: text(p.Error),
 		focus: text(p.Focus), selection: text(p.SelectedText).Background(p.SelectedBackground),
 		border: lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(p.Border).Padding(0, 1),

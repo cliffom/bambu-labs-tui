@@ -23,7 +23,7 @@ func TestAboutMetadata(t *testing.T) {
 		platform = "macOS"
 	}
 	previous := -1
-	for _, want := range []string{"Bambu TUI " + buildinfo.Version, platform + " / " + runtime.GOARCH, "https://github.com/cliffom/bambu-tui", "A Suite Potato Spud", "Lovingly crafted by Michael Clifford", "Theme: default", "Theme Pallet:"} {
+	for _, want := range []string{"Bambu TUI " + buildinfo.Version, platform + " / " + runtime.GOARCH, "https://github.com/cliffom/bambu-tui", "A Suite Potato Spud", "Lovingly crafted by Michael Clifford", "Theme: default", "Theme Palette:"} {
 		at := strings.Index(content, want)
 		if at <= previous {
 			t.Fatalf("missing or out-of-order %q in %q", want, content)

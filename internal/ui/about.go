@@ -70,7 +70,7 @@ func (m *Model) syncAbout() {
 		"Lovingly crafted by Michael Clifford",
 		"",
 		"Theme: " + theme,
-		"Theme Pallet:",
+		"Theme Palette:",
 	}
 	content := ansi.Wrap(strings.Join(lines, "\n"), m.about.Width, "")
 	m.about.SetContent(content + "\n" + m.aboutPalette())

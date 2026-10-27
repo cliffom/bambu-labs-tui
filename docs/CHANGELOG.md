@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.12 — Palette label correction
+
+- Correct “Theme Pallet” to “Theme Palette” in About and the accompanying documentation.
+
 ## 0.2.11 — About Bambu TUI
 
 - Add read-only About on `A`, with app name/version, platform, project URL, branding, and “Lovingly crafted by Michael Clifford” attribution without field labels, followed by the effective bundled/custom theme source. About displays no account information.

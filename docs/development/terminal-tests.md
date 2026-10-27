@@ -2,7 +2,7 @@
 
 [Development guide](contributing.md) · [Live-validation record](validation.md)
 
-The PTY suite in `cmd/bambu-tui/pty_test.go` and `webserver_pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
+The PTY suite in `cmd/bambu-tui/pty_test.go`, `webserver_pty_test.go`, and `serve_pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
 
 Run just this suite, or repeat it to exercise scheduling races:
 
@@ -29,6 +29,12 @@ The parent starts the current Go test executable in a new session with a control
 - For each exit path, terminal settings match the original state, and output includes alternate-screen exit, cursor restoration, and bracketed-paste disable sequences.
 
 The CLI's signal context owns SIGINT/SIGTERM; Bubble Tea's duplicate signal handler is disabled for the dashboard and login prompts. The shared terminal runner translates context cancellation into a graceful quit, letting Bubble Tea join its input reader before closing cancellation descriptors. It preserves a cancellation error for callers and leaves unexpected errors intact. This avoids both competing quit-message sends and the v1 hard-cancel input-reader close race, while preserving raw key dispatch and SIGWINCH handling.
+
+## Foreground serve coverage
+
+`serve_pty_test.go` runs the real `serve --demo` CLI at 120 × 40, then resizes to 80 × 24, 60 × 18, 40 × 12, 20 × 10, and back. It checks the URL, synthetic mode, connection, shutdown guidance, canonical Ctrl+C, listener closure, cursor/screen restoration, and unchanged terminal input settings. A synthetic cloud-mode runner exercises disconnect/reconnect and typed authentication rejection with private diagnostic sentinels; an occupied-port startup checks ordinary error output without entering an alternate screen. A TrueColor serve PTY checks the default accent/healthy color, a real keepalive request with IP/User-Agent in the ledger, grouped disconnect after client close/grace, active counts, and SIGTERM cleanup. Serve never enables raw mode or bracketed paste, so its restoration assertions cover the modes it actually uses.
+
+`serve_status_test.go` checks bounded/coalesced redirected diagnostics, exclusion of private event/storage strings, persistent warnings, width/height budgets through 1 × 1, TrueColor/ANSI256/no-color layouts, once-only plain client events, and cleanup after presentation errors. Webserver ledger regressions cover keepalive reuse, sanitized/missing user agents, first-request capture, parallel socket grouping, no-request socket exclusion, replacement grace, listener-stop retirement, socket IPs rather than forwarded addresses, immutable snapshots, bounded/concurrent tracking, browser DTO exclusion, and actual HTTP disable/closure. Existing terminal-free child-process, persistence, and rejection tests continue to exercise non-TTY behavior. These fixtures use no saved credentials or live cloud connection.
 
 ## Synchronization and cleanup
 

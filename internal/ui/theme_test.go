@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -13,7 +14,12 @@ import (
 )
 
 func TestThemeFilesAndPartialOverrides(t *testing.T) {
-	for _, file := range []string{"default.json", "gruvbox-dark.json", "hotdog.json", "c64.json", "ibm3270.json"} {
+	names, err := BundledThemeNames()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
+		file := name + ".json"
 		data, err := os.ReadFile(filepath.Join("themes", file))
 		if err != nil {
 			t.Fatal(err)
@@ -61,6 +67,58 @@ func TestThemeFilesAndPartialOverrides(t *testing.T) {
 		if theme.Palette != want {
 			t.Fatal("role override changed another role", role)
 		}
+	}
+}
+
+func TestBundledThemeDiscoveryNeedsOnlyJSON(t *testing.T) {
+	t.Chdir(t.TempDir())
+	source := fstest.MapFS{
+		"themes/new-night.json":     &fstest.MapFile{Data: []byte(`{"version":1,"name":"New night","colors":{"background":"#123456"}}`)},
+		"themes/another.json":       &fstest.MapFile{Data: []byte(`{"version":1,"colors":{}}`)},
+		"themes/notes.txt":          &fstest.MapFile{Data: []byte("ignored")},
+		"themes/nested/hidden.json": &fstest.MapFile{Data: []byte(`{"version":1,"colors":{}}`)},
+	}
+	names, err := bundledThemeNames(source)
+	if err != nil || !reflect.DeepEqual(names, []string{"another", "new-night"}) {
+		t.Fatal(names, err)
+	}
+	theme, err := loadThemeOverride("new-night", source)
+	if err != nil || theme.Name != "New night" || theme.Palette.Background != "#123456" {
+		t.Fatal("new JSON required Go registration", theme, err)
+	}
+	if _, err := loadThemeOverride("nested/hidden", source); err == nil {
+		t.Fatal("path treated as a bundled name")
+	}
+	if err := os.WriteFile("new-night", []byte(`{"version":1,"name":"Local file","colors":{}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	theme, err = loadThemeOverride("./new-night", source)
+	if err != nil || theme.Name != "Local file" {
+		t.Fatal("explicit path resolved as bundled name", theme, err)
+	}
+	// A known bundle must never fall back to a local file if its JSON is invalid.
+	source["themes/new-night.json"].Data = []byte(`{"version":2,"colors":{}}`)
+	if _, err := loadThemeOverride("new-night", source); err == nil {
+		t.Fatal("invalid bundled theme silently accepted")
+	}
+}
+
+func TestCustomThemeEditsAreReadOnNextLoad(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "my-theme.json")
+	for _, bg := range []string{"#123456", "#654321"} {
+		if err := os.WriteFile(path, []byte(`{"version":1,"colors":{"background":"`+bg+`"}}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		theme, err := LoadThemeOverride(path)
+		if err != nil || string(theme.Palette.Background) != bg {
+			t.Fatal("file edit was cached instead of read", theme, err)
+		}
+	}
+	if err := os.WriteFile(path, []byte(`{"version":1,"colors":{"background":"invalid"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadThemeOverride(path); err == nil {
+		t.Fatal("invalid edit reused previously loaded theme")
 	}
 }
 
@@ -165,7 +223,11 @@ func TestThemeOverrideNamesAndWorkingDirectory(t *testing.T) {
 func TestThemeCanvasCoversEverySurfaceAndResize(t *testing.T) {
 	profile := lipgloss.ColorProfile()
 	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
-	for _, name := range []string{"gruvbox-dark", "hotdog", "c64", "ibm3270"} {
+	names, err := BundledThemeNames()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
 		theme, err := LoadThemeOverride(name)
 		if err != nil {
 			t.Fatal(err)

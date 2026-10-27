@@ -45,8 +45,12 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	themes, err := ui.BundledThemeNames()
+	if err != nil {
+		return err
+	}
 	configPath := flags.String("config", path, "path to non-secret TOML configuration")
-	themeChoice := flags.String("theme", "", "override theme for this launch: default, gruvbox-dark, hotdog, c64, ibm3270, or JSON path (relative to working directory)")
+	themeChoice := flags.String("theme", "", "override theme for this launch: "+strings.Join(themes, ", ")+", or JSON path (relative to working directory)")
 	printPath := flags.Bool("config-path", false, "print the default configuration path")
 	demo := flags.Bool("demo", false, "run a simulated H2D/X2D farm without signing in")
 	token := flags.Bool("token", false, "login by pasting an existing access token (masked)")
@@ -92,7 +96,7 @@ func run(args []string) error {
 		return errors.New("--theme is a dashboard or login option")
 	}
 	if themeProvided && *themeChoice == "" {
-		return errors.New("--theme requires default, gruvbox-dark, hotdog, c64, ibm3270, or a JSON file path")
+		return errors.New("--theme requires a bundled theme name or a JSON file path")
 	}
 	if *token && *code {
 		return errors.New("choose --token or --email-code")

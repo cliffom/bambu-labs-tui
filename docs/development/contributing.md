@@ -42,6 +42,12 @@ Install the versions in `.golangci-lint-version` and `.actionlint-version` to re
 
 Install the pinned [checkmake](https://github.com/checkmake/checkmake) version with `go install "github.com/checkmake/checkmake/cmd/checkmake@$(cat .checkmake-version)"`. Run `make lint-make`, or override `CHECKMAKE` if the binary is installed elsewhere. `checkmake.ini` requires the project's build, auth, run, test, and check targets to exist and be declared phony; other lint rules use their defaults.
 
+## Theme files
+
+For personal themes, edit a JSON file and run the existing binary with `./bin/bambu-tui --theme ./my-theme.json`. Restart to reload it; there is no registration step or build requirement. `make run` and `make demo` remain source-build shortcuts. See the [custom theme format](../user/usage.md#custom-themes).
+
+To ship another bundled example, add a complete `internal/ui/themes/<name>.json` and build. A wildcard `embed.FS` discovers each JSON filename as its theme name; CLI help and generic JSON/canvas/contrast/PTY checks use that inventory. No per-theme Go variable, switch branch, or help-list entry is needed. Keep examples within the palette/contrast contracts in [UI direction](ui-direction.md#palette-and-message-emphasis), and document the design and actual inspection evidence. Explicit custom file paths use the same validator while remaining independent of the bundled examples.
+
 ## macOS notification helper
 
 From a source checkout on macOS with Xcode Command Line Tools (Swift compiler) and Python 3.10+, run:

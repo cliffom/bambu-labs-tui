@@ -44,7 +44,7 @@ type (
 
 // DefaultPalette returns an independent value, never shared mutable theme state.
 func DefaultPalette() Palette {
-	theme, err := ParseTheme(defaultTheme)
+	theme, err := LoadTheme("", "")
 	if err != nil {
 		panic("invalid embedded default theme: " + err.Error())
 	}

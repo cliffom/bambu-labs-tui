@@ -2,30 +2,21 @@ package ui
 
 import (
 	"bytes"
-	_ "embed"
+	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strings"
 )
 
-//go:embed themes/default.json
-var defaultTheme []byte
-
-//go:embed themes/gruvbox-dark.json
-var gruvboxDarkTheme []byte
-
-//go:embed themes/hotdog.json
-var hotdogTheme []byte
-
-//go:embed themes/c64.json
-var c64Theme []byte
-
-//go:embed themes/ibm3270.json
-var ibm3270Theme []byte
+//go:embed themes/*.json
+var bundledThemes embed.FS
 
 const maximumThemeBytes = 64 * 1024
 
@@ -37,32 +28,59 @@ type Theme struct {
 	Palette Palette
 }
 
+// BundledThemeNames discovers names from JSON filenames, in sorted order.
+// Adding a shipped theme requires only its JSON file, with no Go registration.
+func BundledThemeNames() ([]string, error) {
+	return bundledThemeNames(bundledThemes)
+}
+
+func bundledThemeNames(source fs.FS) ([]string, error) {
+	entries, err := fs.ReadDir(source, "themes")
+	if err != nil {
+		return nil, fmt.Errorf("list bundled themes: %w", err)
+	}
+	var names []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".json") {
+			names = append(names, strings.TrimSuffix(entry.Name(), ".json"))
+		}
+	}
+	return names, nil
+}
+
 // LoadThemeOverride accepts a bundled name or a file relative to the working
 // directory. This is a launch-only CLI choice; configuration paths are separate.
 func LoadThemeOverride(choice string) (Theme, error) {
-	switch choice {
-	case "default":
-		return ParseTheme(defaultTheme)
-	case "gruvbox-dark":
-		return ParseTheme(gruvboxDarkTheme)
-	case "hotdog":
-		return ParseTheme(hotdogTheme)
-	case "c64":
-		return ParseTheme(c64Theme)
-	case "ibm3270":
-		return ParseTheme(ibm3270Theme)
-	case "":
-		return Theme{}, fmt.Errorf("--theme requires default, gruvbox-dark, hotdog, c64, ibm3270, or a JSON file path")
-	default:
-		return LoadTheme("", choice)
+	return loadThemeOverride(choice, bundledThemes)
+}
+
+func loadThemeOverride(choice string, source fs.FS) (Theme, error) {
+	if choice == "" {
+		return Theme{}, fmt.Errorf("--theme requires a bundled theme name or a JSON file path")
 	}
+	// Only bare names address bundled files. Explicit paths retain their working
+	// directory semantics and cannot traverse the embedded theme directory.
+	if fs.ValidPath(choice) && !strings.ContainsAny(choice, `/\`) {
+		data, err := fs.ReadFile(source, "themes/"+choice+".json")
+		if err == nil {
+			return ParseTheme(data)
+		}
+		if !errors.Is(err, fs.ErrNotExist) {
+			return Theme{}, fmt.Errorf("read bundled theme %q: %w", choice, err)
+		}
+	}
+	return LoadTheme("", choice)
 }
 
 // LoadTheme resolves relative files beside the active TOML configuration.
 // An omitted path uses the embedded default, with no filesystem dependency.
 func LoadTheme(configPath, themeFile string) (Theme, error) {
 	if themeFile == "" {
-		return ParseTheme(defaultTheme)
+		data, err := bundledThemes.ReadFile("themes/default.json")
+		if err != nil {
+			return Theme{}, fmt.Errorf("read bundled default theme: %w", err)
+		}
+		return ParseTheme(data)
 	}
 	path := themeFile
 	if !filepath.IsAbs(path) {
@@ -117,7 +135,11 @@ func ParseTheme(data []byte) (Theme, error) {
 	var defaults struct {
 		Colors Palette `json:"colors"`
 	}
-	if err := json.Unmarshal(defaultTheme, &defaults); err != nil {
+	defaultData, err := bundledThemes.ReadFile("themes/default.json")
+	if err != nil {
+		return Theme{}, fmt.Errorf("read bundled default theme: %w", err)
+	}
+	if err := json.Unmarshal(defaultData, &defaults); err != nil {
 		return Theme{}, err
 	}
 	theme.Palette = defaults.Colors

@@ -493,7 +493,11 @@ func TestPTYConfigEditsPersistToLaunchFile(t *testing.T) {
 }
 
 func TestPTYThemeOverridePreservesConfiguredThemeThroughSave(t *testing.T) {
-	for _, theme := range []string{"gruvbox-dark", "default", "hotdog", "c64", "ibm3270"} {
+	themes, err := ui.BundledThemeNames()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, theme := range themes {
 		t.Run(theme, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "config.toml")
 			if err := os.WriteFile(path, []byte("theme_file='missing.json'\n[alerts]\nautomatic_modals=false\n"), 0o600); err != nil {

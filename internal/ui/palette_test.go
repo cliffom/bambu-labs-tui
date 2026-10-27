@@ -391,7 +391,11 @@ func TestBundledPaletteContrast(t *testing.T) {
 		x, y := luminance(a), luminance(b)
 		return (max(x, y) + 0.05) / (min(x, y) + 0.05)
 	}
-	for _, name := range []string{"default", "gruvbox-dark", "hotdog", "c64", "ibm3270"} {
+	names, err := BundledThemeNames()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names {
 		theme, err := LoadThemeOverride(name)
 		if err != nil {
 			t.Fatal(err)

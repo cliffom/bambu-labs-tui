@@ -60,6 +60,16 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 
 ### Custom themes
 
+Your own themes are ordinary JSON files loaded from disk at startup. **No Go changes, registration, or rebuild are needed.** Create a file using the partial example below, or copy one of the complete theme examples and edit its colors. Launch an installed or already-built binary with the file path:
+
+```sh
+bambu-tui --theme ./my-theme.json
+# From a source checkout, reuse the binary you already built:
+./bin/bambu-tui --theme ./my-theme.json
+```
+
+Edit the JSON and restart that same binary to apply changes. `make run THEME=./my-theme.json` also works, though `make run` builds the application before launching. The persistent `theme_file` setting below loads your file on each launch. Bundled names are convenient shipped examples; adding a custom file does not require adding it to the application bundle.
+
 Select a bundled theme for one launch, with no setup files:
 
 ```sh

@@ -80,8 +80,8 @@ func TestOverlappingErrorsKeepControlsAndCompleteDetails(t *testing.T) {
 		m := resizeModel(noticeModel(t), size[0], size[1])
 		m = key(m, "X")
 		m.configStorageError = "Config save failed; open , and r to retry"
-		m.noticeStorageError = "Could not save notices; decisions may be lost on restart"
-		m.alertStorageError = "Could not save snoozes; changes may be lost on restart"
+		m.NoticeStorageError = "Could not save notices; decisions may be lost on restart"
+		m.AlertStorageError = "Could not save snoozes; changes may be lost on restart"
 		m.exportError = "Diagnostic export failed; check destination permissions"
 		m.browserError = "Could not open browser; use the troubleshooting URL shown"
 		if row := lastRow(m); !strings.Contains(row, "5 errors") || !strings.Contains(row, "y clear") || !strings.Contains(row, "n/Esc cancel") || !strings.Contains(row, "^E status") {
@@ -95,7 +95,7 @@ func TestOverlappingErrorsKeepControlsAndCompleteDetails(t *testing.T) {
 		view := m.status
 		view.Height = 100
 		text := ansi.Strip(view.View())
-		for _, want := range []string{m.configStorageError, m.noticeStorageError, m.alertStorageError, m.exportError, m.browserError, "retry", "preserved"} {
+		for _, want := range []string{m.configStorageError, m.NoticeStorageError, m.AlertStorageError, m.exportError, m.browserError, "retry", "preserved"} {
 			if !strings.Contains(text, want) {
 				t.Fatal("full error/recovery unavailable", want)
 			}
@@ -132,7 +132,7 @@ func TestStatusSuspendsNestedAlertsAndContinuesTelemetry(t *testing.T) {
 	}
 	for _, input := range []string{"q", "ctrl+c", "1", "y"} {
 		m = key(m, input)
-		if m.dialog.active != dialogStatus || len(m.snoozes) != 0 {
+		if m.dialog.active != dialogStatus || len(m.Snoozes) != 0 {
 			t.Fatal("status input leaked to parent")
 		}
 	}
@@ -383,7 +383,7 @@ func TestFooterLayoutsAndExceptionsWithColorAndOverlappingFeedback(t *testing.T)
 					}
 					if feedback == "failure" {
 						m.configStorageError = "Config save failed"
-						m.noticeStorageError = "Could not save notices"
+						m.NoticeStorageError = "Could not save notices"
 						m.exportError = "Diagnostic export failed"
 					}
 					m = resizeModel(m, size[0], size[1])

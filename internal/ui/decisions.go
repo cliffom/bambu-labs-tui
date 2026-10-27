@@ -107,7 +107,7 @@ func (m *Model) decisionsKey(key string, msg tea.Msg) tea.Cmd {
 	if d.confirmReset {
 		switch key {
 		case keyYes, keyYesUpper:
-			m.Farm.ResetReviews()
+			m.ResetReviews()
 			m.attentionSeen = nil
 			d.confirmReset = false
 			m.setToast(feedbackSuccess, "Local notice decisions reset; printer state unchanged")
@@ -149,9 +149,9 @@ func (m *Model) decisionsKey(key string, msg tea.Msg) tea.Cmd {
 	case keyRefreshOrRestore, keyUnreviewOrUnsnooze:
 		changed := false
 		if key == keyRefreshOrRestore {
-			changed = m.Farm.RestoreDismissal(item.key)
+			changed = m.RestoreDismissal(item.key)
 		} else {
-			changed = m.Farm.MarkUnreviewed(item.key)
+			changed = m.MarkUnreviewed(item.key)
 		}
 		if changed {
 			// Explicit review reversal re-arms only this occurrence's session prompt.

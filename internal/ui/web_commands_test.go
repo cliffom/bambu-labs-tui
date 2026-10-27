@@ -12,6 +12,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/monitor"
 	"github.com/cliffom/bambu-tui/internal/noticestore"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
@@ -32,7 +33,7 @@ func TestBrowserDismissalSharesPersistenceAndTUIRestoration(t *testing.T) {
 	m.webEnabled = true
 	m = completeWeb(m, m.syncWebServer())
 	item, _ := m.selectedNotice()
-	target := m.webTargets[item.ActiveKey].ID
+	target := m.webDecisions().Targets[item.ActiveKey]
 	selection, focus := m.selection, m.focus
 	m = key(m, "enter")
 	m.openStatus() // Inspector suspended under status must keep receiving updates.
@@ -89,7 +90,7 @@ func TestBrowserStaleTargetsRecurrenceAndShutdown(t *testing.T) {
 	m.webDecisions()
 	item, _ := m.selectedNotice()
 	original := m.Farm.Active[item.ActiveKey]
-	target := m.webTargets[item.ActiveKey].ID
+	target := m.webDecisions().Targets[item.ActiveKey]
 	replacement := original
 	replacement.Since = original.Since.Add(time.Second)
 	m.Farm.Active[item.ActiveKey] = replacement
@@ -114,7 +115,7 @@ func TestBrowserStaleTargetsRecurrenceAndShutdown(t *testing.T) {
 		t.Fatal("ID reused after clear with same timestamp")
 	}
 	m.quitting = true
-	_, result = browserDecision(t, m, m.webTargets[item.ActiveKey].ID, false)
+	_, result = browserDecision(t, m, m.webDecisions().Targets[item.ActiveKey], false)
 	if result == "applied" {
 		t.Fatal("accepted during shutdown")
 	}
@@ -276,5 +277,33 @@ func TestBrowserDismissalUpdatesSuspendedAttention(t *testing.T) {
 	m.closeDialog()
 	if m.dialog.active != dialogAttention {
 		t.Fatal("status lost suspended owner")
+	}
+}
+
+func TestSessionTransitionsRejectBrowserTargetAcrossUnpublishedRecurrence(t *testing.T) {
+	m := attentionReport(t, demoModel(), "H", runoutReport).WithWebServer(&fakeWebServer{})
+	m.webEnabled = true
+	key := "H/" + farm.ConditionState
+	target := m.webDecisions().Targets[key]
+	m.openStatus()
+	owner, selection := m.dialog, m.selection
+	// Exercise the extracted owner without a browser publication between transitions.
+	// A future host must not need to render to invalidate cleared occurrence IDs.
+	for _, payload := range []string{`{"print":{"gcode_state":"RUNNING","print_error":0,"hms":[]}}`, runoutReport} {
+		if err := m.ApplyEvent(monitor.Event{Kind: monitor.EventReport, ID: "H", Payload: []byte(payload), At: m.now}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	m, result := browserDecision(t, m, target, false)
+	if result == "applied" || m.Farm.Active[key].Dismissed || m.dialog != owner || m.selection != selection {
+		t.Fatal("stale target or suspended owner changed", result)
+	}
+	fresh := m.webDecisions().Targets[key]
+	if fresh == "" || fresh == target {
+		t.Fatal("recurrence did not get a new target")
+	}
+	m, result = browserDecision(t, m, fresh, false)
+	if result != "applied" || !m.Farm.Active[key].Dismissed || m.dialog != owner {
+		t.Fatal("fresh session decision failed", result)
 	}
 }

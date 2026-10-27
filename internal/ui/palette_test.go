@@ -167,7 +167,7 @@ func TestFeedbackRolesUseInstancePaletteAndContinuousSurface(t *testing.T) {
 					}
 				}
 				m := resizeModel(noticeModel(t).WithPalette(p), size[0], size[1])
-				m.configStorageError, m.noticeStorageError = "Config save failed", "Could not save notices"
+				m.configStorageError, m.NoticeStorageError = "Config save failed", "Could not save notices"
 				assertPaint(t, m.View(), "2 errors", p.FooterWarning, p.FooterBackground, true)
 				m = key(m, "enter")
 				assertPaint(t, m.View(), "2 errors", p.FooterError, p.FooterBackground, true)
@@ -223,13 +223,13 @@ func TestPaletteRebuildsCachedViewsWithoutLeakingOrChangingState(t *testing.T) {
 			m.setToast(feedbackInfo, "This TUI owns desktop delivery")
 			m.syncDialogs()
 			before, view := hiddenState(m), m.View()
-			editing, input, revision := m.configEditing, m.configInput, m.configRevision
+			editing, input, revision := m.configEditing, m.configInput, m.ConfigRevision()
 			offsets := []int{m.details.YOffset, m.notices.YOffset, m.inspection.YOffset, m.help.YOffset, m.status.YOffset}
 			if m.filament != nil {
 				offsets = append(offsets, m.filament.view.YOffset)
 			}
 			alt := m.WithPalette(p)
-			if !reflect.DeepEqual(before, hiddenState(alt)) || editing != alt.configEditing || input != alt.configInput || revision != alt.configRevision || m.toastAt != alt.toastAt || m.toastKind != alt.toastKind {
+			if !reflect.DeepEqual(before, hiddenState(alt)) || editing != alt.configEditing || input != alt.configInput || revision != alt.ConfigRevision() || m.toastAt != alt.toastAt || m.toastKind != alt.toastKind {
 				t.Fatal("palette changed behavioral state")
 			}
 			after := []int{alt.details.YOffset, alt.notices.YOffset, alt.inspection.YOffset, alt.help.YOffset, alt.status.YOffset}

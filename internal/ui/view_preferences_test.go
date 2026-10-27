@@ -25,7 +25,7 @@ func TestFarmViewPersistsAndRestoresThroughConfiguration(t *testing.T) {
 		saved = snapshot.Clone()
 		return nil
 	})
-	reviews, snoozes := m.Farm.Reviews(), m.snoozes
+	reviews, snoozes := m.Farm.Reviews(), m.Snoozes
 	m = persistenceKey(m, "F")
 	m = persistenceKey(m, "S")
 	loaded, err := config.Load(path)
@@ -36,7 +36,7 @@ func TestFarmViewPersistsAndRestoresThroughConfiguration(t *testing.T) {
 	if restarted.printerFilter != filterAttention || restarted.printerSort != sortAttention || restarted.current().ID != "X" {
 		t.Fatal("restart did not restore view")
 	}
-	if !reflect.DeepEqual(reviews, m.Farm.Reviews()) || !reflect.DeepEqual(snoozes, m.snoozes) {
+	if !reflect.DeepEqual(reviews, m.Farm.Reviews()) || !reflect.DeepEqual(snoozes, m.Snoozes) {
 		t.Fatal("view edited review/snooze state")
 	}
 }
@@ -68,9 +68,9 @@ func TestSavedEmptyViewResetAndDialogGuards(t *testing.T) {
 	if m.printerFilter != filterAll || m.printerSort != sortName || m.current() == nil {
 		t.Fatal("empty-view reset failed")
 	}
-	revision := m.configRevision
+	revision := m.ConfigRevision()
 	m = key(m, "0")
-	if m.configRevision != revision {
+	if m.ConfigRevision() != revision {
 		t.Fatal("unchanged reset scheduled another save")
 	}
 }

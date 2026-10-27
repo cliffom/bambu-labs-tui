@@ -4,13 +4,54 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/config"
+	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/muesli/termenv"
 )
+
+func TestStartupConfigurationPreservesRestoredCloudReviews(t *testing.T) {
+	for _, decision := range []string{"acknowledged", "dismissed", "both"} {
+		t.Run(decision, func(t *testing.T) {
+			observed := time.Date(2026, time.October, 1, 12, 0, 0, 0, time.UTC)
+			previous := farm.New(10)
+			previous.Reconcile(observed)
+			if decision != "dismissed" {
+				previous.Acknowledge(farm.ConditionCloud, true)
+			}
+			if decision != "acknowledged" {
+				previous.Dismiss(farm.ConditionCloud)
+			}
+			saved := previous.Reviews()
+
+			// Match dashboard startup: install configuration before loading reviews.
+			state := farm.New(10)
+			m := New(state, nil, nil, false).WithConfiguration(config.Config{
+				Region: config.RegionGlobal, LowFilamentPercent: 25, Alerts: config.DefaultAlerts(),
+			})
+			if state.LowFilament != 25 {
+				t.Fatal("startup threshold was not installed")
+			}
+			state.RestoreReviews(saved)
+			for _, at := range []time.Time{observed.Add(time.Hour), observed.Add(2 * time.Hour)} {
+				next, _ := m.Update(tickMsg(at))
+				m = next.(Model)
+				condition, ok := state.Active[farm.ConditionCloud]
+				want := saved[farm.ConditionCloud]
+				if !ok || condition.Acknowledged != want.Acknowledged || condition.Dismissed != want.Dismissed || !condition.Since.Equal(want.Since) {
+					t.Fatalf("restored cloud occurrence changed: got %+v, want %+v", condition, want)
+				}
+				if state.Unacknowledged() != 0 {
+					t.Fatal("saved cloud review became unreviewed")
+				}
+			}
+		})
+	}
+}
 
 func openAlertConfig(m Model) Model {
 	m = key(m, ",")
@@ -79,15 +120,15 @@ func TestConfigSaveCoalescesAndBlocksQuit(t *testing.T) {
 	// Dispatch explicitly: persistence must not call the writer in the reducer.
 	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(Model)
-	if len(saved) != 0 || !m.configWrites.inFlight {
+	if len(saved) != 0 || !m.ConfigWrites().InFlight {
 		t.Fatal("save ran in reducer or was not queued")
 	}
 	if strings.Contains(ansi.Strip(m.View()), "Saving…") {
 		t.Fatal("pending saves should remain silent")
 	}
-	first := m.configRevision
+	first := m.ConfigRevision()
 	m = key(m, "enter") // Newer value waits behind the first snapshot.
-	if m.configWrites.attempted != first {
+	if m.ConfigWrites().Attempted != first {
 		t.Fatal("overlapping config writes")
 	}
 	m = key(m, "esc")

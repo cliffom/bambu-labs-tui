@@ -32,7 +32,7 @@ func TestConfigNotificationProbeUsesSoundSnapshotWithoutSaving(t *testing.T) {
 		m = key(m, "up") // Wrap from the first setting to Test Notification.
 		next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 		m = next.(Model)
-		if calls != 0 || !m.notificationTestPending || m.configRevision != 0 {
+		if calls != 0 || !m.notificationTestPending || m.ConfigRevision() != 0 {
 			t.Fatal("probe ran in reducer or changed config")
 		}
 		if !strings.Contains(ansi.Strip(m.View()), "Sending") {

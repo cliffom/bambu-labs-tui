@@ -106,7 +106,7 @@ func persistenceUpdate(m Model, msg tea.Msg) Model {
 	case tickMsg, monitor.Event:
 		// Telemetry and ticks also schedule a blocking event read or a real timer.
 		// The outer batch puts those first and persistence commands second.
-		started := (!m.reviewWrites.inFlight && result.reviewWrites.inFlight) || (!m.snoozeWrites.inFlight && result.snoozeWrites.inFlight) || (!m.configWrites.inFlight && result.configWrites.inFlight)
+		started := (!m.ReviewWrites().InFlight && result.ReviewWrites().InFlight) || (!m.SnoozeWrites().InFlight && result.SnoozeWrites().InFlight) || (!m.ConfigWrites().InFlight && result.ConfigWrites().InFlight)
 		if !started {
 			return result
 		}
@@ -157,7 +157,7 @@ func TestBlockedPersistenceCoalescesBothStoresWithoutBlockingReducer(t *testing.
 	}, nil)
 	m.Farm.Acknowledge(item.ActiveKey, true)
 	m.setSnooze("H", time.Hour)
-	initialDeadline := m.snoozes["H"]
+	initialDeadline := m.Snoozes["H"]
 	next, cmd := m.Update(nil)
 	m = next.(Model)
 	commands := cmd().(tea.BatchMsg)
@@ -178,7 +178,7 @@ func TestBlockedPersistenceCoalescesBothStoresWithoutBlockingReducer(t *testing.
 	case <-time.After(time.Second):
 		t.Fatal("snooze save did not start")
 	}
-	if m.reviewWrites.saved == m.reviewWrites.attempted || !m.persistencePending() {
+	if m.ReviewWrites().Saved == m.ReviewWrites().Attempted || !m.persistencePending() {
 		t.Fatal("pending write reported saved")
 	}
 
@@ -226,10 +226,10 @@ func TestBlockedPersistenceCoalescesBothStoresWithoutBlockingReducer(t *testing.
 		}
 	}
 	finalReviews, finalSnoozes := <-reviews, <-snoozes
-	if !reflect.DeepEqual(finalReviews, m.Farm.Reviews()) || !reflect.DeepEqual(finalSnoozes, m.snoozes) {
+	if !reflect.DeepEqual(finalReviews, m.Farm.Reviews()) || !reflect.DeepEqual(finalSnoozes, m.Snoozes) {
 		t.Fatal("newest complete snapshots were not persisted")
 	}
-	if m.HasUnsavedPersistence() || m.persistencePending() || m.reviewWrites.saved != m.Farm.ReviewRevision() || m.snoozeWrites.saved != m.snoozeRevision {
+	if m.HasUnsavedPersistence() || m.persistencePending() || m.ReviewWrites().Saved != m.Farm.ReviewRevision() || m.SnoozeWrites().Saved != m.SnoozeRevision() {
 		t.Fatal("successful revisions not recorded")
 	}
 	if len(reviews) != 0 || len(snoozes) != 0 {
@@ -320,7 +320,7 @@ func TestPersistenceShutdownFailureAndTimeout(t *testing.T) {
 			}
 			if !timeout {
 				_, retry := m.Update(tickMsg(m.now))
-				if retry == nil || m.snoozeWrites.failed == 0 || m.snoozeWrites.saved != 0 {
+				if retry == nil || m.SnoozeWrites().Failed == 0 || m.SnoozeWrites().Saved != 0 {
 					t.Fatal("failed revision was not retained")
 				}
 			}
@@ -402,17 +402,17 @@ func TestFailedCompletionKeepsNewestRevisionPendingUntilSuccess(t *testing.T) {
 	failed := first()
 	next, latest := m.Update(failed)
 	m = next.(Model)
-	if m.reviewWrites.failed == 0 || !m.reviewWrites.inFlight || !m.HasUnsavedPersistence() || m.noticeStorageError == "" {
+	if m.ReviewWrites().Failed == 0 || !m.ReviewWrites().InFlight || !m.HasUnsavedPersistence() || m.NoticeStorageError == "" {
 		t.Fatal("failed revision or newest pending state lost")
 	}
 	// A duplicate/delayed old completion cannot finish the newer write.
 	next, duplicate := m.Update(failed)
 	m = next.(Model)
-	if duplicate != nil || !m.reviewWrites.inFlight {
+	if duplicate != nil || !m.ReviewWrites().InFlight {
 		t.Fatal("stale completion changed newest write")
 	}
 	m = completePersistence(m, latest)
-	if attempts != 2 || m.HasUnsavedPersistence() || m.reviewWrites.failed != 0 || m.noticeStorageError != "" {
+	if attempts != 2 || m.HasUnsavedPersistence() || m.ReviewWrites().Failed != 0 || m.NoticeStorageError != "" {
 		t.Fatal("newest successful revision did not clear failure")
 	}
 }

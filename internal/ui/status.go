@@ -19,8 +19,8 @@ func (m Model) statusProblems() []statusProblem {
 	for _, problem := range []statusProblem{
 		{"Web server", m.webStatus.Error, "Open Config (,) > Web Server, choose another port or press r to retry, or disable the server."},
 		{"Config", m.configStorageError, "Return to the dashboard, open Config (,), then press r to retry. During editing, finish or cancel the edit first."},
-		{"Notices", m.noticeStorageError, "Failed writes retry after another local notice change. Unavailable saved data is preserved; check local storage before restarting."},
-		{"Snoozes", m.alertStorageError, "Failed writes retry after another snooze change. Unavailable saved data is preserved; check local storage before restarting."},
+		{"Notices", m.NoticeStorageError, "Failed writes retry after another local notice change. Unavailable saved data is preserved; check local storage before restarting."},
+		{"snoozes", m.AlertStorageError, "Failed writes retry after another snooze change. Unavailable saved data is preserved; check local storage before restarting."},
 		{"Desktop", m.notificationError, "Inspect notification activity (N from the dashboard). An idle paused or standby worker offers r to recheck; consumed attempts are never retried."},
 		{"Export", m.exportError, "Return to the dashboard and press D to preview another local export."},
 		{"Browser", m.browserError, "Use the full troubleshooting URL in the notice inspector, or press o there to try again."},

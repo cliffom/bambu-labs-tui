@@ -58,7 +58,7 @@ func (s *Server) Status() Status { return s.status.Load().(Status) }
 // Publish takes its own copy; HTTP handlers read only immutable encoded bytes.
 func (s *Server) Publish(data []byte) { s.snapshot.Store(bytes.Clone(data)) }
 
-// SetEnabled is called by one serialized UI command. Network lifecycle work is
+// SetEnabled is called by one serialized host command. Network lifecycle work is
 // outside the reducer; context cancellation prevents a late command reopening it.
 func (s *Server) SetEnabled(enabled bool, port int) Status {
 	s.mu.Lock()

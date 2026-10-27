@@ -243,7 +243,7 @@ func (m Model) emptyPrinterList() string {
 	if len(m.Farm.Printers) > 0 {
 		return "No printers match. 0 resets All / Name; F changes filter."
 	}
-	if m.printersDiscovered {
+	if m.PrintersDiscovered {
 		return "No printers found. Bind your printers to this Bambu account."
 	}
 	return "Discovering account printers…"

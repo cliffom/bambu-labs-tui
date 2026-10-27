@@ -135,7 +135,7 @@ func (m *Model) acknowledge(item noticeItem, toggle bool) {
 		if toggle {
 			value = !item.Acknowledged
 		}
-		if m.Farm.Acknowledge(item.ActiveKey, value) {
+		if m.Acknowledge(item.ActiveKey, value) {
 			m.setToast(feedbackSuccess, "Acknowledged locally; the printer condition remains active")
 			if !value {
 				m.setToast(feedbackSuccess, "Notice marked as unreviewed")
@@ -147,13 +147,13 @@ func (m *Model) acknowledge(item noticeItem, toggle bool) {
 
 func (m *Model) clearNotice(item noticeItem) {
 	if item.Active {
-		m.Farm.Dismiss(item.ActiveKey)
+		m.Dismiss(item.ActiveKey)
 		m.setToast(feedbackSuccess, "Notice dismissed locally; printer state unchanged")
 		m.dismissDialog(dialogInspector)
 		return
 	}
 	if item.EventID != 0 {
-		m.Farm.DeleteEvent(item.EventID)
+		m.DeleteEvent(item.EventID)
 		m.setToast(feedbackSuccess, "Event removed from this session's history")
 	} else {
 		m.setToast(feedbackInfo, "Condition has resolved")
@@ -303,7 +303,7 @@ func (m *Model) syncInspector() {
 	}
 	if item.Active {
 		persistence := "Acknowledgements and dismissals are saved across restarts until resolution."
-		if m.Demo || m.saveReviews == nil || m.noticeStorageError != "" {
+		if m.Demo || !m.NoticesWritable() || m.NoticeStorageError != "" {
 			persistence = "Acknowledgements and dismissals apply only to this session."
 		}
 		actions := "a: toggle acknowledgement · c: dismiss locally"

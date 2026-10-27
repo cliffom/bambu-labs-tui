@@ -75,7 +75,7 @@ func TestNotificationSubmissionHonorsReviewsCategoriesAndSnooze(t *testing.T) {
 		t.Fatal("disabled category allowed")
 	}
 	m.alertPrefs.Filament = true
-	m.snoozes = map[string]time.Time{"TEST": m.now.Add(time.Hour)}
+	m.Snoozes = map[string]time.Time{"TEST": m.now.Add(time.Hour)}
 	update()
 	if !client.inputs[len(client.inputs)-1].Policies["TEST"].Snoozed {
 		t.Fatal("snooze missing")

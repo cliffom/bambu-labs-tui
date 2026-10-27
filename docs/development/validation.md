@@ -5,6 +5,18 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Shared monitoring session (#96)
+
+On 2026-10-27 (PDT), v0.3.2 was checked on macOS arm64 with Go 1.27.3 using synthetic telemetry and temporary stores. `internal/session` tests exercise normalization/reconciliation without Bubble Tea, independent notice decisions, duplicate hides, unknown/stale targets, shutdown/disable rejection, partial reports/reconnects, and confirmed clear/recurrence at an identical timestamp without publication between reports. Persistence tests cover immutable snapshots, independent serialized stores, coalesced latest saves, delayed completion rejection, failure versus applied state, explicit retry, failed-load protection, demo isolation, configuration cloning, and snooze expiry/removal. Existing TUI/browser integration tests remain in place, with a new suspended-status regression for the extracted transition path.
+
+A real `make demo` session was driven through a PTY/emulator at 120×32, 60×18, and 59×17 fallback. Checks covered Web Server settings/start, blocked hidden enablement, resize restoration, Status / Feedback return, and the suspended notice inspector reflecting a browser hide as **hidden locally**. The 60×18 Settings and 120×32 updated inspector captures were visually inspected. This is synthetic/emulated evidence, not physical-terminal validation.
+
+Headless Google Chrome loaded the real demo listener at 1440×1000, 390×844, and 320×700, plus 200% root text at 390 pixels. Checks covered keyboard action focus, local hiding, a second tab updating on its next poll, harmless duplicate POSTs, rejected unknown targets/foreign Origin, Close focus fallback, and page/dialog horizontal bounds without JavaScript errors. The phone capture was visually inspected. Node browser-notice regressions and JavaScript syntax checks passed. No rendering or interaction contract was intentionally changed; user guidance and UI direction remain applicable. Architecture, contributor guidance, the agent package map, roadmap, changelog, and release version document the extraction and phase boundaries.
+
+`make fmt-check lint test check build docs-check` passed with pinned golangci-lint v2.15.0 supplied through `GOLANGCI_LINT`; race tests included the CLI PTY suites. `make vuln-check` reported no known vulnerabilities. `make release` passed all four macOS/Linux architecture builds, universal helper compilation/ad-hoc signing, archive inventory/documentation/signature checks, and v0.3.2 checksums. `git diff --check` passed. Packaging validates local candidates; distribution signing/notarization was not enabled.
+
+Live cloud accounts/printers, recurrence on hardware, physical terminal presentation, Safari/Firefox, Linux browser rendering, new theme/no-color visual checks, clean-Mac distribution, and signed/notarized release validation were not performed. The foundation does not add a terminal-free CLI mode or establish completion of #90; phases #97 and #98 remain planned.
+
 ## Browser hidden-message visibility
 
 On 2026-10-27 (PDT), the browser inspector was updated to omit dismissed conditions by default and offer a counted **View hidden messages** / **Hide hidden messages** toggle. Dependency-free Node regressions cover default filtering, reveal/collapse without changing decisions, polling, reset on printer inspection, all-hidden versus empty states, new conditions, retained scroll/focus, disappearing controls, and access to failed-save retry during feed outages.

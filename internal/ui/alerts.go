@@ -26,16 +26,7 @@ func (m Model) WithAlertPreferences(prefs config.AlertPreferences) Model {
 
 // WithSnoozePersistence restores deadlines; failed loads preserve the original file.
 func (m Model) WithSnoozePersistence(snoozes map[string]time.Time, save func(map[string]time.Time) error, loadErr error) Model {
-	m.snoozes = make(map[string]time.Time, len(snoozes))
-	for id, until := range snoozes {
-		m.snoozes[id] = until
-	}
-	m.saveSnoozes = nil
-	if loadErr != nil {
-		m.alertStorageError = "Saved snoozes unavailable; changes apply only to this session"
-	} else if !m.Demo {
-		m.saveSnoozes = save
-	}
+	m.Session.WithSnoozePersistence(snoozes, save, loadErr)
 	return m
 }
 
@@ -46,7 +37,7 @@ func (m Model) automaticAlertAllowed(item farm.Attention) bool {
 
 // snoozed checks a deadline rather than relying on the next expiry cleanup tick.
 func (m Model) snoozed(id string) bool {
-	return m.now.Before(m.snoozes[id])
+	return m.now.Before(m.Snoozes[id])
 }
 
 // rearmPrinterAlerts removes only a printer's session prompt suppression.
@@ -60,30 +51,16 @@ func (m *Model) rearmPrinterAlerts(id string) {
 
 // pruneSnoozes expires deadlines and drops removed printers after successful discovery.
 func (m *Model) pruneSnoozes() {
-	for id, until := range m.snoozes {
-		_, present := m.Farm.Printers[id]
-		if !m.now.Before(until) || (m.printersDiscovered && !present) {
-			delete(m.snoozes, id)
-			m.rearmPrinterAlerts(id)
-			m.snoozesDirty = true
-		}
+	for _, id := range m.PruneSnoozes(m.now) {
+		m.rearmPrinterAlerts(id)
 	}
 }
 
 // setSnooze changes a printer deadline without acknowledging, dismissing, or hiding notices.
 func (m *Model) setSnooze(id string, duration time.Duration) {
-	if _, exists := m.Farm.Printers[id]; !exists {
+	if !m.SetSnooze(id, duration, m.now) {
 		return
 	}
-	if m.snoozes == nil {
-		m.snoozes = map[string]time.Time{}
-	}
-	if duration > 0 {
-		m.snoozes[id] = m.now.Add(duration)
-	} else {
-		delete(m.snoozes, id)
-	}
-	m.snoozesDirty = true
 	m.rearmPrinterAlerts(id)
 	if duration > 0 && m.attention != nil {
 		// Remove only the snoozed printer; keep other printers queued for review.
@@ -132,7 +109,7 @@ func (m *Model) alertKey(key string, msg tea.Msg) tea.Cmd {
 // alertStatus summarizes automatic interruptions without changing the printer status.
 func (m Model) alertStatus(id string) string {
 	if m.snoozed(id) {
-		return "Snoozed until " + m.snoozes[id].Local().Format("Mon 02 Jan 15:04")
+		return "Snoozed until " + m.Snoozes[id].Local().Format("Mon 02 Jan 15:04")
 	}
 	rules := m.alertPrefs.RulesFor(id)
 	if !rules.AutomaticModals {
@@ -177,7 +154,7 @@ func (m *Model) syncAlertDialog() {
 		status := m.notificationClient.Status()
 		lines = append(lines, "N from the dashboard opens recent notification activity.", "Delivery counts cover this entire TUI session.", field("Owner", notifications.OwnershipText(status)), field("Delivery", status.Last), field("Accepted", fmt.Sprint(status.Accepted)), field("Failed", fmt.Sprint(status.Failed)), field("Suppressed", fmt.Sprint(status.Suppressed)))
 	}
-	if m.Demo || m.saveSnoozes == nil {
+	if m.Demo || !m.SnoozesWritable() {
 		lines = append(lines, "Snooze changes apply only to this session.")
 	}
 	d.view.SetContent(wrapLines(lines, d.view.Width))
@@ -190,18 +167,18 @@ func (m Model) alertView() string {
 
 // storageWarning keeps storage and desktop delivery failures visible in every view.
 func (m Model) storageWarning() string {
-	if m.noticeStorageError != "" && m.alertStorageError != "" && m.notificationError == "" && m.configStorageError == "" {
+	if m.NoticeStorageError != "" && m.AlertStorageError != "" && m.notificationError == "" && m.configStorageError == "" {
 		return "Notice and snooze storage unavailable; changes may not persist"
 	}
 	var warnings []string
 	if m.configStorageError != "" {
 		warnings = append(warnings, m.configStorageError)
 	}
-	if m.noticeStorageError != "" {
-		warnings = append(warnings, m.noticeStorageError)
+	if m.NoticeStorageError != "" {
+		warnings = append(warnings, m.NoticeStorageError)
 	}
-	if m.alertStorageError != "" {
-		warnings = append(warnings, m.alertStorageError)
+	if m.AlertStorageError != "" {
+		warnings = append(warnings, m.AlertStorageError)
 	}
 	if m.notificationError != "" {
 		warnings = append(warnings, m.notificationError)

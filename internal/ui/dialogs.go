@@ -154,7 +154,7 @@ func (m *Model) clearHistoryKey(key string, _ tea.Msg) tea.Cmd {
 	switch key {
 	case keyYes, keyYesUpper:
 		for _, id := range m.clearHistoryEvents {
-			m.Farm.DeleteEvent(id)
+			m.DeleteEvent(id)
 		}
 		m.closeDialog()
 		m.setToast(feedbackSuccess, "Confirmed history cleared; newer events and active conditions kept")

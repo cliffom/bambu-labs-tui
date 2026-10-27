@@ -1134,6 +1134,12 @@ samp {
 
 .condition button {
   margin-top: 16px;
+}
+#toggle-hidden-messages {
+  display: block;
+}
+.condition button,
+#toggle-hidden-messages {
   padding: 10px 14px;
   border: 1px solid var(--green);
   border-radius: 6px;

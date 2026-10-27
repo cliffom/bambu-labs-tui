@@ -80,6 +80,8 @@ macOS may retain its notification settings/history after removal. The helper doe
 
 ## Test evidence
 
+For browser notice visibility changes, run `node --test tools/test-browser-notices.cjs` with Node.js 18 or newer. These dependency-free tests exercise the dashboard script with a minimal DOM stand-in; use a real browser separately to inspect layout and keyboard behavior.
+
 On Linux/macOS, `make test` also runs the [PTY smoke suite](terminal-tests.md), which exercises the real demo CLI and terminal lifecycle without account access. Tests use fake HTTP/native credential processes, an in-memory MQTT broker connection, and **synthetic** H2D/X2D telemetry fixtures. Displayed telemetry has been validated on H2D and X2D, and the native credential-store probe has passed in a normal terminal. Remaining hardware and real-account restart checks are tracked in [the validation record](validation.md). Captured regression fixtures must have tokens, account identifiers, serials, job names, and spool identifiers removed.
 
 Notification identity regressions use synthetic farm reports and temporary private stores. They cover reconnect/restart replay, family-specific clears and recurrence, job baselines/identities, failed and unknown attempts, cross-process locking semantics, corruption/capacity failures, and reservation write failures. These do not establish live automatic notification delivery.

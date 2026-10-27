@@ -175,7 +175,7 @@ func run(args []string) error {
 }
 
 func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode bool) (cloud.Session, error) {
-	var token string
+	var token, loginEmail string
 	if importToken {
 		value, err := prompt(ctx, "Bambu access token", true)
 		if err != nil {
@@ -188,6 +188,7 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 			return cloud.Session{}, err
 		}
 		email = strings.TrimSpace(email)
+		loginEmail = email
 		if !strings.Contains(email, "@") {
 			return cloud.Session{}, errors.New("enter an email account")
 		}
@@ -241,7 +242,12 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 		return cloud.Session{}, errors.New("login did not return an access token; try login --token")
 	}
 	// Validate the token and resolve the actual account identity before saving.
-	return api.Session(ctx, token)
+	session, err := api.Session(ctx, token)
+	if err != nil {
+		return cloud.Session{}, err
+	}
+	session.Email = loginEmail
+	return session, nil
 }
 
 func dashboard(ctx context.Context, configPath string, cfg config.Config, theme ui.Theme, api *cloud.Client, session cloud.Session, demo bool) error {
@@ -260,7 +266,7 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, theme 
 	}()
 	state := farm.New(cfg.LowFilamentPercent)
 	savedConfig := cfg.Clone()
-	model := ui.New(state, events, refresh, demo).WithPalette(theme.Palette).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
+	model := ui.New(state, events, refresh, demo).WithTheme(theme).WithLoginEmail(session.Email).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
 		if err := config.SaveChanges(configPath, savedConfig, snapshot); err != nil {
 			return err
 		}

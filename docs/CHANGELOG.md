@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.11 — About Bambu TUI
+
+- Add read-only About on `A`, with running version/platform, known login email or explicit unavailable/demo state, the effective bundled/custom theme source, project URL, and requested attribution/branding. Retain email from successful email logins in the existing OS-backed session; older sessions and token imports remain explicitly unavailable.
+- Show every effective palette role in a responsive, scrollable swatch grid with RGB labels and inherited terminal colors. Preserve dashboard focus/selection, ongoing telemetry, status return, and below-minimum restoration.
+
 ## 0.2.10 — Customizable themes
 
 - Make fresh status notices bright and bold, with distinct informational, local-success, warning, and error styling. Preserve feedback priority and lifetime, and keep local success and native notification acceptance separate from physical fault resolution and confirmed presentation.

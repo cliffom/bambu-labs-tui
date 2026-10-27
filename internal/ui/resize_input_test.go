@@ -44,10 +44,12 @@ func hiddenState(m Model) hiddenInputState {
 }
 
 func TestUndersizedInterfaceBlocksHiddenActionsAndNavigation(t *testing.T) {
-	for _, dialog := range []string{"status", "notification activity", "dashboard", "help", "inspector", "history", "decisions", "reset", "filament", "alerts", "nested alerts", "export", "attention"} {
+	for _, dialog := range []string{"about", "status", "notification activity", "dashboard", "help", "inspector", "history", "decisions", "reset", "filament", "alerts", "nested alerts", "export", "attention"} {
 		t.Run(dialog, func(t *testing.T) {
 			m := noticeModel(t)
 			switch dialog {
+			case "about":
+				m = key(m, "A")
 			case "status":
 				m = key(m, "ctrl+e")
 			case "notification activity":

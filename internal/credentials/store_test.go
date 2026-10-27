@@ -60,7 +60,7 @@ func TestNativeStoreLifecycle(t *testing.T) {
 	for _, platform := range []string{"darwin", "linux"} {
 		t.Run(platform, func(t *testing.T) {
 			s, _ := fakeStore(t, platform)
-			value := cloud.Session{Token: "fixture-token-with-\"quote\\slash", Username: "u_123"}
+			value := cloud.Session{Token: "fixture-token-with-\"quote\\slash", Username: "u_123", Email: "operator@example.test"}
 			if _, err := s.Load(); !errors.Is(err, ErrNotFound) {
 				t.Fatal(err)
 			}

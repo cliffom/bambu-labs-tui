@@ -69,8 +69,8 @@ func (m *Model) syncAbout() {
 		"A Suite Potato Spud",
 		"Lovingly crafted by Michael Clifford",
 		"",
-		"Theme: " + theme,
-		"Theme Pallet:",
+		m.styles.secondary.Render("Theme:") + " " + m.styles.text.Render(theme),
+		m.styles.secondary.Render("Theme Palette:"),
 	}
 	content := ansi.Wrap(strings.Join(lines, "\n"), m.about.Width, "")
 	m.about.SetContent(content + "\n" + m.aboutPalette())

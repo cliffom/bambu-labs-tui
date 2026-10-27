@@ -23,7 +23,7 @@ func TestAboutMetadata(t *testing.T) {
 		platform = "macOS"
 	}
 	previous := -1
-	for _, want := range []string{"Bambu TUI " + buildinfo.Version, platform + " / " + runtime.GOARCH, "https://github.com/cliffom/bambu-tui", "A Suite Potato Spud", "Lovingly crafted by Michael Clifford", "Theme: default", "Theme Pallet:"} {
+	for _, want := range []string{"Bambu TUI " + buildinfo.Version, platform + " / " + runtime.GOARCH, "https://github.com/cliffom/bambu-tui", "A Suite Potato Spud", "Lovingly crafted by Michael Clifford", "Theme: default", "Theme Palette:"} {
 		at := strings.Index(content, want)
 		if at <= previous {
 			t.Fatalf("missing or out-of-order %q in %q", want, content)
@@ -34,6 +34,22 @@ func TestAboutMetadata(t *testing.T) {
 		if strings.Contains(content, label) {
 			t.Fatal("removed field still shown", label)
 		}
+	}
+}
+
+func TestAboutFieldColors(t *testing.T) {
+	previous := lipgloss.ColorProfile()
+	defer lipgloss.SetColorProfile(previous)
+	for _, profile := range []termenv.Profile{termenv.TrueColor, termenv.ANSI256, termenv.Ascii} {
+		lipgloss.SetColorProfile(profile)
+		m := key(resizeModel(demoModel(), 60, 18), "A")
+		p := DefaultPalette()
+		p.Text, p.SecondaryText, p.Background = "#FFFFFF", "#808080", "#101010"
+		m = m.WithPalette(p)
+		view := m.View()
+		assertPaint(t, view, "Theme:", p.SecondaryText, p.Background, false)
+		assertPaint(t, view, "Theme Palette:", p.SecondaryText, p.Background, false)
+		assertPaint(t, view, "default", p.Text, p.Background, false)
 	}
 }
 

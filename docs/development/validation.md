@@ -5,11 +5,17 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## v0.2.12 — About label styling
+
+On 2026-10-26 (PDT), macOS arm64/Go 1.27.3 synthetic `make demo` PTY/emulator captures covered the default theme with TrueColor and no color at 120×32 and 60×18, Status / Feedback return, 59×17 fallback/restoration, and dashboard return (16 frames). Rendered contact sheets were inspected for secondary-colored “Theme:” / “Theme Palette:” labels, primary theme values, readable metadata/swatches, and restored navigation. Other themes and ANSI256 have automated coverage only; physical terminal/font and live hardware behavior were not newly validated.
+
+`make fmt-check docs-check`, pinned v2.15.0 lint, `go vet`, and UI/CLI race tests passed after the styling fix. A regression test checks label/value paint after palette replacement in TrueColor, ANSI256, and no color; existing About tests cover layout bounds and focus/scroll restoration.
+
 ## v0.2.11 — About Bambu TUI (#85)
 
 ### Revised About presentation
 
-On 2026-10-26 (PDT), the user revised the requested About layout: app name/version on one line, unlabeled platform and project URL, branding before “Lovingly crafted by Michael Clifford,” then Theme and “Theme Pallet.” The palette now contains only unique explicit RGB swatches sorted by hue, with achromatic colors first from dark to light; it omits role/RGB labels and unknown inherited terminal colors. No-color mode preserves separated solid blocks without identifying their colors. Account information and the initial optional-email session changes were removed. This presentation supersedes the initial implementation described below.
+On 2026-10-26 (PDT), the user revised the requested About layout: app name/version on one line, unlabeled platform and project URL, branding before “Lovingly crafted by Michael Clifford,” then Theme and “Theme Palette.” The palette now contains only unique explicit RGB swatches sorted by hue, with achromatic colors first from dark to light; it omits role/RGB labels and unknown inherited terminal colors. No-color mode preserves separated solid blocks without identifying their colors. Account information and the initial optional-email session changes were removed. This presentation supersedes the initial implementation described below.
 
 On local macOS arm64/Go 1.27.3, `make fmt-check lint test check build docs-check` and `make release` passed again. New/updated tests cover exact metadata order and removed field labels, case-insensitive RGB deduplication, independent expected hue order including gray/primary colors, unlabeled grid contents/bounds, active bundled/custom sources, and TrueColor/ANSI256/no-color rendering. A long custom source keeps scroll/status/fallback restoration coverage meaningful now that bundled About views are shorter. Existing ownership, telemetry, attention deferral, and CLI PTY tests remain covered.
 

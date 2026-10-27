@@ -19,6 +19,18 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for a future release.** Establish hardware-backed feasibility before promising compatibility or delivery; v0.3.0 introduces the local web dashboard.
 
+## v0.3.x — Web dashboard follow-ups
+
+The [v0.3.x milestone](https://github.com/cliffom/bambu-tui/milestone/12) extends the shipped local dashboard in three areas. These are planned capabilities; patch versions depend on implementation and validation.
+
+| Planned capability | Issue | Release criteria |
+| --- | --- | --- |
+| Run just the web server without the terminal UI | [#90](https://github.com/cliffom/bambu-tui/issues/90) | Explicit foreground CLI mode without a TTY, shared monitoring/state ownership, actionable authentication/startup errors, and bounded signal/persistence shutdown |
+| Browser system notifications | [#91](https://github.com/cliffom/bambu-tui/issues/91) | Explicit permission and opt-in using the browser Notifications API, defined incident/completion policy, deduplication across polls/reloads/tabs, and documented browser/lifecycle limits |
+| Dismiss alerts in the browser and synchronize with the TUI | [#92](https://github.com/cliffom/bambu-tui/issues/92) | Per-occurrence local dismissal through the authoritative state owner, protected mutation requests, shared saved decisions, visible save failures, and consistent TUI/browser state |
+
+Keep localhost binding and the display-data allowlist. Headless mode does not imply LAN/remote access or an installed background service. Browser notifications work with either server mode and define their own relationship to native macOS delivery; closing a system notification does not dismiss a notice. Browser dismissal reuses local notice decisions and never establishes physical fault resolution or introduces printer control. Preserve unknown/confirmed telemetry distinctions and record actual browser, terminal, persistence, and hardware evidence in the validation record as each feature ships. Current usage and architecture guides continue to describe v0.3.0 until implementation changes them.
+
 ## v0.3.0 — Local web dashboard
 
 [#88](https://github.com/cliffom/bambu-tui/issues/88) adds a default-off Web Server section in Config. Enabling starts a read-only dashboard at a configurable `http://127.0.0.1:<port>` (default 8080, with a visible error and no fallback if occupied), sharing the running TUI's monitoring state. The browser includes farm summaries, filtering/search, printer inspection, AMS/temperatures, and reported conditions with explicit unknown/last-known qualifiers. Disabling or exiting stops the listener. This initial scope is localhost-only without authentication; remote access and standalone/headless mode remain outside scope. See [usage](user/usage.md#local-web-dashboard) and the [validation record](development/validation.md) for evidence and limits.

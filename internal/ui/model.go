@@ -108,6 +108,7 @@ type (
 		exportDialog               *exportDialog
 		clearNotices               *clearNoticesDialog
 
+		webTargets                                        map[string]webTarget
 		webServer                                         webServerClient
 		webEnabled, webAttempted, webInitialized, webBusy bool
 		webStatus                                         webserver.Status
@@ -149,7 +150,7 @@ func (m Model) wait() tea.Cmd {
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.wait(), tick(), func() tea.Msg { return webServerInitMsg{} })
+	return tea.Batch(m.wait(), tick(), func() tea.Msg { return webServerInitMsg{} }, m.waitWebCommand())
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -176,6 +177,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch v := msg.(type) {
+	case webserver.Command:
+		m.applyWebCommand(v)
+		cmd = m.waitWebCommand()
 	case webServerResultMsg:
 		m.webBusy = false
 	case notificationTestResultMsg:

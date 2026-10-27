@@ -1,11 +1,14 @@
-// Package webserver serves read-only, allowlisted snapshots on IPv4 loopback.
+// Package webserver serves allowlisted snapshots and local notice decisions on IPv4 loopback.
 // It never owns farm state, cloud credentials, or a monitoring connection.
 package webserver
 
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"embed"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -24,6 +27,8 @@ var assets embed.FS
 type (
 	Status struct{ URL, Error string }
 	Server struct {
+		commands chan Command
+		token    string
 		ctx      context.Context
 		mu       sync.Mutex
 		server   *http.Server
@@ -37,7 +42,11 @@ type (
 )
 
 func New(ctx context.Context) *Server {
-	s := &Server{ctx: ctx}
+	var token [32]byte
+	if _, err := rand.Read(token[:]); err != nil {
+		panic(err)
+	}
+	s := &Server{ctx: ctx, commands: make(chan Command, commandQueueCapacity), token: hex.EncodeToString(token[:])}
 	s.snapshot.Store([]byte(`{"printers":[],"connected":false,"summary":{},"demo":false}`))
 	s.status.Store(Status{})
 	context.AfterFunc(ctx, s.Close)
@@ -116,12 +125,21 @@ func (s *Server) handler(host string, files http.Handler) http.Handler {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
+		if r.URL.Path == "/api/dismiss" {
+			s.command(w, r, host)
+			return
+		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
 			http.Error(w, "Read-only endpoint", http.StatusMethodNotAllowed)
 			return
 		}
 		switch r.URL.Path {
+		case "/api/session":
+			w.Header().Set("Content-Type", "application/json")
+			if r.Method == http.MethodGet {
+				_ = json.NewEncoder(w).Encode(map[string]string{"token": s.token})
+			}
 		case "/api/snapshot":
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			if r.Method == http.MethodGet {

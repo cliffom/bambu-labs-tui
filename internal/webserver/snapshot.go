@@ -12,7 +12,13 @@ import (
 )
 
 type (
+	Decisions struct {
+		Targets map[string]string
+		State   string
+	}
+
 	snapshot struct {
+		Decisions string    `json:"decisions"`
 		At        string    `json:"at"`
 		Demo      bool      `json:"demo"`
 		Connected bool      `json:"connected"`
@@ -111,8 +117,13 @@ func slots(source []farm.Slot) []slot {
 // explicitly excludes Raw, device serials, protocol job IDs, account/session
 // information, credentials, storage paths, and backend errors. Its JSON contains
 // only finite primitive values; no mutable farm objects leave the reducer.
-func SnapshotJSON(state *farm.State, now time.Time, demo bool) []byte {
+func SnapshotJSON(state *farm.State, now time.Time, demo bool, decisions ...Decisions) []byte {
 	result := snapshot{At: timestamp(now), Demo: demo, Connected: state.Connected, Printers: make([]printer, 0, len(state.Printers))}
+	var local Decisions
+	if len(decisions) > 0 {
+		local = decisions[0]
+		result.Decisions = local.State
+	}
 	guidance := map[string]string{}
 	attention := map[string]bool{}
 	for _, a := range state.Attention() {
@@ -136,7 +147,11 @@ func SnapshotJSON(state *farm.State, now time.Time, demo bool) []byte {
 			if owner != id {
 				continue
 			}
-			out.Conditions = append(out.Conditions, condition{ID: opaque(key + timestamp(c.Since)), Level: c.Level, Text: c.Text, Code: c.Code, Since: timestamp(c.Since), Reviewed: c.Acknowledged || c.Dismissed, Hidden: c.Dismissed, Guidance: guidance[key]})
+			identity := opaque(key + timestamp(c.Since))
+			if local.Targets != nil {
+				identity = local.Targets[key]
+			}
+			out.Conditions = append(out.Conditions, condition{ID: identity, Level: c.Level, Text: c.Text, Code: c.Code, Since: timestamp(c.Since), Reviewed: c.Acknowledged || c.Dismissed, Hidden: c.Dismissed, Guidance: guidance[key]})
 		}
 		sort.Slice(out.Conditions, func(i, j int) bool { return out.Conditions[i].ID < out.Conditions[j].ID })
 		result.Printers = append(result.Printers, out)

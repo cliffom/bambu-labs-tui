@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.4 — Cloud-backed terminal-free server
+
+- Add foreground `bambu-tui serve` with saved cloud credentials and optional `--config`, without a TTY or interactive login. Report missing/invalid/unavailable credentials with recovery guidance; cancel bounded native-store startup on signals.
+- Reuse cloud discovery and MQTT monitoring, keeping transient failures reconnecting and exiting nonzero for typed authentication rejection or unexpected monitor/listener termination. One monitor serves all browser tabs.
+- Restore account/region-scoped notice decisions and snoozes, preserve failed-load protection and explicit notice-save retry, and drain accepted/coalesced writes on bounded shutdown.
+- Keep native desktop notifications disabled, saved configuration intact, and localhost-only, allowlisted, read-only printer boundaries. This delivers phase 3 of #90 (#98); browser notifications remain planned.
+
+See [usage](user/usage.md#terminal-free-cloud-server) and the [validation record](development/validation.md#cloud-backed-terminal-free-server-98) for evidence and limits.
+
 ## 0.3.3 — Terminal-free demo server
 
 - Add `bambu-tui serve --demo`, with optional `--config`, to run the synthetic farm and browser dashboard in the foreground without a TTY or credentials. Start HTTP regardless of saved enablement, preserve configuration, and print the localhost URL only after a successful bind; occupied ports fail without fallback.

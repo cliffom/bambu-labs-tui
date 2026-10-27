@@ -18,14 +18,19 @@ type (
 	// EventKind identifies the monitor messages consumed by the UI reducer.
 	EventKind string
 
+	// StopReason is a terminal monitor outcome, independent of display text.
+	// The zero value denotes an ordinary event, including transient disconnects.
+	StopReason string
+
 	Event struct {
-		Kind      EventKind
-		At        time.Time
-		Devices   []farm.Device
-		ID        string
-		Payload   []byte
-		Connected bool
-		Problem   string
+		Kind       EventKind
+		StopReason StopReason
+		At         time.Time
+		Devices    []farm.Device
+		ID         string
+		Payload    []byte
+		Connected  bool
+		Problem    string
 	}
 
 	// API implementations must return when the supplied context is canceled.
@@ -76,6 +81,8 @@ type (
 )
 
 const (
+	StopAuthenticationRejected StopReason = "authentication-rejected"
+
 	EventDevices    EventKind = "devices"
 	EventConnection EventKind = "connection"
 	EventReport     EventKind = "report"
@@ -134,7 +141,7 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 			return
 		}
 		if errors.Is(err, cloud.ErrAuth) || errors.Is(err, mqtt.ErrAuth) {
-			emit(ctx, out, Event{Kind: EventConnection, Problem: "Session expired or rejected — quit and run bambu-tui login"})
+			emit(ctx, out, Event{Kind: EventConnection, StopReason: StopAuthenticationRejected, Problem: "Session expired or rejected — quit and run bambu-tui login"})
 			return
 		}
 		problem := "Cloud disconnected; reconnecting"

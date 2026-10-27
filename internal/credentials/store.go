@@ -62,7 +62,11 @@ func (e commandError) Error() string {
 }
 
 func run(input, name string, args ...string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), nativeCommandTimeout)
+	return runContext(context.Background(), input, name, args...)
+}
+
+func runContext(ctx context.Context, input, name string, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, nativeCommandTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdin = strings.NewReader(input)
@@ -87,16 +91,31 @@ func failure(operation string, err error) error {
 	return fmt.Errorf("%w: %s", ErrUnavailable, operation)
 }
 
-func (s Store) Load() (cloud.Session, error) {
+func (s Store) Load() (cloud.Session, error) { return s.LoadContext(context.Background()) }
+
+// LoadContext bounds native-store access and lets foreground hosts cancel startup.
+func (s Store) LoadContext(ctx context.Context) (cloud.Session, error) {
+	if err := ctx.Err(); err != nil {
+		return cloud.Session{}, err
+	}
+	run := func(input, name string, args ...string) ([]byte, error) {
+		if s.execute != nil {
+			return s.execute(input, name, args...)
+		}
+		return runContext(ctx, input, name, args...)
+	}
 	var data []byte
 	var err error
 	switch s.os() {
 	case "darwin":
-		data, err = s.run("", "/usr/bin/security", "find-generic-password", "-s", s.service(), "-a", "session", "-w")
+		data, err = run("", "/usr/bin/security", "find-generic-password", "-s", s.service(), "-a", "session", "-w")
 	case "linux":
-		data, err = s.run("", "secret-tool", "lookup", "service", s.service(), "account", "session")
+		data, err = run("", "secret-tool", "lookup", "service", s.service(), "account", "session")
 	default:
 		return cloud.Session{}, ErrUnavailable
+	}
+	if ctx.Err() != nil {
+		return cloud.Session{}, ctx.Err()
 	}
 	if err != nil {
 		var exit commandError

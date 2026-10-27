@@ -12,6 +12,7 @@ import (
 
 	"github.com/cliffom/bambu-tui/internal/cloud"
 	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/mqtt"
 )
 
 // TestDemoRunoutScenario verifies the demo's modal incident without a timed wait.
@@ -133,14 +134,14 @@ func TestAuthFailureStopsRetries(t *testing.T) {
 			defer cancel()
 			events := make(chan Event, 8)
 			var calls atomic.Int32
-			r := Runner{API: fakeAPI{}, RetryMin: time.Millisecond, Dial: func(context.Context) (Transport, error) { calls.Add(1); return nil, cloud.ErrAuth }}
+			r := Runner{API: fakeAPI{}, RetryMin: time.Millisecond, Dial: func(context.Context) (Transport, error) { calls.Add(1); return nil, mqtt.ErrAuth }}
 			if source == "http" {
 				r.API = fakeAPI{cloud.ErrAuth}
 			}
 			done := make(chan struct{})
 			go func() { r.Run(ctx, events, make(chan struct{})); close(done) }()
 			e := receive(t, events, EventConnection)
-			if e.Connected || e.Problem == "" {
+			if e.Connected || e.Problem == "" || e.StopReason != StopAuthenticationRejected {
 				t.Fatal(e)
 			}
 			select {

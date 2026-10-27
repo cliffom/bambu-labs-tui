@@ -1,11 +1,14 @@
 package credentials
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cliffom/bambu-tui/internal/cloud"
 )
@@ -163,5 +166,40 @@ func TestSessionValidation(t *testing.T) {
 	(*data)["value"] = string(b)
 	if _, err := s.Load(); !errors.Is(err, ErrInvalid) {
 		t.Fatal(err)
+	}
+}
+
+func TestLoadContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	store, _ := fakeStore(t, "linux")
+	store.execute = func(string, string, ...string) ([]byte, error) {
+		t.Fatal("native lookup started after cancellation")
+		return nil, nil
+	}
+	cancel()
+	if _, err := store.LoadContext(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
+	}
+}
+
+func TestCredentialCommandHelper(t *testing.T) {
+	if os.Getenv("BAMBU_CREDENTIAL_WAIT_CHILD") != "1" {
+		return
+	}
+	_, _ = os.Stdout.WriteString("ready")
+	time.Sleep(time.Minute)
+	os.Exit(0)
+}
+
+func TestNativeCommandCancellation(t *testing.T) {
+	t.Setenv("BAMBU_CREDENTIAL_WAIT_CHILD", "1")
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	started := time.Now()
+	if _, err := runContext(ctx, "", os.Args[0], "-test.run=^TestCredentialCommandHelper$"); err == nil {
+		t.Fatal("canceled command succeeded")
+	}
+	if ctx.Err() == nil || time.Since(started) > 3*time.Second {
+		t.Fatal("native command did not honor cancellation")
 	}
 }

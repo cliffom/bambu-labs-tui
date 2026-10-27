@@ -4,7 +4,7 @@ import "fmt"
 
 // Release builds inject these through -ldflags. Direct go builds remain useful.
 var (
-	Version = "0.3.3"
+	Version = "0.3.4"
 	Commit  = "unknown"
 	Date    = "unknown"
 )

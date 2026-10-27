@@ -24,7 +24,7 @@ A visual farm overview with searchable, filterable printer cards, model illustra
 
 ![Bambu TUI browser dashboard showing a three-printer farm overview, summary counts, search and filters, and printer cards with progress, temperatures, and availability.](assets/screenshots/browser.png)
 
-The optional browser dashboard runs on the **same computer** and shares the TUI's monitoring connection. For real printers, keep the TUI running while you browse; closing it stops the web server. [Enable the browser dashboard](#open-the-browser-dashboard) after starting either the demo or your own farm.
+The optional browser dashboard runs on the **same computer** and shares the TUI's monitoring connection. For real printers, keep the TUI running or use the [terminal-free cloud server](docs/user/usage.md#terminal-free-cloud-server) after saving a login. [Enable the browser dashboard](#open-the-browser-dashboard) after starting either the demo or your own farm.
 
 ## Get started
 
@@ -66,7 +66,7 @@ For optional macOS desktop notifications, keep the included `Bambu TUI Notify.ap
 
 Browse a simulated farm with AMS units and an external spool. Press `m` to inspect filament and `?` for help. A simulated runout demonstrates an action-needed alert about 15 seconds after launch. Close dialogs with `Esc`, then press `q` to quit.
 
-For a terminal-free synthetic browser demo, run `./bambu-tui serve --demo` and open the printed localhost URL. Stop the foreground server with `Ctrl+C`. See [demo server options and limits](docs/user/usage.md#terminal-free-demo-server).
+For terminal-free monitoring of your own farm, save a login and run `./bambu-tui serve`. For a terminal-free synthetic browser demo, run `./bambu-tui serve --demo` and open the printed localhost URL. Stop the foreground server with `Ctrl+C`. See [demo server options and limits](docs/user/usage.md#terminal-free-demo-server).
 
 ### 3. Connect your printers
 
@@ -107,9 +107,9 @@ With the demo or your own farm running in the terminal:
 2. Select **Enable web server** and press `Enter` to turn it on.
 3. Once the server shows **Running**, open the displayed URL on the same computer: **http://127.0.0.1:8080** by default.
 
-Use the browser's search, filters, and sort menu to explore your farm. Multiple tabs share the same monitoring session, and browser filters do not change your terminal preferences. Use the TUI to acknowledge or dismiss notices; browser inspection does not change them.
+Use the browser's search, filters, and sort menu to explore your farm. Multiple tabs share the same monitoring session, and browser filters do not change your terminal preferences. Use the TUI to acknowledge notices, or hide notices locally from either interface; inspection alone does not change them.
 
-The web server is **off by default**, and its enabled setting and port are saved for future launches. If port 8080 is busy, choose another port in Config and open the URL shown after it starts. Access is localhost only, without authentication; other users and programs on this computer can access it. Keep the TUI running. See the [web dashboard guide](docs/user/usage.md#local-web-dashboard) for settings and troubleshooting.
+The web server is **off by default**, and its enabled setting and port are saved for future launches. If port 8080 is busy, choose another port in Config and open the URL shown after it starts. Access is localhost only, without authentication; other users and programs on this computer can access it. Keep the TUI running, or start the foreground `serve` mode. See the [web dashboard guide](docs/user/usage.md#local-web-dashboard) for settings and troubleshooting.
 
 ## Desktop notifications
 

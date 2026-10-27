@@ -59,6 +59,10 @@ func (m Model) WithConfiguration(cfg config.Config) Model {
 	cfg = cfg.Clone()
 	m.configThemeFile = cfg.ThemeFile
 	m.webEnabled = cfg.WebServer.Enabled
+	m.webPort = cfg.WebServer.Port
+	if m.webPort == 0 {
+		m.webPort = config.DefaultWebPort
+	}
 	m.configRegion, m.activeRegion = cfg.Region, cfg.Region
 	m.restoreView(cfg.View)
 	m.alertPrefs = cfg.Alerts
@@ -73,7 +77,7 @@ func (m Model) WithConfigPersistence(path string, save func(config.Config) error
 }
 
 func (m Model) configuration() config.Config {
-	return config.Config{WebServer: config.WebServer{Enabled: m.webEnabled}, ThemeFile: m.configThemeFile, View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
+	return config.Config{WebServer: config.WebServer{Enabled: m.webEnabled, Port: m.webPort}, ThemeFile: m.configThemeFile, View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
 }
 
 func (m Model) configPrinterIDs() []string {
@@ -113,7 +117,7 @@ func (m Model) configTarget() string {
 func (m Model) configRowCount() int {
 	switch m.configSection {
 	case configWebServer:
-		return 1
+		return 2
 	case configGeneral:
 		return 2
 	case configPrinters:
@@ -194,7 +198,19 @@ func (m *Model) configKey(key string, msg tea.Msg) tea.Cmd {
 func (m *Model) changeConfig(direction int, activate bool) {
 	switch m.configSection {
 	case configWebServer:
-		m.webEnabled = !m.webEnabled
+		if m.configSelection == 0 {
+			m.webEnabled = !m.webEnabled
+		} else if activate {
+			m.configEditing, m.configInputError, m.configReplaceInput = true, "", true
+			m.configInput = strconv.Itoa(m.webPort)
+			return
+		} else {
+			port := max(1, min(65535, m.webPort+direction))
+			if port == m.webPort {
+				return
+			}
+			m.webPort = port
+		}
 	case configGeneral:
 		if m.configSelection == 0 {
 			if m.configRegion == config.RegionGlobal {
@@ -286,14 +302,25 @@ func (m *Model) configEditKey(key string, msg tea.Msg) {
 		m.closeDialog()
 	case keyEnter:
 		value, err := strconv.Atoi(m.configInput)
-		if err != nil || value < 0 || value > configMaximumPercent {
-			m.configInputError = "Enter a whole percentage from 0 to 100."
-			return
-		}
-		if value != m.Farm.LowFilament {
-			m.Farm.LowFilament = value
-			m.Farm.Reconcile(m.now)
-			m.configRevision++
+		if m.configSection == configWebServer {
+			if err != nil || value < 1 || value > 65535 {
+				m.configInputError = "Enter a whole port from 1 to 65535."
+				return
+			}
+			if value != m.webPort {
+				m.webPort = value
+				m.configRevision++
+			}
+		} else {
+			if err != nil || value < 0 || value > configMaximumPercent {
+				m.configInputError = "Enter a whole percentage from 0 to 100."
+				return
+			}
+			if value != m.Farm.LowFilament {
+				m.Farm.LowFilament = value
+				m.Farm.Reconcile(m.now)
+				m.configRevision++
+			}
 		}
 		m.configEditing, m.configInputError = false, ""
 	case "backspace", "ctrl+h":
@@ -371,7 +398,11 @@ func configOnOff(value bool) string {
 func (m Model) configRows() []string {
 	switch m.configSection {
 	case configWebServer:
-		return []string{"Enable web server: " + configOnOff(m.webEnabled)}
+		port := strconv.Itoa(m.webPort)
+		if m.configEditing {
+			port = "[" + m.configInput + "▏]  Enter apply / Esc cancel"
+		}
+		return []string{"Enable web server: " + configOnOff(m.webEnabled), "Port: " + port}
 	case configGeneral:
 		region := m.configRegion
 		if region != m.activeRegion {
@@ -499,10 +530,16 @@ func (m Model) configHelp() string {
 		return "Enter resets all this printer’s overrides; Esc cancels."
 	}
 	if m.configEditing {
+		if m.configSection == configWebServer {
+			return "1–65535 · Ctrl+U clear · Enter apply · Esc cancel"
+		}
 		return "0–100 · Ctrl+U clear · Enter apply · Esc cancel"
 	}
 	switch m.configSection {
 	case configWebServer:
+		if m.configSelection == 1 {
+			return "←/→ adjust; Enter type port; applies immediately."
+		}
 		return "Enter toggles localhost HTTP; r retries a failed start."
 	case configGeneral:
 		if m.configSelection == 0 {

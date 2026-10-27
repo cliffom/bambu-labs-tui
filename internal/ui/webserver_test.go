@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -15,20 +16,22 @@ import (
 type fakeWebServer struct {
 	status   webserver.Status
 	calls    []bool
+	ports    []int
 	snapshot []byte
 	fail     bool
 }
 
 func (s *fakeWebServer) Publish(data []byte)      { s.snapshot = data }
 func (s *fakeWebServer) Status() webserver.Status { return s.status }
-func (s *fakeWebServer) SetEnabled(enabled bool) webserver.Status {
+func (s *fakeWebServer) SetEnabled(enabled bool, port int) webserver.Status {
 	s.calls = append(s.calls, enabled)
+	s.ports = append(s.ports, port)
 	s.status = webserver.Status{}
 	if enabled {
 		if s.fail {
 			s.status.Error = "Could not start localhost web server"
 		} else {
-			s.status.URL = "http://127.0.0.1:12345"
+			s.status.URL = fmt.Sprintf("http://127.0.0.1:%d", port)
 		}
 	}
 	return s.status
@@ -82,7 +85,7 @@ func TestWebSettingsEnableURLDisableAndPersistence(t *testing.T) {
 		t.Fatal("lifecycle ran in reducer or URL appeared before bind")
 	}
 	m = completeWeb(m, cmd) // Handles both save and lifecycle result messages.
-	if m.webStatus.URL != "http://127.0.0.1:12345" || m.webBusy || len(saved) != 1 || !saved[0].WebServer.Enabled {
+	if m.webStatus.URL != "http://127.0.0.1:8080" || m.webBusy || len(saved) != 1 || !saved[0].WebServer.Enabled {
 		t.Fatal("enable/save incomplete", m.webStatus, saved)
 	}
 	if !strings.Contains(ansi.Strip(m.View()), server.status.URL) {
@@ -174,5 +177,71 @@ func TestWebEnabledStartupAndSettingsBounds(t *testing.T) {
 				t.Fatal("settings overflow")
 			}
 		}
+	}
+}
+
+func TestWebPortEditingValidationPersistenceAndRestart(t *testing.T) {
+	server := &fakeWebServer{}
+	m := webSettings(demoModel()).WithWebServer(server)
+	var saved []config.Config
+	m = m.WithConfigPersistence("synthetic", func(c config.Config) error { saved = append(saved, c); return nil })
+	m, cmd := webCommand(t, m, tea.KeyMsg{Type: tea.KeyEnter})
+	m = completeWeb(m, cmd)
+	m = key(m, "down")
+	for _, input := range []string{"0", "-1", "65536", "1.5", "abc", ""} {
+		m = key(m, "enter")
+		m = key(m, "ctrl+u")
+		if input != "" {
+			m = key(m, input)
+		}
+		m = key(m, "enter")
+		if !m.configEditing || m.configInputError == "" || m.webPort != config.DefaultWebPort {
+			t.Fatal("invalid port applied", input)
+		}
+		m = key(m, "esc")
+	}
+	m = key(m, "enter")
+	m = key(m, "9090")
+	m = key(m, "ctrl+e")
+	m = key(m, "esc")
+	if !m.configEditing || m.configInput != "9090" {
+		t.Fatal("status lost port edit")
+	}
+	m = resizeModel(m, 59, 17)
+	m = key(m, "enter")
+	if m.webPort != config.DefaultWebPort || !m.configEditing {
+		t.Fatal("hidden port apply acted")
+	}
+	m = resizeModel(m, 60, 18)
+	m, cmd = webCommand(t, m, tea.KeyMsg{Type: tea.KeyEnter})
+	m = completeWeb(m, cmd)
+	if m.configEditing || m.webPort != 9090 || m.webStatus.URL != "http://127.0.0.1:9090" || len(saved) != 2 || saved[1].WebServer.Port != 9090 {
+		t.Fatal("port restart/save failed", m.webStatus, saved)
+	}
+	m = key(m, "enter")
+	m = key(m, "9999")
+	m = key(m, "esc")
+	if m.webPort != 9090 {
+		t.Fatal("Escape applied canceled port")
+	}
+}
+
+func TestPendingWebPortChangesCoalesce(t *testing.T) {
+	server := &fakeWebServer{}
+	m := webSettings(demoModel()).WithWebServer(server)
+	m, cmd := webCommand(t, m, tea.KeyMsg{Type: tea.KeyEnter})
+	m = key(m, "down")
+	m = key(m, "enter")
+	m = key(m, "9090")
+	m = key(m, "enter")
+	m = key(m, "enter")
+	m = key(m, "10000")
+	m = key(m, "enter")
+	if len(server.calls) != 0 {
+		t.Fatal("port changes started overlapping lifecycle commands")
+	}
+	m = completeWeb(m, cmd)
+	if len(server.calls) != 2 || server.ports[0] != config.DefaultWebPort || server.ports[1] != 10000 || m.webStatus.URL != "http://127.0.0.1:10000" {
+		t.Fatal("port changes did not coalesce", server.ports, m.webStatus)
 	}
 }

@@ -60,13 +60,20 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 
 ### Local web dashboard
 
-Press `,`, then use `Tab` / `Shift+Tab` to select **Web Server**. `Enter`, Space, or `←` / `→` toggles **Enable web server**. It is off by default. Enabling starts HTTP on an OS-selected free IPv4 loopback port; once running, Settings shows the complete URL, such as `http://127.0.0.1:54321`. Open that exact URL on the same computer. The port can change after disabling/re-enabling or restarting. A failed start remains visible in Status / Feedback; `r` in Web Server explicitly retries it. Closing Settings leaves the server running. Disabling it closes the listener and active browser connections; exiting the TUI also stops it, including on signal cancellation.
+Press `,`, then use `Tab` / `Shift+Tab` to select **Web Server**. Select **Enable web server** and use `Enter`, Space, or `←` / `→` to toggle it. It is off by default. The default port is **8080**; a successful start shows `http://127.0.0.1:8080` (or your configured port). Open that exact URL on the same computer.
 
-The enabled preference saves asynchronously in the active configuration, with the same save-failure/retry/shutdown behavior as other settings:
+Select **Port** to configure it: `←` / `→` adjusts by one, or `Enter` lets you type a whole number from **1 to 65535**. Typing replaces the current value; `Ctrl+U` clears, `Enter` applies, and `Esc` cancels the edit. Invalid values stay in the editor with an error. Applying a new port while enabled stops the previous listener and starts on the new port immediately. While disabled, it only saves the next startup port. Port 0 and automatic port selection are not supported.
+
+If the port is already in use, the server **does not start** and never falls back to a different port. Web Server shows Failed and the occupied-port error; Status / Feedback (`Ctrl+E`) retains full details. The enabled preference records the requested state; only Running and a URL confirm a successful bind. Choose another port, or free the occupied port and press `r` to retry explicitly. Unrelated input and ticks do not retry a failed start. The same failure behavior applies when changing a running server to an occupied port: the old listener closes and the server remains stopped.
+
+Closing Settings leaves a successfully started server running. Disabling it closes the listener and active browser connections; exiting the TUI also stops it, including on signal cancellation.
+
+The enabled preference and port save asynchronously in the active configuration, with the same save-failure/retry/shutdown behavior as other settings:
 
 ```toml
 [web_server]
 enabled = false
+port = 8080
 ```
 
 The dashboard shows the whole-farm summary, searchable/filterable printer cards, print state/progress, remaining-time estimates, temperatures, AMS/external filament, and reported conditions with intervention guidance where available. It polls every three seconds while visible. Multiple browser tabs share the TUI's monitoring connection and one encoded snapshot; they do not create cloud connections. Browser filters/sorting are session-local and do not change TUI preferences. Demo uses the same dashboard with clearly labeled synthetic data (`make demo`).

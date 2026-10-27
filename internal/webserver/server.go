@@ -7,11 +7,14 @@ import (
 	"context"
 	"embed"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -29,6 +32,7 @@ type (
 		snapshot atomic.Value
 		status   atomic.Value
 		closed   bool
+		port     int
 	}
 )
 
@@ -47,7 +51,7 @@ func (s *Server) Publish(data []byte) { s.snapshot.Store(bytes.Clone(data)) }
 
 // SetEnabled is called by one serialized UI command. Network lifecycle work is
 // outside the reducer; context cancellation prevents a late command reopening it.
-func (s *Server) SetEnabled(enabled bool) Status {
+func (s *Server) SetEnabled(enabled bool, port int) Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !enabled {
@@ -57,12 +61,22 @@ func (s *Server) SetEnabled(enabled bool) Status {
 	if s.closed || s.ctx.Err() != nil {
 		return Status{Error: "Web server session has ended"}
 	}
-	if s.server != nil {
+	if s.server != nil && s.port == port {
 		return s.Status()
 	}
-	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	s.closeLocked()
+	if port < 1 || port > 65535 {
+		status := Status{Error: "Web server port must be between 1 and 65535"}
+		s.status.Store(status)
+		return status
+	}
+	listener, err := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
 	if err != nil {
-		status := Status{Error: "Could not start localhost web server"}
+		message := fmt.Sprintf("Could not start web server on port %d: %v", port, err)
+		if errors.Is(err, syscall.EADDRINUSE) {
+			message = fmt.Sprintf("Port %d is already in use; web server not started", port)
+		}
+		status := Status{Error: message}
 		s.status.Store(status)
 		return status
 	}
@@ -72,6 +86,7 @@ func (s *Server) SetEnabled(enabled bool) Status {
 	handler := s.handler(host, files)
 	server := &http.Server{Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16 << 10}
 	s.server = server
+	s.port = port
 	done := make(chan struct{})
 	s.listener, s.done = listener, done
 	s.status.Store(Status{URL: "http://" + host})
@@ -133,6 +148,7 @@ func (s *Server) closeLocked() {
 		<-s.done
 		s.listener, s.done = nil, nil
 		s.server = nil
+		s.port = 0
 	}
 	s.status.Store(Status{})
 }

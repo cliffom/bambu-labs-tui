@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -19,8 +20,9 @@ import (
 
 func TestReadOnlyRoutesAndBrowserBoundary(t *testing.T) {
 	s := New(t.Context())
+	port := availablePort(t)
 	t.Cleanup(s.Close)
-	status := s.SetEnabled(true)
+	status := s.SetEnabled(true, port)
 	if status.Error != "" || !strings.HasPrefix(status.URL, "http://127.0.0.1:") {
 		t.Fatal(status)
 	}
@@ -68,12 +70,13 @@ func TestEnableDisableCancellationAndLateCommands(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	s := New(ctx)
+	port := availablePort(t)
 	t.Cleanup(s.Close)
 	if s.Status().URL != "" {
 		t.Fatal("enabled by default")
 	}
-	first := s.SetEnabled(true)
-	if got := s.SetEnabled(true); got != first {
+	first := s.SetEnabled(true, port)
+	if got := s.SetEnabled(true, port); got != first {
 		t.Fatal("enable created another listener")
 	}
 	client := &http.Client{Timeout: time.Second}
@@ -82,14 +85,14 @@ func TestEnableDisableCancellationAndLateCommands(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = response.Body.Close()
-	if got := s.SetEnabled(false); got.URL != "" || got.Error != "" {
+	if got := s.SetEnabled(false, port); got.URL != "" || got.Error != "" {
 		t.Fatal(got)
 	}
 	if conn, err := net.DialTimeout("tcp", strings.TrimPrefix(first.URL, "http://"), time.Second); err == nil {
 		_ = conn.Close()
 		t.Fatal("disabled listener still open")
 	}
-	second := s.SetEnabled(true)
+	second := s.SetEnabled(true, port)
 	if second.URL == "" {
 		t.Fatal(second)
 	}
@@ -98,26 +101,28 @@ func TestEnableDisableCancellationAndLateCommands(t *testing.T) {
 	if s.Status().URL != "" {
 		t.Fatal("cancel left listener open")
 	}
-	if got := s.SetEnabled(true); got.URL != "" || got.Error == "" {
+	if got := s.SetEnabled(true, port); got.URL != "" || got.Error == "" {
 		t.Fatal("late command reopened canceled session")
 	}
 }
 
 func TestClosePreventsLateStartEvenBeforeContextCancellation(t *testing.T) {
 	s := New(t.Context())
+	port := availablePort(t)
 	s.Close()
-	if got := s.SetEnabled(true); got.URL != "" || got.Error == "" {
+	if got := s.SetEnabled(true, port); got.URL != "" || got.Error == "" {
 		t.Fatal("late start after CLI cleanup", got)
 	}
 }
 
 func TestConcurrentClientsSeeIndependentPublishedSnapshots(t *testing.T) {
 	s := New(t.Context())
+	port := availablePort(t)
 	t.Cleanup(s.Close)
 	data := []byte(`{"printers":[],"marker":"before"}`)
 	s.Publish(data)
 	copy(data, bytes.Repeat([]byte("x"), len(data)))
-	status := s.SetEnabled(true)
+	status := s.SetEnabled(true, port)
 	client := &http.Client{Timeout: 5 * time.Second}
 	var wg sync.WaitGroup
 	for range 24 {
@@ -249,4 +254,79 @@ func TestSnapshotProgressAndETADoNotConfirmCompletion(t *testing.T) {
 	if got.Summary.Printing != 1 || got.Printers[0].State != farm.StateRunning {
 		t.Fatal("progress or elapsed estimate implied completion")
 	}
+}
+
+func availablePort(t *testing.T) int {
+	t.Helper()
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return port
+}
+
+func TestConfiguredPortConflictFailsWithoutFallback(t *testing.T) {
+	occupied, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = occupied.Close() }()
+	port := occupied.Addr().(*net.TCPAddr).Port
+	server := New(t.Context())
+	t.Cleanup(server.Close)
+	status := server.SetEnabled(true, port)
+	if status.URL != "" || !strings.Contains(status.Error, "already in use") || server.server != nil {
+		t.Fatal("occupied port started a listener or hid error", status)
+	}
+	if server.Status() != status {
+		t.Fatal("conflict was not retained")
+	}
+	if err := occupied.Close(); err != nil {
+		t.Fatal(err)
+	}
+	status = server.SetEnabled(true, port)
+	if status.Error != "" || status.URL != fmt.Sprintf("http://127.0.0.1:%d", port) {
+		t.Fatal("explicit retry did not bind the exact port", status)
+	}
+	for _, invalid := range []int{0, -1, 65536} {
+		status = server.SetEnabled(true, invalid)
+		if status.URL != "" || status.Error == "" || server.server != nil {
+			t.Fatal("invalid port started server", invalid, status)
+		}
+	}
+}
+
+func TestChangingRunningPortStopsOldListenerAndHonorsConflict(t *testing.T) {
+	server := New(t.Context())
+	t.Cleanup(server.Close)
+	firstPort, secondPort := availablePort(t), availablePort(t)
+	first := server.SetEnabled(true, firstPort)
+	// Reserve a target while the original listener remains active.
+	occupied, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = occupied.Close() }()
+	blockedPort := occupied.Addr().(*net.TCPAddr).Port
+	status := server.SetEnabled(true, blockedPort)
+	if status.URL != "" || !strings.Contains(status.Error, "already in use") || server.server != nil {
+		t.Fatal("port change fell back to another listener", status)
+	}
+	if conn, err := net.DialTimeout("tcp", strings.TrimPrefix(first.URL, "http://"), time.Second); err == nil {
+		_ = conn.Close()
+		t.Fatal("old listener survived failed port change")
+	}
+	status = server.SetEnabled(true, secondPort)
+	if status.Error != "" || status.URL != fmt.Sprintf("http://127.0.0.1:%d", secondPort) {
+		t.Fatal(status)
+	}
+	response, err := (&http.Client{Timeout: time.Second}).Get(status.URL + "/api/snapshot")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
 }

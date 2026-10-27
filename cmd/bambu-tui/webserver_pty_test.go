@@ -4,6 +4,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -47,7 +48,8 @@ func assertWebClosed(t *testing.T, address string) {
 }
 
 func TestPTYWebSettingsAndShutdown(t *testing.T) {
-	child := startPTYChild(t, "demo")
+	path := ptyWebConfig(t, false)
+	child := startPTYChildWithConfig(t, "demo", path)
 	child.expect(t, 0, "Gridfinity baseplate")
 	child.send(t, ",")
 	mark := child.send(t, "\t\t\t")
@@ -84,10 +86,7 @@ func TestPTYWebSettingsAndShutdown(t *testing.T) {
 }
 
 func TestPTYWebSavedStartupStopsOnSignal(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "config.toml")
-	if err := os.WriteFile(path, []byte("[web_server]\nenabled=true\n[alerts]\nautomatic_modals=false\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	path := ptyWebConfig(t, true)
 	child := startPTYChildWithConfig(t, "demo", path)
 	child.expect(t, 0, "Gridfinity baseplate")
 	child.send(t, ",")
@@ -96,6 +95,56 @@ func TestPTYWebSavedStartupStopsOnSignal(t *testing.T) {
 	if err := child.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		t.Fatal(err)
 	}
+	child.exited(t, 0)
+	assertWebClosed(t, address)
+}
+
+func ptyWebConfig(t *testing.T, enabled bool) string {
+	t.Helper()
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	if err := listener.Close(); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "config.toml")
+	body := fmt.Sprintf("[web_server]\nenabled=%t\nport=%d\n[alerts]\nautomatic_modals=false\n", enabled, port)
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestPTYWebOccupiedPortShowsErrorAndRetriesExplicitly(t *testing.T) {
+	occupied, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = occupied.Close() }()
+	port := occupied.Addr().(*net.TCPAddr).Port
+	path := filepath.Join(t.TempDir(), "config.toml")
+	body := fmt.Sprintf("[web_server]\nenabled=true\nport=%d\n[alerts]\nautomatic_modals=false\n", port)
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	child := startPTYChildWithConfig(t, "demo", path)
+	child.expect(t, 0, "Gridfinity baseplate")
+	child.send(t, ",")
+	mark := child.send(t, "\t\t\t")
+	child.expect(t, mark, "Status: Failed")
+	child.expect(t, mark, fmt.Sprintf("Port %d is already in use", port))
+	if err := occupied.Close(); err != nil {
+		t.Fatal(err)
+	}
+	mark = child.send(t, "r")
+	address := ptyWebURL(t, child, mark)
+	if address != fmt.Sprintf("http://127.0.0.1:%d", port) {
+		t.Fatal("retry changed configured port", address)
+	}
+	child.send(t, "\x1b")
+	child.send(t, "q")
 	child.exited(t, 0)
 	assertWebClosed(t, address)
 }

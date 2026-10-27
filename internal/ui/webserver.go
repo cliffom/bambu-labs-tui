@@ -8,7 +8,7 @@ import (
 type (
 	webServerClient interface {
 		Publish([]byte)
-		SetEnabled(bool) webserver.Status
+		SetEnabled(bool, int) webserver.Status
 		Status() webserver.Status
 	}
 	webServerResultMsg struct{}
@@ -30,10 +30,10 @@ func (m *Model) syncWebServer() tea.Cmd {
 	if m.webEnabled || m.webStatus.URL != "" {
 		m.webServer.Publish(webserver.SnapshotJSON(m.Farm, m.now, m.Demo))
 	}
-	if m.webBusy || (m.webInitialized && m.webAttempted == m.webEnabled) {
+	if m.webBusy || (m.webInitialized && m.webAttempted == m.webEnabled && (!m.webEnabled || m.webAttemptedPort == m.webPort)) {
 		return nil
 	}
-	enabled, server := m.webEnabled, m.webServer
-	m.webBusy, m.webInitialized, m.webAttempted = true, true, enabled
-	return func() tea.Msg { server.SetEnabled(enabled); return webServerResultMsg{} }
+	enabled, port, server := m.webEnabled, m.webPort, m.webServer
+	m.webBusy, m.webInitialized, m.webAttempted, m.webAttemptedPort = true, true, enabled, port
+	return func() tea.Msg { server.SetEnabled(enabled, port); return webServerResultMsg{} }
 }

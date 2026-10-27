@@ -21,7 +21,7 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 
 ## Optional local web dashboard
 
-[#88](https://github.com/cliffom/bambu-tui/issues/88) adds a default-off Web Server section in Config. Enabling starts a read-only dashboard at an OS-selected `http://127.0.0.1:<port>`, sharing the running TUI's monitoring state. The browser includes farm summaries, filtering/search, printer inspection, AMS/temperatures, and reported conditions with explicit unknown/last-known qualifiers. Disabling or exiting stops the listener. This initial scope is localhost-only without authentication; remote access and standalone/headless mode remain outside scope. See [usage](user/usage.md#local-web-dashboard) and the [validation record](development/validation.md) for evidence and limits.
+[#88](https://github.com/cliffom/bambu-tui/issues/88) adds a default-off Web Server section in Config. Enabling starts a read-only dashboard at a configurable `http://127.0.0.1:<port>` (default 8080, with a visible error and no fallback if occupied), sharing the running TUI's monitoring state. The browser includes farm summaries, filtering/search, printer inspection, AMS/temperatures, and reported conditions with explicit unknown/last-known qualifiers. Disabling or exiting stops the listener. This initial scope is localhost-only without authentication; remote access and standalone/headless mode remain outside scope. See [usage](user/usage.md#local-web-dashboard) and the [validation record](development/validation.md) for evidence and limits.
 
 ## v0.2.11 — About Bambu TUI
 

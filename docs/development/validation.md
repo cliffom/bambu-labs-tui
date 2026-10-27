@@ -29,6 +29,12 @@ On 2026-10-26 (PDT), headless Chrome inspection of the real dashboard HTML/CSS w
 
 The initial text-box centering did not correct the glyph's optical alignment in the user's browser. The follow-up replaces both dialog close glyphs with two CSS strokes centered by absolute insets/automatic margins. At 390px and 1440px in Chrome with 2× device scale, both retained centered 12×2px strokes under serif/monospace 40px font overrides; accessible close labels remain. An enlarged phone close-icon capture was visually inspected. `make docs-check build` passed again. Running servers require restart because these assets are embedded in the executable.
 
+### Configurable port and occupied-port failure
+
+The configurable-port follow-up supersedes the earlier ephemeral-port policy: the default is now 8080, valid ports are 1–65535, and no bind failure may select another port. On 2026-10-26 (PDT), macOS arm64/Go 1.27.3 `make fmt-check lint test check build docs-check` passed with pinned lint via its override. New regressions cover old-config defaults, invalid/boundary ports, independent port/enabled merge persistence, validated typed editing/cancellation, status suspension, hidden apply guards, asynchronous restart/coalescing, exact-port bind conflicts, explicit retry, and a real-CLI occupied-port error.
+
+Actual `make demo` PTY/pyte runs in TrueColor and no color covered the occupied-port error without a running URL, invalid port input, Status / Feedback return, explicit retry after releasing the occupied socket, changing the running port, confirming the old socket closed, saved port reload, 60×18 / 120×32 layouts, and 59×17 fallback/restoration. TrueColor captures and no-color terminal frames were inspected. Browser layout/other color profiles and live hardware were not newly validated; no browser presentation code changed in this follow-up.
+
 ## v0.2.12 — About label styling
 
 On 2026-10-26 (PDT), macOS arm64/Go 1.27.3 synthetic `make demo` PTY/emulator captures covered the default theme with TrueColor and no color at 120×32 and 60×18, Status / Feedback return, 59×17 fallback/restoration, and dashboard return (16 frames). Rendered contact sheets were inspected for secondary-colored “Theme:” / “Theme Palette:” labels, primary theme values, readable metadata/swatches, and restored navigation. Other themes and ANSI256 have automated coverage only; physical terminal/font and live hardware behavior were not newly validated.

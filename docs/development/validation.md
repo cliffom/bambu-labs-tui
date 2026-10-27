@@ -15,6 +15,16 @@ Pure rendered-text fixtures were also inspected for 32-event history with long s
 
 Live cloud authentication/reconnection, printer hardware/firmware, real browser socket timing, Linux runtime, OS notification delivery, clean-Mac Gatekeeper behavior, and physical terminal emulators were not newly validated. PTY and rendered-text evidence is synthetic and does not establish those results. Server controls remain in Config, and foreground serve behavior and notification policy remain unchanged.
 
+## Browser printer image continuity
+
+On 2026-10-27 (PDT), v0.3.8 plus the image-continuity fix was checked on macOS 27.0.1 arm64 with Go 1.27.3 and Node.js 24.22.1 using the built `serve --demo` and synthetic data. The old renderer replaced cards/images on every render; the new renderer keys cards by printer ID and updates their attributes/text/children without disconnecting unchanged images or rewriting their `src`. Source changes and transitions to/from generic SVG artwork still apply.
+
+Dependency-free browser regressions cover repeated telemetry/name/attention updates, stable card/image identity and connection, unchanged image attributes, ordering/filtering/discovery/removal, empty/reset views, quoted printer IDs, and model-image/fallback transitions. Existing notice/notification regressions still cover keyboard actions, local-decision meaning, hidden notices, and inspector focus/scroll. Terminal UI layout and input routes are unchanged, so no new terminal-size/color inspection applies.
+
+Playwright 1.64.1 browser checks passed against WebKit 27.2 and Chrome 156.0.8078.73. Before/after probes confirmed image replacement in the old script and stable connected card/image identity with zero image removals or source-attribute writes in the fixed script, both through five immediate telemetry renders and two real polling updates. Browser checks also covered focused cards, disconnected/last-known updates, image loading, empty/reset views, fallback transitions, keyboard inspector entry/close, and a local notice hide in WebKit. Layout bounds passed at 1440 × 1000, 768 × 1024, 390 × 844, and 320 × 700, plus 200% text at 390 × 844. WebKit screenshots were visually inspected at 1440 × 1000 and 320 × 700, including the printer card/artwork in the narrow capture.
+
+All 22 dependency-free browser tests passed, along with `go test -race ./internal/webserver`, `make build`, `make docs-check`, and `git diff --check`. This verifies the removed DOM/image churn and synthetic browser behavior; direct Safari.app/iOS visual confirmation, other browser versions, and live printer hardware were not newly validated.
+
 ## Foreground serve status (#110)
 
 The v0.3.7 source plus #110 changes was checked on macOS arm64 with Go 1.27.3 (2026-10-27 PDT), using synthetic data only. The built `serve --demo` binary ran in an xterm-256color PTY with `NO_COLOR=1`. Rendered-text captures were inspected at 120 × 40, 80 × 24, 60 × 18, 40 × 12, and 20 × 10: the URL and Ctrl+C guidance remained visible, mode/connection/uptime stayed readable, and optional rows dropped at the narrowest size. The URL wrapped completely at 20 columns. Ctrl+C produced Stopping, returned exit zero, closed the listener, and restored the screen/cursor.

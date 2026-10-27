@@ -6,8 +6,9 @@
 - Reuse the session-only grouped HTTP client ledger, with active counts, wrapped connect/disconnect history, and visible tracking/history omissions. Client metadata remains outside browser snapshots and persistence.
 - Preserve dashboard/Config state, scrolling, Ctrl+E feedback return paths, attention deferral, below-minimum guards, and ongoing telemetry, lifecycle commands, and saves. Closing inspection leaves the server running; server controls remain in Config.
 - Use the active semantic theme with explicit no-color labels and support minimum 60 × 18 and wide layouts.
+- Fix dashboard printer-image flicker reported in Safari by preserving cards and unchanged images across polling updates (#115), while continuing to update telemetry, ordering, filters, and model/fallback artwork.
 
-See [Server Status controls](user/usage.md#tui-server-status) and [validation evidence and gaps](development/validation.md#tui-server-status-113).
+See [Server Status controls](user/usage.md#tui-server-status), [Server Status validation](development/validation.md#tui-server-status-113), and [browser image validation and gaps](development/validation.md#browser-printer-image-continuity).
 
 ## 0.3.8 — Foreground server status and client activity
 

@@ -115,12 +115,59 @@ function card(p) {
       "",
     )}<span>${prefix(p)}${escapeHTML(slots[0]?.material || "Unknown material")}</span></div><span>${current(p) ? '<i class="green"></i>Fresh' : "◷ Last-known"}</span></div>${p.attention ? '<p class="card-note">◇ Action needed · unreviewed conditions</p>' : !current(p) ? '<p class="card-note">Current state unconfirmed · last-known readings</p>' : ""}</button>`;
 }
+// Keep connected card/image elements across polls. Replacing #cards.innerHTML
+// recreates lazy, async-decoded images even when their immutable URL is unchanged.
+function patchCardNode(current, next) {
+  if (current.nodeType !== next.nodeType || current.nodeName !== next.nodeName) {
+    current.replaceWith(next);
+    return;
+  }
+  if (current.nodeType !== 1) {
+    if (current.nodeValue !== next.nodeValue) current.nodeValue = next.nodeValue;
+    return;
+  }
+  for (const {name} of Array.from(current.attributes))
+    if (!next.hasAttribute(name)) current.removeAttribute(name);
+  for (const {name, value} of next.attributes)
+    if (current.getAttribute(name) !== value) current.setAttribute(name, value);
+  const previous = Array.from(current.childNodes);
+  const children = Array.from(next.childNodes);
+  children.forEach((child, index) => {
+    if (previous[index]) patchCardNode(previous[index], child);
+    else current.appendChild(child);
+  });
+  for (const child of previous.slice(children.length)) child.remove();
+}
+function renderCards(list) {
+  const container = $("#cards");
+  if (!list.length) {
+    container.innerHTML = `<div class="empty">${snapshot?.printers.length ? "No printers match this view." : "No discovered printers yet."}<button id="reset">Reset to all printers</button></div>`;
+    return;
+  }
+  const ids = new Set(list.map((printer) => printer.id));
+  const existing = new Map();
+  // Remove filtered/disappeared cards first so remaining cards need no moves
+  // when their relative order has not changed.
+  for (const child of Array.from(container.children)) {
+    if (ids.has(child.dataset.id)) existing.set(child.dataset.id, child);
+    else child.remove();
+  }
+  list.forEach((printer, index) => {
+    const template = document.createElement("template");
+    template.innerHTML = card(printer);
+    const next = template.content.firstElementChild;
+    const current = existing.get(printer.id) || next;
+    if (current !== next) patchCardNode(current, next);
+    // Avoid moving already ordered cards: moving a connected image can itself
+    // interrupt its presentation, and moving a button can disturb keyboard focus.
+    if (container.children[index] !== current)
+      container.insertBefore(current, container.children[index] || null);
+  });
+}
 function render() {
   const list = visible(),
     focused = document.activeElement?.dataset.id;
-  $("#cards").innerHTML = list.length
-    ? list.map(card).join("")
-    : `<div class="empty">${snapshot?.printers.length ? "No printers match this view." : "No discovered printers yet."}<button id="reset">Reset to all printers</button></div>`;
+  renderCards(list);
   if (focused)
     document
       .querySelector(`[data-id="${CSS.escape(focused)}"]`)

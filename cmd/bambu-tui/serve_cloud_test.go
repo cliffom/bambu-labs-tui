@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -217,7 +218,7 @@ func TestCloudServeMonitorOutcomes(t *testing.T) {
 				go func() { defer close(monitorDone); runner.Run(ctx, events, nil) }()
 			}
 			result := make(chan error, 1)
-			go func() { result <- serveSession(ctx, &state, web, events, time.Second) }()
+			go func() { result <- serveSession(ctx, &state, web, events, io.Discard, time.Second) }()
 			if outcome == "cancel" || outcome == "reconnect" {
 				var snapshot struct {
 					Printers []struct {
@@ -280,11 +281,11 @@ func TestCloudServeHostBindAndOutputFailures(t *testing.T) {
 	state := session.New(farm.New(10), false)
 	var output bytes.Buffer
 	run := func(context.Context, chan<- monitor.Event) { t.Error("monitor started before successful bind/output") }
-	if err := serveMonitor(ctx, cfg, &state, &output, run); err == nil || output.Len() != 0 {
+	if err := serveMonitor(ctx, cfg, &state, &output, io.Discard, run); err == nil || output.Len() != 0 {
 		t.Fatal("bind failure", err, output.String())
 	}
 	web.Close()
-	if err := serveMonitor(ctx, cfg, &state, failingServeWriter{}, run); err == nil {
+	if err := serveMonitor(ctx, cfg, &state, failingServeWriter{}, io.Discard, run); err == nil {
 		t.Fatal("output failure ignored")
 	}
 }
@@ -349,7 +350,7 @@ func TestCloudServeBrowserExplicitSaveRetry(t *testing.T) {
 	}, nil)
 	target := state.WebDecisions().Targets[key]
 	result := make(chan error, 1)
-	go func() { result <- serveSession(ctx, &state, web, nil, time.Second) }()
+	go func() { result <- serveSession(ctx, &state, web, nil, io.Discard, time.Second) }()
 	var token struct {
 		Token string `json:"token"`
 	}
@@ -412,5 +413,109 @@ func TestCloudServeBrowserExplicitSaveRetry(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("shutdown blocked")
+	}
+}
+
+// Reports pass through the real foreground owner and HTTP snapshot boundary.
+// An unbuffered marker event orders reads after the rejection burst without
+// inspecting mutable session state from the test goroutine.
+func TestCloudServeRejectedTelemetryKeepsSession(t *testing.T) {
+	fields := func(prefix string, count int) string {
+		var b strings.Builder
+		for i := range count {
+			fmt.Fprintf(&b, ",%q:0", fmt.Sprintf("%s%d", prefix, i))
+		}
+		return b.String()
+	}
+	for _, test := range []struct {
+		name, seed, payload string
+	}{
+		{"malformed", "", `{"print":{"gcode_state":"FINISH","print_error":0},"private":"synthetic-secret"`},
+		{"bytes", "", `{"print":{"gcode_state":"FINISH","print_error":0},"private":"` + strings.Repeat("x", 2*1024*1024) + `"}`},
+		{"depth", "", `{"print":{"gcode_state":"FINISH","print_error":0},"private":` + strings.Repeat(`{"nested":`, 40) + `0` + strings.Repeat("}", 40) + `}`},
+		{"collection", "", `{"print":{"gcode_state":"FINISH","print_error":0` + fields("private", 257) + `}}`},
+		{"cumulative", fields("accepted", 180), `{"print":{"gcode_state":"FINISH","print_error":0` + fields("private", 100) + `}}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			state := session.New(farm.New(10), false)
+			at := time.Now().Add(-time.Minute)
+			key := applyServeFixture(t, &state, at)
+			if err := state.ApplyEvent(monitor.Event{Kind: monitor.EventReport, ID: "SYNTHETIC", At: at, Payload: []byte(`{"print":{"mc_percent":10,"mc_remaining_time":20` + test.seed + `}}`)}); err != nil {
+				t.Fatal(err)
+			}
+			state.Dismiss(key)
+			state.SetSnooze("SYNTHETIC", time.Hour, at)
+			target := state.WebDecisions().Targets[key]
+			web := webserver.New(ctx)
+			defer web.Close()
+			cfg, err := config.Load(ptyWebConfig(t, false))
+			if err != nil {
+				t.Fatal(err)
+			}
+			status := web.SetEnabled(true, cfg.WebServer.Port)
+			if status.Error != "" {
+				t.Fatal(status.Error)
+			}
+			events := make(chan monitor.Event)
+			result := make(chan error, 1)
+			var diagnostics bytes.Buffer // read only after the owner exits
+			go func() { result <- serveSession(ctx, &state, web, events, &diagnostics, time.Second) }()
+			send := func(event monitor.Event) {
+				t.Helper()
+				select {
+				case events <- event:
+				case err := <-result:
+					t.Fatalf("server stopped before next event: %v", err)
+				case <-ctx.Done():
+					t.Fatal("event timed out")
+				}
+			}
+			read := func() map[string]any {
+				t.Helper()
+				var snapshot struct {
+					Printers []map[string]any `json:"printers"`
+				}
+				serveGet(t, status.URL+"/api/snapshot", &snapshot)
+				if len(snapshot.Printers) != 1 {
+					t.Fatal("missing printer")
+				}
+				return snapshot.Printers[0]
+			}
+			// The marker is received only after initial publication completes.
+			send(monitor.Event{Kind: monitor.EventProblem})
+			before := read()
+			for range 20 {
+				send(monitor.Event{Kind: monitor.EventReport, ID: "SYNTHETIC", At: at.Add(30 * time.Second), Payload: []byte(test.payload)})
+			}
+			send(monitor.Event{Kind: monitor.EventProblem})
+			if after := read(); !reflect.DeepEqual(before, after) {
+				t.Fatalf("rejection changed browser telemetry/decisions/condition lifetime:\nbefore: %v\nafter: %v", before, after)
+			}
+			// Same listener and session accept a later partial report. A partial
+			// update must retain the fault, its target, local hide, and ETA time.
+			accepted := at.Add(40 * time.Second)
+			send(monitor.Event{Kind: monitor.EventReport, ID: "SYNTHETIC", At: accepted, Payload: []byte(`{"print":{"mc_percent":42}}`)})
+			send(monitor.Event{Kind: monitor.EventProblem})
+			after := read()
+			before["progress"] = float64(42)
+			before["last_report"] = accepted.UTC().Format(time.RFC3339Nano)
+			if !reflect.DeepEqual(before, after) {
+				t.Fatalf("valid report did not preserve session: %v / %v", before, after)
+			}
+			cancel()
+			if err := <-result; err != nil {
+				t.Fatal(err)
+			}
+			if state.WebDecisions().Targets[key] != target || !state.Farm.Active[key].Dismissed || !state.Snoozes["SYNTHETIC"].Equal(at.Add(time.Hour)) {
+				t.Fatal("local decisions or occurrence identity changed")
+			}
+			const warning = "Telemetry report rejected; keeping last accepted state and continuing monitoring (further rejection warnings suppressed for this session)\n"
+			if diagnostics.String() != warning {
+				t.Fatalf("diagnostics must be fixed, private, and bounded: %q", diagnostics.String())
+			}
+			assertWebClosed(t, status.URL)
+		})
 	}
 }

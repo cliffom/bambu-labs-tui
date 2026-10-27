@@ -29,6 +29,10 @@ The [v0.3.x milestone](https://github.com/cliffom/bambu-tui/milestone/12) contin
 
 Keep localhost binding and the display-data allowlist. Headless mode does not imply LAN/remote access or an installed background service. Browser notifications work with either server mode and define their own relationship to native macOS delivery; closing a system notification does not dismiss a notice. Browser dismissal reuses local notice decisions and never establishes physical fault resolution or introduces printer control. Preserve unknown/confirmed telemetry distinctions and record actual browser, terminal, persistence, and hardware evidence in the validation record as each feature ships. Usage describes the preserved local dismissal behavior; architecture describes its shared session owner in v0.3.2.
 
+## v0.3.5 — Foreground telemetry recovery
+
+[#103](https://github.com/cliffom/bambu-tui/issues/103) keeps foreground serving alive after individual malformed/over-limit reports, preserving accepted state and local decisions with bounded private diagnostics. Authentication rejection and monitor/listener failure remain terminal. See [validation](development/validation.md#foreground-telemetry-rejection-103) for synthetic evidence and hardware gaps.
+
 ## v0.3.4 — Cloud-backed terminal-free server
 
 [#98](https://github.com/cliffom/bambu-tui/issues/98) adds foreground `serve` with existing saved credentials, shared cloud discovery/monitoring, account/region-scoped local decisions and snoozes, typed authentication rejection, transient reconnection, and bounded shutdown without prompts. Native notifications remain disabled and localhost/read-only boundaries remain intact. This delivers phase 3 of #90; live account/hardware and environment checks remain open. See [usage](user/usage.md#terminal-free-cloud-server) and [validation](development/validation.md#cloud-backed-terminal-free-server-98).

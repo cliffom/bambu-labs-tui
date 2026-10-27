@@ -46,7 +46,7 @@ func serveCloud(ctx context.Context, cfg config.Config, output, diagnostics io.W
 	}
 	state := cloudServeState(cfg, account.Username, diagnostics)
 	runner := monitor.New(cloud.New(cfg.Region), account)
-	return serveMonitor(ctx, cfg, &state, output, func(ctx context.Context, events chan<- monitor.Event) {
+	return serveMonitor(ctx, cfg, &state, output, diagnostics, func(ctx context.Context, events chan<- monitor.Event) {
 		runner.Run(ctx, events, nil)
 	})
 }
@@ -78,14 +78,14 @@ func cloudServeState(cfg config.Config, username string, diagnostics io.Writer) 
 
 func serveDemo(ctx context.Context, cfg config.Config, output io.Writer) error {
 	state := session.New(farm.New(cfg.LowFilamentPercent), true)
-	return serveMonitor(ctx, cfg, &state, output, func(ctx context.Context, events chan<- monitor.Event) {
+	return serveMonitor(ctx, cfg, &state, output, io.Discard, func(ctx context.Context, events chan<- monitor.Event) {
 		monitor.Demo(ctx, events, nil)
 	})
 }
 
 // Each foreground host has one monitor regardless of browser-client count.
 // Neither host initializes native notification delivery or writes configuration.
-func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session, output io.Writer, run func(context.Context, chan<- monitor.Event)) error {
+func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session, output, diagnostics io.Writer, run func(context.Context, chan<- monitor.Event)) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	if ctx.Err() != nil {
@@ -109,7 +109,7 @@ func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session
 	events := make(chan monitor.Event, eventBufferSize)
 	done := make(chan struct{})
 	go func() { defer close(done); run(ctx, events) }()
-	err := serveSession(ctx, state, web, events, serveShutdownTimeout)
+	err := serveSession(ctx, state, web, events, diagnostics, serveShutdownTimeout)
 	cancel()
 	select {
 	case <-done:
@@ -121,7 +121,7 @@ func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session
 
 // serveSession is the sole mutable-state owner. Jobs receive snapshots and
 // return results here; neither HTTP handlers nor workers touch live farm state.
-func serveSession(ctx context.Context, state *session.Session, web *webserver.Server, events <-chan monitor.Event, shutdownTimeout time.Duration) error {
+func serveSession(ctx context.Context, state *session.Session, web *webserver.Server, events <-chan monitor.Event, diagnostics io.Writer, shutdownTimeout time.Duration) error {
 	ticker := time.NewTicker(serveTickInterval)
 	defer ticker.Stop()
 	results := make(chan session.Result, serveStoreCount)
@@ -137,6 +137,7 @@ func serveSession(ctx context.Context, state *session.Session, web *webserver.Se
 	publish()
 	listening := web.ListeningDone()
 	var runErr error
+	warnedRejection := false
 running:
 	for {
 		if ctx.Err() != nil {
@@ -162,8 +163,14 @@ running:
 				break running
 			}
 			if err := state.ApplyEvent(event); err != nil {
-				runErr = fmt.Errorf("telemetry: %w", err)
-				break running
+				// Decoder rejection leaves accepted telemetry and decisions intact.
+				// Emit fixed text once: neither payloads nor error strings are safe
+				// diagnostics, and a bad-report flood must not flood stderr.
+				if !warnedRejection {
+					_, _ = fmt.Fprintln(diagnostics, "Telemetry report rejected; keeping last accepted state and continuing monitoring (further rejection warnings suppressed for this session)")
+					warnedRejection = true
+				}
+				continue
 			}
 		case at := <-ticker.C:
 			state.Reconcile(at)

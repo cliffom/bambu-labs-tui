@@ -53,6 +53,12 @@ Printer-reported filament swatches remain a justified color exception: `filament
 
 The full-screen action-needed dialog emphasizes printer/state and fault summaries, with intervention guidance immediately below each fault. Keep per-occurrence review status, code, and first app-observed timestamp secondary, with absolute local time/timezone/UTC offset and a tick-updated relative age. Label unavailable/future observations explicitly. Preserve independent notice identities, timestamps, focus, and scroll, including replaced occurrences. Keep full troubleshooting URLs accessible through inspection and browser actions. Keep acknowledgement, hide, snooze, and close in the single-row footer, with navigation below the heading; explain local decisions and physical intervention in the scrollable body.
 
+## Browser dashboard readability
+
+Use one inherited modern console-style font stack throughout the dashboard, including headings, metadata, numeric readings, form controls, and dialogs. The local system-monospace stack includes SF Mono/Menlo/Monaco, Consolas, and DejaVu Sans Mono, with a generic monospace fallback; do not introduce a separate serif family through font shorthands. Font assets must not require a CDN request.
+
+At a default 16px browser root, keep body/primary readings at 16px and metadata/control labels at least 14px. Use relative font sizes and comfortable line height so browser text preferences can enlarge them. Let cards, metric columns, filters, and controls reflow instead of shrinking text to fit; check narrow viewports and 200% text enlargement without horizontal scrolling or clipped dialogs. Preserve readable unknown/last-known labels, visible keyboard focus, font-independent close icons, and reduced-motion preferences. Artwork remains decorative.
+
 ## Verification for a UI change
 
 Extend the relevant behavioral tests when changing an interaction contract. Prefer semantic assertions, ANSI-aware bounds, synthetic telemetry, and explicit synchronization over full-frame snapshots or sleeps. Existing examples include `internal/ui/dialogs_test.go`, `modal_keys_test.go`, `resize_input_test.go`, `overview_test.go`, `offline_test.go`, and the [PTY suite](terminal-tests.md). `make test` runs these with the race detector in Linux/macOS CI.

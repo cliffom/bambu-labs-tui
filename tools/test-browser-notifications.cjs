@@ -10,6 +10,7 @@ function browser({permission = "default", supported = true, secure = true, store
   for (const id of ["notification-status", "enable-notifications", "test-notifications", "disable-notifications", "about-dialog"])
     elements.set("#" + id, {textContent: "", disabled: false, open: false});
   let now = Date.now();
+  let fetchWait = null;
   class Clock extends Date { static now() { return now; } }
   let value = stored ? "on" : null, requested = 0, response = {cursor: 1, events: []}, fail = false, constructFail = false, inspected = null;
   class FakeNotification {
@@ -27,6 +28,7 @@ function browser({permission = "default", supported = true, secure = true, store
     fetch: async (url, options) => {
       requests.push({url, options});
       if (fail) throw new Error();
+      if (url === "/api/notifications") await fetchWait;
       return {ok: true, json: async () => url === "/api/session" ? {token: "csrf"} : response};
     },
     snapshot: {printers: [{id: "printer"}]}, inspect: (id) => inspected = id,
@@ -38,6 +40,7 @@ function browser({permission = "default", supported = true, secure = true, store
     requested: () => requested,
     status: () => elements.get("#notification-status").textContent,
     setResponse: (r) => response = r,
+    setFetchWait: (p) => fetchWait = p,
     fail: (v) => fail = v, constructFail: () => constructFail = true,
     permission: (v) => FakeNotification.permission = v,
     inspected: () => inspected, advance: (ms) => now += ms,
@@ -114,6 +117,39 @@ test("reload, disconnection and long suspension establish a baseline without rep
   await reload.run("browserNotifications.poll()");
   assert.equal(JSON.parse(reload.requests.at(-1).options.body).baseline, true);
 });
+
+for (const phase of ["request", "response body"]) {
+  test(`long suspension during an in-flight ${phase} discards claims and resets the baseline`, async () => {
+    const b = browser({permission: "granted", stored: true});
+    await b.run("browserNotifications.poll()");
+    let release;
+    const paused = new Promise((resolve) => release = resolve);
+    const claimed = {cursor: 2, events: [event]};
+    if (phase === "request") {
+      b.setResponse(claimed);
+      b.setFetchWait(paused);
+    } else {
+      b.setResponse(paused);
+    }
+    const pending = b.run("browserNotifications.poll()");
+    await new Promise(setImmediate);
+    assert.deepEqual(JSON.parse(b.requests.at(-1).options.body), {baseline: false, after: 1});
+    b.advance(20000);
+    release(claimed);
+    await pending;
+    assert.equal(b.notices.length, 0);
+    assert.match(b.status(), /new baseline without backlog/);
+
+    b.setResponse({cursor: 3, events: []});
+    await b.run("browserNotifications.poll()");
+    assert.deepEqual(JSON.parse(b.requests.at(-1).options.body), {baseline: true, after: 0});
+    b.setResponse({cursor: 4, events: [{...event, id: "fresh"}]});
+    await b.run("browserNotifications.poll()");
+    assert.deepEqual(JSON.parse(b.requests.at(-1).options.body), {baseline: false, after: 3});
+    assert.equal(b.notices.length, 1);
+    assert.equal(b.notices[0].options.tag, "fresh");
+  });
+}
 
 test("constructor and asynchronous submission errors remain visible", async () => {
   const b = browser({permission: "granted", stored: true});

@@ -77,7 +77,8 @@ const browserNotifications = (() => {
     if (!enabled() || busy) return;
     busy = true;
     const started = generation;
-    if (Date.now() - lastPoll > 10000) cursor = null;
+    const startedAt = Date.now();
+    if (startedAt - lastPoll > 10000) cursor = null;
     try {
       if (!token) {
         const response = await fetch("/api/session", {cache: "no-store", signal: AbortSignal.timeout(5000)});
@@ -91,6 +92,13 @@ const browserNotifications = (() => {
       if (!response.ok) throw new Error();
       const result = await response.json();
       if (started !== generation) return;
+      // Timeout signals pause during document suspension. Claims returned after
+      // a long pause are consumed, but must not be displayed on resume.
+      if (Date.now() - startedAt > 10000) {
+        cursor = null;
+        message = "Notification polling paused; resuming establishes a new baseline without backlog.";
+        return;
+      }
       if (result.error) { message = result.error; cursor = null; return; }
       if (cursor === null) message = "Listening for new events. Existing events form a baseline; suspended or closed pages cannot deliver.";
       cursor = result.cursor;

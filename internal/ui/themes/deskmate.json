@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "DeskMate II",
+  "colors": {
+    "text": "#AAAAAA",
+    "background": "#0000AA",
+    "secondary_text": "#AAAAAA",
+    "muted_text": "#AAAAAA",
+    "info": "#AAAAAA",
+    "accent": "#AAAAAA",
+    "success": "#AAAAAA",
+    "warning": "#AAAAAA",
+    "error": "#AAAAAA",
+    "focus": "#AAAAAA",
+    "border": "#AAAAAA",
+    "selected_text": "#000000",
+    "selected_background": "#AAAAAA",
+    "hotkey": "#AAAAAA",
+    "footer_background": "#AAAAAA",
+    "footer_text": "#0000AA",
+    "footer_muted": "#555555",
+    "footer_info": "#000000",
+    "footer_success": "#000000",
+    "footer_warning": "#000000",
+    "footer_error": "#000000",
+    "footer_hotkey": "#0000AA",
+    "footer_separator": "#0000AA"
+  }
+}

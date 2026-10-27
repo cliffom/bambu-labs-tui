@@ -84,7 +84,7 @@ make run THEME=gruvbox-dark
 make demo THEME=gruvbox-dark
 ```
 
-`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, `ibm3270`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
+`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, `ibm3270`, `deskmate`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
 
 For an unmistakable light-theme demonstration, try **Hotdog**, inspired by the red/yellow Hotdog Stand look:
 
@@ -115,6 +115,16 @@ make demo THEME=ibm3270
 ```
 
 IBM 3270 uses a near-black green body, phosphor-green text and borders, a reverse green selection, and a dark green status bar. App-owned colors stay in shades of green; text labels and emphasis distinguish information, success, warning, and errors. Reported filament swatches retain their actual colors. The name references [IBM's 3270 green-screen interfaces](https://www.ibm.com/docs/en/om-shared?topic=deployment-decision-10-which-user-interfaces-use). The complete [ibm3270.json](../../internal/ui/themes/ibm3270.json) is available for customization.
+
+For the classic **DeskMate II** blue/gray text-mode look:
+
+```sh
+bambu-tui --theme deskmate
+make run THEME=deskmate
+make demo THEME=deskmate
+```
+
+DeskMate uses the four colors in the preserved [blue/gray text-mode screen capture](https://nerdlypleasures.blogspot.com/2024/07/tandy-deskmate-tandys-ace-in-hole.html): blue `#0000AA`, light gray `#AAAAAA`, dark gray `#555555`, and black `#000000`. It maps those colors to a blue body with gray text, gray selections with black text, and a gray status bar. Labels and emphasis retain message meaning in this limited-palette theme. Reported filament swatches retain their actual colors. The [original Tandy manual](https://www.manualslib.com/manual/1336444/Tandy-1000.html?page=34) describes user-selectable foreground/background and highlighted colors, so period color schemes varied. Its complete [deskmate.json](../../internal/ui/themes/deskmate.json) can be customized without rebuilding.
 
 For a persistent custom file, set `theme_file` **before any TOML table** in the configuration file:
 

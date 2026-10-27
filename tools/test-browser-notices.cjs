@@ -125,6 +125,15 @@ test("telemetry removal of a focused condition preserves inspector scroll", () =
   assert.equal(view.run('$("#detail").scrollTop'), 120);
 });
 
+test("ongoing estimate updates retain action focus and inspector scroll", () => {
+  const view = inspector();
+  view.focus('[data-dismiss="visible"]');
+  view.run('$("#detail").scrollTop = 120; snapshot.printers[0].conditions[0].text = "Estimated filament 8%"; renderDetail()');
+  assert.match(view.html(), /Estimated filament 8%/);
+  assert.equal(view.run("document.activeElement?.dataset.dismiss"), "visible");
+  assert.equal(view.run('$("#detail").scrollTop'), 120);
+});
+
 test("failed-save retry remains available through hidden messages, including feed outages", () => {
   const view = inspector();
   view.run('snapshot.decisions = "failed"; renderDetail()');

@@ -120,6 +120,70 @@ func TestBrowserStaleTargetsRecurrenceAndShutdown(t *testing.T) {
 	}
 }
 
+func TestBrowserFilamentEstimatePreservesOccurrenceTarget(t *testing.T) {
+	for _, pollFirst := range []bool{false, true} {
+		name := "command before poll"
+		if pollFirst {
+			name = "poll before command"
+		}
+		t.Run(name, func(t *testing.T) {
+			m := demoModel().WithWebServer(&fakeWebServer{})
+			m.webEnabled = true
+			remaining := 9
+			m.Farm.Printers["H"].AMS = []farm.AMS{{ID: 0, Slots: []farm.Slot{{ID: 0, Remaining: &remaining}}}}
+			m.Farm.Reconcile(m.now)
+			const key = "H/low/0/0"
+			original := m.Farm.Active[key]
+			target := m.webDecisions().Targets[key]
+			if target == "" {
+				t.Fatal("missing low-filament target")
+			}
+			m.Farm.Acknowledge(key, true)
+			remaining = 8
+			m.Farm.Reconcile(m.now.Add(time.Second))
+			updated := m.Farm.Active[key]
+			if updated.Text == original.Text || !updated.Since.Equal(original.Since) || !updated.Acknowledged {
+				t.Fatal("fixture did not update an ongoing reviewed occurrence")
+			}
+			if pollFirst && m.webDecisions().Targets[key] != target {
+				t.Fatal("estimate update rotated target during polling")
+			}
+			m, result := browserDecision(t, m, target, false)
+			if result != "applied" || !m.Farm.Active[key].Dismissed {
+				t.Fatal("rejected ongoing occurrence", result)
+			}
+			remaining = 7
+			m.Farm.Reconcile(m.now.Add(2 * time.Second))
+			if m.webDecisions().Targets[key] != target || !m.Farm.Active[key].Dismissed {
+				t.Fatal("later estimate lost target or local dismissal")
+			}
+		})
+	}
+}
+
+func TestBrowserTextReplacementsRejectOldTargets(t *testing.T) {
+	for _, key := range []string{farm.ConditionCloud, "H/" + farm.ConditionState} {
+		t.Run(key, func(t *testing.T) {
+			m := demoModel().WithWebServer(&fakeWebServer{})
+			m.webEnabled = true
+			original := farm.Condition{Since: m.now, Level: farm.LevelWarning, Text: "Original condition"}
+			m.Farm.Active[key] = original
+			target := m.webDecisions().Targets[key]
+			replacement := original
+			replacement.Text = "Replacement at the same timestamp"
+			m.Farm.Active[key] = replacement
+			command := webserver.Command{Target: target, Reply: make(chan string, 1)}
+			m.applyWebCommand(command)
+			if <-command.Reply == "applied" || m.Farm.Active[key].Dismissed {
+				t.Fatal("old target dismissed replacement")
+			}
+			if m.webDecisions().Targets[key] == target {
+				t.Fatal("replacement retained old target")
+			}
+		})
+	}
+}
+
 func TestBrowserSaveFailureRetryAndFailedLoadProtection(t *testing.T) {
 	m := noticeModel(t)
 	m.Demo = false

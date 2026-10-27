@@ -3,6 +3,7 @@ package ui
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/cliffom/bambu-tui/internal/farm"
@@ -69,8 +70,11 @@ func (m Model) waitWebCommand() tea.Cmd {
 	}
 }
 
-func sameWebOccurrence(a, b farm.Condition) bool {
-	return a.Since.Equal(b.Since) && a.Level == b.Level && a.Code == b.Code && a.Text == b.Text
+func sameWebOccurrence(key string, a, b farm.Condition) bool {
+	// Match farm.Reconcile: only cloud and print-state text identifies a
+	// replacement. Filament estimates can change during an ongoing occurrence.
+	textMatches := a.Text == b.Text || (key != farm.ConditionCloud && !strings.HasSuffix(key, "/"+farm.ConditionState))
+	return a.Since.Equal(b.Since) && a.Level == b.Level && a.Code == b.Code && textMatches
 }
 
 func (m *Model) webDecisions() webserver.Decisions {
@@ -79,7 +83,7 @@ func (m *Model) webDecisions() webserver.Decisions {
 	}
 	for key, target := range m.webTargets {
 		c, ok := m.Farm.Active[key]
-		if !ok || !sameWebOccurrence(target.Condition, c) {
+		if !ok || !sameWebOccurrence(key, target.Condition, c) {
 			delete(m.webTargets, key)
 		}
 	}
@@ -120,7 +124,7 @@ func (m *Model) applyWebCommand(c webserver.Command) {
 	}
 	for key, target := range m.webTargets {
 		current, ok := m.Farm.Active[key]
-		if target.ID != c.Target || !ok || !sameWebOccurrence(target.Condition, current) {
+		if target.ID != c.Target || !ok || !sameWebOccurrence(key, target.Condition, current) {
 			continue
 		}
 		if c.Retry {

@@ -24,7 +24,7 @@ A visual farm overview with searchable, filterable printer cards, model illustra
 
 ![Bambu TUI browser dashboard showing a three-printer farm overview, summary counts, search and filters, and printer cards with progress, temperatures, and availability.](assets/screenshots/browser.png)
 
-The optional browser dashboard runs on the **same computer** and shares the TUI's monitoring connection. Keep the TUI running while you browse; closing it stops the web server. [Enable the browser dashboard](#open-the-browser-dashboard) after starting either the demo or your own farm.
+The optional browser dashboard runs on the **same computer** and shares the TUI's monitoring connection. For real printers, keep the TUI running while you browse; closing it stops the web server. [Enable the browser dashboard](#open-the-browser-dashboard) after starting either the demo or your own farm.
 
 ## Get started
 
@@ -65,6 +65,8 @@ For optional macOS desktop notifications, keep the included `Bambu TUI Notify.ap
 ```
 
 Browse a simulated farm with AMS units and an external spool. Press `m` to inspect filament and `?` for help. A simulated runout demonstrates an action-needed alert about 15 seconds after launch. Close dialogs with `Esc`, then press `q` to quit.
+
+For a terminal-free synthetic browser demo, run `./bambu-tui serve --demo` and open the printed localhost URL. Stop the foreground server with `Ctrl+C`. See [demo server options and limits](docs/user/usage.md#terminal-free-demo-server).
 
 ### 3. Connect your printers
 

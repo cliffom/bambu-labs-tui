@@ -88,7 +88,25 @@ The browser shows a pending request before the reducer applies it, then an appli
 
 TUI changes reach visible browser tabs on their next three-second poll; hidden tabs pause polling and refresh on return. Browser decisions reach the TUI through its event loop without waiting for disk I/O. This synchronization is limited to one running session, with no independent process-to-process synchronization. Shutdown rejects further browser decisions and uses the existing pending-save/failure handling. The browser receives normalized, allowlisted display data, including printer/job names; credentials, raw payloads, protocol job IDs, raw device serials, account information, storage paths, and backend error text are excluded.
 
-Access is **localhost only, without authentication**. Other users and programs on this computer can access the dashboard. Other local clients can also hide notices and retry saves. Exact Host/Origin checks, strict JSON POST requests, and a random session CSRF token protect browser writes from foreign sites; they do not authenticate local programs/users who can fetch the dashboard and token. LAN binding, reverse-proxy/remote access, TLS, and standalone/headless mode are outside this initial implementation. Keep the TUI running; the web server is not a background service.
+Access is **localhost only, without authentication**. Other users and programs on this computer can access the dashboard. Other local clients can also hide notices and retry saves. Exact Host/Origin checks, strict JSON POST requests, and a random session CSRF token protect browser writes from foreign sites; they do not authenticate local programs/users who can fetch the dashboard and token. LAN binding, reverse-proxy/remote access, and TLS remain outside scope. Real-printer browsing requires the TUI to stay running. The web server is not a background service.
+
+### Terminal-free demo server
+
+Run the synthetic farm in the foreground without a terminal UI, credentials, or hardware:
+
+```sh
+./bambu-tui serve --demo
+./bambu-tui serve --demo --config ./config.toml
+# From a source checkout:
+make build
+./bin/bambu-tui serve --demo --config ./config.toml
+```
+
+Open the printed listening URL on the same computer. This command starts HTTP even when `[web_server].enabled = false`, uses the configured port (default 8080), and never rewrites that preference or the configuration file. An occupied port exits with an error and no fallback; a listening URL is printed only after binding succeeds. Invalid configuration also stops startup. Terminal themes are unused; `--theme` is rejected.
+
+Browser inspection and local notice hiding use the same dashboard and shared session. Demo decisions are **session-only** and reset on restart; real-account notice, snooze, credential, and notification stores are not opened. Native desktop delivery is disabled even if saved preferences enable it, and those preferences are preserved. Browser system notifications are not implemented.
+
+Stop with `Ctrl+C` or `SIGTERM`. Closing browser tabs leaves the foreground process running. Shutdown closes the listener and rejects new decisions, drains accepted persistence jobs for up to five seconds, and reports unconfirmed saves as a failure; demo has no durable decision writes. Unexpected HTTP termination also exits with an error. Cloud-backed `bambu-tui serve` is unavailable until [#98](https://github.com/cliffom/bambu-tui/issues/98); it fails with guidance to use `serve --demo` before attempting authentication. This mode does not install a service or enable remote access.
 
 ### Custom themes
 

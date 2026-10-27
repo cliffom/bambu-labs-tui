@@ -55,6 +55,19 @@ func New(ctx context.Context) *Server {
 
 func (s *Server) Status() Status { return s.status.Load().(Status) }
 
+// ListeningDone identifies the current listener lifetime, independently of the
+// parent context. Capture it after successful SetEnabled to detect early exit.
+func (s *Server) ListeningDone() <-chan struct{} {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.done == nil {
+		done := make(chan struct{})
+		close(done)
+		return done
+	}
+	return s.done
+}
+
 // Publish takes its own copy; HTTP handlers read only immutable encoded bytes.
 func (s *Server) Publish(data []byte) { s.snapshot.Store(bytes.Clone(data)) }
 

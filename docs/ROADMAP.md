@@ -30,9 +30,13 @@ The [v0.3.x milestone](https://github.com/cliffom/bambu-tui/milestone/12) contin
 
 Keep localhost binding and the display-data allowlist. Headless mode does not imply LAN/remote access or an installed background service. Browser notifications work with either server mode and define their own relationship to native macOS delivery; closing a system notification does not dismiss a notice. Browser dismissal reuses local notice decisions and never establishes physical fault resolution or introduces printer control. Preserve unknown/confirmed telemetry distinctions and record actual browser, terminal, persistence, and hardware evidence in the validation record as each feature ships. Usage describes the preserved local dismissal behavior; architecture describes its shared session owner in v0.3.2.
 
+## v0.3.3 — Terminal-free demo server
+
+[#97](https://github.com/cliffom/bambu-tui/issues/97) adds foreground `serve --demo` with optional `--config`, localhost HTTP startup independent of saved enablement, shared synthetic monitoring and session-only browser notice decisions, and bounded signal shutdown. Native desktop delivery is disabled and real-account stores remain isolated. This completes phase 2 of #90; cloud-backed `serve` remains planned under #98. See [usage](user/usage.md#terminal-free-demo-server) and [validation](development/validation.md#terminal-free-demo-server-97).
+
 ## v0.3.2 — Shared monitoring session
 
-[#96](https://github.com/cliffom/bambu-tui/issues/96) establishes `internal/session` as the shared owner for telemetry/reconciliation, local browser decisions, immutable snapshots, and persistence, used by the existing TUI. It is phase 1 of [#90](https://github.com/cliffom/bambu-tui/issues/90). Synthetic terminal-free demo serving ([#97](https://github.com/cliffom/bambu-tui/issues/97)) and cloud-backed serving ([#98](https://github.com/cliffom/bambu-tui/issues/98)) remain planned, in that order; #90 stays open until all phases are complete. See [architecture](development/architecture.md) and the [validation record](development/validation.md#shared-monitoring-session-96).
+[#96](https://github.com/cliffom/bambu-tui/issues/96) establishes `internal/session` as the shared owner for telemetry/reconciliation, local browser decisions, immutable snapshots, and persistence, used by the existing TUI. It is phase 1 of [#90](https://github.com/cliffom/bambu-tui/issues/90). Synthetic terminal-free demo serving (#97) follows in v0.3.3; cloud-backed serving ([#98](https://github.com/cliffom/bambu-tui/issues/98)) remains planned. #90 stays open until all phases are complete. See [architecture](development/architecture.md) and the [validation record](development/validation.md#shared-monitoring-session-96).
 
 ## v0.3.1 — Browser notice dismissal
 

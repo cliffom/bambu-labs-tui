@@ -17,6 +17,8 @@ Compare `shasum -a 256 <archive.tar.gz>` (or `sha256sum` on Linux) with the matc
 
 The demo needs no account or printer. For login, enter the email bound to your Bambu account and the emailed code. Press `?` for dashboard controls and `q` to quit.
 
+For a browser demo without a terminal UI, run `./bambu-tui serve --demo` (optionally `--config ./config.toml`) and open the printed localhost URL. Stop with `Ctrl+C`. It uses synthetic data and session-only notice decisions; native notifications are disabled. Real-printer monitoring still requires the TUI. See [demo server guidance](https://github.com/cliffom/bambu-tui/blob/main/docs/user/usage.md#terminal-free-demo-server).
+
 On macOS, keep `Bambu TUI Notify.app` beside `bambu-tui`, including when moving the executable to a directory on your `PATH`. Signed releases include a Developer ID-signed, notarized CLI and helper; no Go, Swift, or Apple Developer account is needed to run them. Linux archives contain the CLI without the helper.
 
 ## Configure notifications

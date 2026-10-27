@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.3 — Terminal-free demo server
+
+- Add `bambu-tui serve --demo`, with optional `--config`, to run the synthetic farm and browser dashboard in the foreground without a TTY or credentials. Start HTTP regardless of saved enablement, preserve configuration, and print the localhost URL only after a successful bind; occupied ports fail without fallback.
+- Reuse the shared session for telemetry, snapshots, and session-only browser notice decisions. Keep real-account stores isolated and native desktop delivery disabled without changing saved preferences.
+- Handle SIGINT/SIGTERM with bounded monitoring/persistence shutdown; unexpected HTTP termination fails the process. Closing browser tabs leaves monitoring running.
+- Deliver phase 2 of #90 (#97). Cloud-backed `serve` remains unavailable pending #98; LAN access, background services, and printer control remain outside scope.
+
+See [usage](user/usage.md#terminal-free-demo-server) and the [validation record](development/validation.md#terminal-free-demo-server-97) for evidence and limits.
+
 ## 0.3.2 — Shared monitoring session
 
 - Extract shared session ownership for telemetry, reconciliation, local notice decisions, browser occurrence targets, immutable display snapshots, and serialized/coalesced configuration, notice, and snooze saves. The existing TUI uses this foundation while retaining its dialogs, notification integration, and bounded shutdown.

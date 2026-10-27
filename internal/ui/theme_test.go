@@ -13,7 +13,7 @@ import (
 )
 
 func TestThemeFilesAndPartialOverrides(t *testing.T) {
-	for _, file := range []string{"default.json", "gruvbox-dark.json", "hotdog.json", "c64.json"} {
+	for _, file := range []string{"default.json", "gruvbox-dark.json", "hotdog.json", "c64.json", "ibm3270.json"} {
 		data, err := os.ReadFile(filepath.Join("themes", file))
 		if err != nil {
 			t.Fatal(err)
@@ -144,6 +144,17 @@ func TestThemeOverrideNamesAndWorkingDirectory(t *testing.T) {
 	if err != nil || theme.Name != "C64" || theme.Palette.Background != "#352879" || theme.Palette.SelectedBackground != "#6C5EB5" {
 		t.Fatal(theme, err)
 	}
+	theme, err = LoadThemeOverride("ibm3270")
+	if err != nil || theme.Name != "IBM 3270" || theme.Palette.Background != "#001108" {
+		t.Fatal(theme, err)
+	}
+	fields := reflect.ValueOf(theme.Palette)
+	for i := 0; i < fields.NumField(); i++ {
+		r, g, b, _ := fields.Field(i).Interface().(lipgloss.Color).RGBA()
+		if g < r || g < b {
+			t.Fatal("IBM 3270 app-owned roles must remain green", fields.Type().Field(i).Name)
+		}
+	}
 	for _, name := range []string{"", "missing.json", "gruvbox-dakr"} {
 		if _, err := LoadThemeOverride(name); err == nil {
 			t.Fatal("invalid override silently accepted", name)
@@ -154,7 +165,7 @@ func TestThemeOverrideNamesAndWorkingDirectory(t *testing.T) {
 func TestThemeCanvasCoversEverySurfaceAndResize(t *testing.T) {
 	profile := lipgloss.ColorProfile()
 	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
-	for _, name := range []string{"gruvbox-dark", "hotdog", "c64"} {
+	for _, name := range []string{"gruvbox-dark", "hotdog", "c64", "ibm3270"} {
 		theme, err := LoadThemeOverride(name)
 		if err != nil {
 			t.Fatal(err)

@@ -74,7 +74,7 @@ make run THEME=gruvbox-dark
 make demo THEME=gruvbox-dark
 ```
 
-`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
+`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, `ibm3270`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
 
 For an unmistakable light-theme demonstration, try **Hotdog**, inspired by the red/yellow Hotdog Stand look:
 
@@ -95,6 +95,16 @@ make demo THEME=c64
 ```
 
 C64 uses a deep blue body, light blue/lavender text and borders, blue selections, and a darker blue status bar. Its base/selection blues and green/yellow accents draw from [VICE's Pepto PAL palette](https://github.com/VICE-Team/svn-mirror/blob/main/vice/data/C64/pepto-pal.vpl); text and feedback colors are brightened for monitoring readability. The complete [c64.json](../../internal/ui/themes/c64.json) is available for customization.
+
+For the green-screen terminal look, use **IBM 3270**:
+
+```sh
+bambu-tui --theme ibm3270
+make run THEME=ibm3270
+make demo THEME=ibm3270
+```
+
+IBM 3270 uses a near-black green body, phosphor-green text and borders, a reverse green selection, and a dark green status bar. App-owned colors stay in shades of green; text labels and emphasis distinguish information, success, warning, and errors. Reported filament swatches retain their actual colors. The name references [IBM's 3270 green-screen interfaces](https://www.ibm.com/docs/en/om-shared?topic=deployment-decision-10-which-user-interfaces-use). The complete [ibm3270.json](../../internal/ui/themes/ibm3270.json) is available for customization.
 
 For a persistent custom file, set `theme_file` **before any TOML table** in the configuration file:
 

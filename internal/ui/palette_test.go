@@ -391,7 +391,7 @@ func TestBundledPaletteContrast(t *testing.T) {
 		x, y := luminance(a), luminance(b)
 		return (max(x, y) + 0.05) / (min(x, y) + 0.05)
 	}
-	for _, name := range []string{"default", "gruvbox-dark", "hotdog", "c64"} {
+	for _, name := range []string{"default", "gruvbox-dark", "hotdog", "c64", "ibm3270"} {
 		theme, err := LoadThemeOverride(name)
 		if err != nil {
 			t.Fatal(err)
@@ -406,7 +406,7 @@ func TestBundledPaletteContrast(t *testing.T) {
 			t.Fatal(name, "fresh informational text lost prominence over deliberately dimmed feedback")
 		}
 
-		if name == "hotdog" || name == "c64" {
+		if name == "hotdog" || name == "c64" || name == "ibm3270" {
 			if name == "hotdog" && luminance(p.Background) < 0.9 {
 				t.Fatal("Hotdog must retain its very light main background")
 			}

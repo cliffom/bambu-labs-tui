@@ -24,6 +24,9 @@ var hotdogTheme []byte
 //go:embed themes/c64.json
 var c64Theme []byte
 
+//go:embed themes/ibm3270.json
+var ibm3270Theme []byte
+
 const maximumThemeBytes = 64 * 1024
 
 var themeRGB = regexp.MustCompile(`^#[[:xdigit:]]{6}$`)
@@ -46,8 +49,10 @@ func LoadThemeOverride(choice string) (Theme, error) {
 		return ParseTheme(hotdogTheme)
 	case "c64":
 		return ParseTheme(c64Theme)
+	case "ibm3270":
+		return ParseTheme(ibm3270Theme)
 	case "":
-		return Theme{}, fmt.Errorf("--theme requires default, gruvbox-dark, hotdog, c64, or a JSON file path")
+		return Theme{}, fmt.Errorf("--theme requires default, gruvbox-dark, hotdog, c64, ibm3270, or a JSON file path")
 	default:
 		return LoadTheme("", choice)
 	}

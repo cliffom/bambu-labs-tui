@@ -53,7 +53,8 @@ const browserNotifications = (() => {
   }
   function submit(event, synthetic = false) {
     const notification = new Notification(event.title, {
-      body: event.body, icon: "/icon.png", tag: synthetic ? "bambu-tui-browser-test" : event.id,
+      // Explicit tests must not replace an earlier test and suppress its banner.
+      body: event.body, icon: "/icon.png", tag: synthetic ? "" : event.id,
       silent: !event.sound,
     });
     message = "Submitted to browser; banner and sound unconfirmed.";
@@ -65,7 +66,9 @@ const browserNotifications = (() => {
       window.focus();
       if (!synthetic && typeof snapshot !== "undefined" && snapshot?.printers.some((p) => p.id === event.printer)) {
         // Return to the printer's reported conditions without changing reviews.
-        if (element("about-dialog").open) element("about-dialog").close();
+        for (const id of ["about-dialog", "settings-dialog"]) {
+          if (element(id).open) element(id).close();
+        }
         inspect(event.printer);
       }
       notification.close();

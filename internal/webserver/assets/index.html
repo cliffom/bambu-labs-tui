@@ -18,6 +18,18 @@
         <span class="live" id="feed-state" role="status">Connecting…</span
         ><span class="readonly">▣ &nbsp; Monitor</span
         ><button
+          id="settings"
+          class="icon-button"
+          aria-label="Dashboard settings"
+          aria-haspopup="dialog"
+          aria-controls="settings-dialog"
+          title="Settings"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="m9 3-.5 2-2 1.2-2-.6-2 3.4L4 10.5v3l-1.5 1.5 2 3.4 2-.6 2 1.2.5 2h4l.5-2 2-1.2 2 .6 2-3.4-1.5-1.5v-3L20 9l-2-3.4-2 .6-2-1.2-.5-2Z" />
+            <circle cx="11" cy="12" r="3" />
+          </svg>
+        </button><button
           id="about"
           class="icon-button"
           aria-label="About this dashboard"
@@ -99,18 +111,6 @@
           </div>
           <button id="review">Inspect conditions <span>↗</span></button>
         </div>
-        <section class="notification-panel" aria-labelledby="notification-heading">
-          <div>
-            <h2 id="notification-heading">Browser notifications</h2>
-            <p id="notification-status" role="status" aria-live="polite">Automatic: Off</p>
-            <p class="subtle">New events only, while an enabled page runs. Tabs and browsers share one attempt. Closing a notification never hides a notice.</p>
-          </div>
-          <div class="notification-controls" role="group" aria-label="Browser notification controls">
-            <button id="enable-notifications">Enable</button>
-            <button id="test-notifications">Test</button>
-            <button id="disable-notifications" disabled>Disable</button>
-          </div>
-        </section>
         <section class="fleet">
           <div class="section-title">
             <h2>Printers <span id="visible-count">0</span></h2>
@@ -176,6 +176,30 @@
       <div class="dialog-footer">
         Monitoring & local notices · Close with <kbd>Esc</kbd>
       </div>
+    </dialog>
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <div class="dialog-header">
+        <h2 id="settings-title">Settings</h2>
+        <button
+          id="close-settings"
+          class="icon-button close-button"
+          aria-label="Close settings"
+          autofocus
+        ></button>
+      </div>
+      <section class="notification-panel" aria-labelledby="notification-heading">
+        <div>
+          <h2 id="notification-heading">Browser notifications</h2>
+          <p id="notification-status" role="status" aria-live="polite">Automatic: Off</p>
+          <p class="muted">New events only, while an enabled page runs. Tabs and browsers share one attempt. Closing a notification never hides a notice.</p>
+        </div>
+        <div class="notification-controls" role="group" aria-label="Browser notification controls">
+          <button id="enable-notifications">Enable</button>
+          <button id="test-notifications">Test</button>
+          <button id="disable-notifications" disabled>Disable</button>
+        </div>
+      </section>
+      <div class="dialog-footer">This browser only · Close with <kbd>Esc</kbd></div>
     </dialog>
     <dialog id="about-dialog">
       <div class="dialog-header">

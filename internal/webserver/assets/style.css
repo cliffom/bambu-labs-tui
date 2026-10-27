@@ -1154,21 +1154,25 @@ samp {
   cursor: wait;
 }
 
-.notification-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1.25rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
+#settings-dialog {
+  max-width: calc(100% - 28px);
 }
-.notification-panel > div:first-child { flex: 1 1 20rem; min-width: 0; }
+#settings-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.notification-panel {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.notification-panel > div { min-width: 0; }
 .notification-panel p { margin: 0.5rem 0 0; overflow-wrap: anywhere; }
-.notification-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.notification-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; min-width: 0; }
 .notification-controls button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   padding: 0.6rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: 0.3rem;

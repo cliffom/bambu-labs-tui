@@ -337,6 +337,8 @@ $("#review").onclick = () => {
   if (p) inspect(p.id);
 };
 $("#close-detail").onclick = () => $("#detail").close();
+$("#settings").onclick = () => $("#settings-dialog").showModal();
+$("#close-settings").onclick = () => $("#settings-dialog").close();
 $("#about").onclick = () => $("#about-dialog").showModal();
 $("#close-about").onclick = () => $("#about-dialog").close();
 document.addEventListener("visibilitychange", () => {

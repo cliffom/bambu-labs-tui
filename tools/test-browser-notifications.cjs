@@ -7,8 +7,8 @@ const vm = require("node:vm");
 const path = require("node:path");
 function browser({permission = "default", supported = true, secure = true, stored = false} = {}) {
   const elements = new Map(), listeners = {}, notices = [], requests = [];
-  for (const id of ["notification-status", "enable-notifications", "test-notifications", "disable-notifications", "about-dialog"])
-    elements.set("#" + id, {textContent: "", disabled: false, open: false});
+  for (const id of ["notification-status", "enable-notifications", "test-notifications", "disable-notifications", "about-dialog", "settings-dialog"])
+    elements.set("#" + id, {textContent: "", disabled: false, open: false, close() { this.open = false; }});
   let now = Date.now();
   let fetchWait = null;
   class Clock extends Date { static now() { return now; } }
@@ -73,6 +73,19 @@ test("permission request follows a click; Test is synthetic and keeps automatic 
   assert.match(b.status(), /banner and sound unconfirmed/);
 });
 
+test("repeated Test clicks submit separate silent notifications without replacement tags", async () => {
+  const b = browser();
+  for (let i = 0; i < 3; i++) await b.click("test-notifications");
+  assert.equal(b.notices.length, 3);
+  for (const notice of b.notices) {
+    assert.equal(notice.options.tag, "");
+    assert.equal(notice.options.silent, true);
+  }
+  assert.equal(b.requested(), 1);
+  assert.equal(b.run("browserNotifications.enabled()"), false);
+  assert.equal(b.requests.length, 0);
+});
+
 test("denial, unsupported API and insecure context preserve monitoring", async () => {
   for (const options of [{permission: "denied"}, {supported: false}, {secure: false}]) {
     const b = browser(options);
@@ -92,8 +105,11 @@ test("claimed notifications navigate to printer on click and close makes no deci
   await b.run("browserNotifications.poll()");
   assert.equal(b.notices.length, 1);
   assert.equal(b.notices[0].options.silent, true);
+  assert.equal(b.notices[0].options.tag, event.id);
   assert.equal(b.notices[0].onclose, undefined);
+  b.elements.get("#settings-dialog").open = true;
   b.notices[0].onclick();
+  assert.equal(b.elements.get("#settings-dialog").open, false);
   assert.equal(b.inspected(), "printer");
   assert.equal(b.notices[0].closed, true);
   assert.equal(b.requests.some((r) => r.url === "/api/dismiss"), false);

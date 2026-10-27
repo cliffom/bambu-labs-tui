@@ -17,6 +17,7 @@ func TestDialogOwnerRoutesInputViewAndAttentionDeferral(t *testing.T) {
 	}{
 		{"help", "?", "KEYBOARD", dialogHelp},
 		{"about", "A", "ABOUT", dialogAbout},
+		{"server status", "W", "SERVER STATUS", dialogServerStatus},
 		{"inspector", "enter", "NOTICE", dialogInspector},
 		{"history", "C", "CLEAR RECENT EVENTS?", dialogClearHistory},
 		{"clear notices", "X", "CLEAR ALL NOTICES?", dialogClearNotices},

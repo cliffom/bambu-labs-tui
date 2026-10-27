@@ -32,6 +32,7 @@ const (
 	keyHelp                 = "?"
 	keyAbout                = "A"
 	keyStatus               = "ctrl+e"
+	keyServerStatus         = "W"
 	keyAttention            = "!"
 	keyDiagnostics          = "D"
 	keyFilter               = "F"

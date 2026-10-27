@@ -38,6 +38,7 @@ const (
 	dialogExport
 	dialogShutdown
 	dialogStatus
+	dialogServerStatus
 )
 
 // routeFor is the single catalog for dialog input, rendering, and lifecycle.
@@ -68,6 +69,8 @@ func routeFor(kind dialogKind) dialogRoute {
 		return dialogRoute{key: (*Model).configKey, view: Model.configView, sync: (*Model).syncConfig, clear: (*Model).clearConfig}
 	case dialogExport:
 		return dialogRoute{key: (*Model).exportKey, view: Model.exportView, sync: (*Model).syncExport, clear: func(m *Model) { m.exportDialog = nil }}
+	case dialogServerStatus:
+		return dialogRoute{key: (*Model).serverStatusKey, view: Model.serverStatusView, sync: (*Model).syncServerStatus}
 	case dialogStatus:
 		return dialogRoute{key: (*Model).statusKey, view: Model.statusView, sync: (*Model).syncStatus}
 	case dialogShutdown:
@@ -83,7 +86,7 @@ func routeFor(kind dialogKind) dialogRoute {
 // openDialog replaces the owner, except for status inspection and the attention
 // -> alerts return path. Concrete payloads are installed by the caller after this transition.
 func (m *Model) openDialog(kind dialogKind) {
-	if kind == dialogStatus {
+	if kind == dialogStatus || (kind == dialogServerStatus && m.dialog.active == dialogConfig) {
 		m.dialog = dialogState{active: kind, returnTo: m.dialog.active, resume: m.dialog.returnTo}
 		return
 	}

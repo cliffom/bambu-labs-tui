@@ -38,6 +38,11 @@ type (
 		toastKind                  feedbackKind
 		exportError, browserError  string
 		help, status, about        viewport.Model
+		serverStatus               viewport.Model
+		sessionStarted             time.Time
+		monitorState               string
+		serverDiagnostics          []serverDiagnostic
+		webClients                 webserver.ClientStatus
 		activeTheme                string
 		clearHistoryEvents         []uint64
 		details, notices           viewport.Model
@@ -111,6 +116,11 @@ func (m Model) WithNoticePersistence(save func(map[string]farm.Review) error, lo
 
 func New(state *farm.State, events <-chan monitor.Event, refresh chan<- struct{}, demo bool) Model {
 	m := Model{webPort: config.DefaultWebPort, styles: newStyles(DefaultPalette()), configRegion: config.RegionGlobal, activeRegion: config.RegionGlobal, alertPrefs: config.DefaultAlerts(), Session: session.New(state, demo), Events: events, Refresh: refresh, width: defaultWidth, height: defaultHeight, now: time.Now(), details: viewport.New(initialDetailsWidth, initialDetailsHeight), notices: viewport.New(initialNoticesWidth, initialNoticesHeight), inspection: viewport.New(initialInspectorWidth, initialInspectorHeight), help: viewport.New(1, 1)}
+	m.sessionStarted = m.now
+	m.monitorState = "Connecting"
+	if state.Connected {
+		m.monitorState = "Connected"
+	}
 	m.syncPanels()
 	return m
 }
@@ -138,11 +148,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	result, cmd := m.update(msg)
 	result.pruneSnoozes()
 	result.syncNotifications()
-	result.syncDialogs()
 	if result.viewPreferences() != previousView {
 		result.ConfigChanged()
 	}
 	cmd = tea.Batch(cmd, result.persist(), result.syncWebServer())
+	result.syncDialogs()
 	if result.quitting && !result.persistencePending() {
 		if result.ReviewWrites().Failed != 0 || result.SnoozeWrites().Failed != 0 || result.ConfigWrites().Failed != 0 {
 			result.quitting, result.quitProblem = false, true
@@ -194,11 +204,13 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		cmd = tick()
 	case monitor.Event:
 		m.now = time.Now()
+		m.observeServerMonitor(v)
 		if v.Kind == monitor.EventReport && m.Farm.Printers[v.ID] != nil {
 			m.diagnostics.Record(v.ID, v.Payload)
 		}
 		if err := m.ApplyEvent(v); err != nil {
 			m.setToast(feedbackWarning, "Ignored malformed printer status")
+			m.noteServer("Ignored malformed printer status; accepted telemetry retained", feedbackWarning)
 		}
 		if v.Kind == monitor.EventProblem {
 			m.setToast(feedbackWarning, v.Problem)
@@ -226,6 +238,8 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		case keyQuit, keyInterrupt:
 			cmd = m.beginShutdown()
 			return m, cmd
+		case keyServerStatus:
+			m.openServerStatus()
 		case keyNotificationActivity:
 			m.openNotificationActivity()
 		case keyConfig:

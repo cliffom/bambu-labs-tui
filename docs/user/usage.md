@@ -92,6 +92,16 @@ TUI changes reach visible browser tabs on their next three-second poll; hidden t
 
 Access is **localhost only, without authentication**. Other users and programs on this computer can access the dashboard. Other local clients can also hide notices and retry saves. Exact Host/Origin checks, strict JSON POST requests, and a random session CSRF token protect browser writes from foreign sites; they do not authenticate local programs/users who can fetch the dashboard and token. LAN binding, reverse-proxy/remote access, and TLS remain outside scope. Real-printer browsing requires either the TUI or the foreground `serve` process to stay running. The web server is not a background service.
 
+### TUI Server Status
+
+Press **`W`** from the dashboard, or select **Server Status** in **Config (,) > Web Server** and press `Enter` or Space. `W` also opens it from that Config section when no edit or confirmation owns input. This read-only modal stays live while monitoring, HTTP clients, listener commands, and saves continue. Enablement, port changes, and retry remain in Config.
+
+The modal shows cloud/demo mode; Stopped (disabled), Starting, Running, Stopping, or Failed HTTP state; monitoring connection/reconnect/authentication state; and the complete bound localhost URL only after a successful bind. **Session uptime** measures this TUI session; **Listener uptime** measures the current successful binding and resets after a listener restart. Connected monitoring does not establish fresh printer telemetry. Persistent Config, notice, and snooze storage warnings include recovery guidance. Recent diagnostics retain up to eight fixed, sanitized messages; they exclude raw backend errors and telemetry.
+
+HTTP activity uses the same session-only ledger as the foreground view: up to 32 connect/disconnect events and 128 tracked sockets/groups, grouped best-effort by socket IP and sanitized first-request User-Agent. Sockets without requests are ignored. The last socket's closure starts a five-second disconnect grace; matching replacement sockets keep the group alive. Server shutdown retires groups immediately. Active counts cover tracked groups, and tracking omissions and expired history are labeled. A group is neither an authenticated user nor an exact browser-tab count. Client metadata never enters browser snapshots or persistent storage.
+
+Use arrows, `j`/`k`, page keys, or Home/End (`g`/`G`) to scroll; long client metadata wraps. Updates preserve the scroll offset where content permits. `Esc` or `W` returns to the dashboard or Config, preserving its selection and input. `Ctrl+E` opens Status / Feedback and returns to this modal, preserving the suspended Config as well. Closing inspection leaves the server running. Quit remains dashboard-only; below 60 × 18, navigation is blocked and resizing back restores inspection.
+
 ### Foreground server status
 
 On an interactive terminal, `serve` and `serve --demo` show a compact, continuously updated status screen. The localhost dashboard URL stays at the top, followed by cloud/demo mode, HTTP server state, monitoring connection/reconnect state, session uptime, up to three recent sanitized diagnostics, and HTTP client activity. Open the URL on the same computer. **Connected** describes the monitoring transport; use the browser dashboard for individual printer connectivity and telemetry freshness.
@@ -267,6 +277,7 @@ Use contrasting text/background pairs, particularly `text`/`background`, `select
 | `r` | Request a full status snapshot |
 | `?` | Open/close scrollable help; arrows/page keys scroll, Home/End jumps |
 | `A` | Open read-only About: version, platform, active theme, and hue-sorted color grid |
+| `W` | Open live Server Status from dashboard or Config > Web Server; `Esc` / `W` returns |
 | `Ctrl+E` | Inspect full status/errors; `Esc` or `Ctrl+E` returns to the same screen |
 | `Esc` | Close help and focus the printer list |
 | `q` / `Ctrl+C` | Quit from the dashboard; close any modal first |

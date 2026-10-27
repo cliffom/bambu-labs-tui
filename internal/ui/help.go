@@ -23,6 +23,7 @@ func (m *Model) syncHelp() {
 		"n              Manage local notice decisions (restore/reset)",
 		"s              Printer alert preferences and snoozing",
 		",              Configure general settings, alerts, printers, web server",
+		"W              Live Server Status and grouped HTTP client activity",
 		"N              Recent notification outcomes and suppression reasons",
 		"A              About Bambu TUI, platform, and theme colors",
 		"Ctrl+E         Inspect full status/errors; Esc returns to the same screen",

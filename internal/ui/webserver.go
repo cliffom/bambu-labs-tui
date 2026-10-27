@@ -33,6 +33,9 @@ func (m *Model) syncWebServer() tea.Cmd {
 		return nil
 	}
 	m.webStatus = m.webServer.Status()
+	if source, ok := m.webServer.(interface{ Clients() webserver.ClientStatus }); ok {
+		m.webClients = source.Clients()
+	}
 	m.Publish(m.webServer, m.now, session.BrowserPolicy{Alerts: m.alertPrefs, Active: !m.quitting && !m.quitProblem && !m.ended && m.dialog.active != dialogShutdown})
 	if m.webBusy || (m.webInitialized && m.webAttempted == m.webEnabled && (!m.webEnabled || m.webAttemptedPort == m.webPort)) {
 		return nil

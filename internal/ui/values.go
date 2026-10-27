@@ -9,6 +9,7 @@ const (
 	shutdownSaveTimeout   = 5 * time.Second
 	toastLifetime         = 8 * time.Second
 	browserTimeout        = 10 * time.Second
+	serverDiagnosticLimit = 8
 	dashboardTickInterval = time.Second
 	minimumWidth          = 60
 	minimumHeight         = 18

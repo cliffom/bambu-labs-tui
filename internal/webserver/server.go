@@ -25,7 +25,10 @@ import (
 var assets embed.FS
 
 type (
-	Status struct{ URL, Error string }
+	Status struct {
+		URL, Error string
+		Started    time.Time // Current listener lifetime; zero unless successfully bound.
+	}
 	Server struct {
 		clients  clientConnections
 		browser  *browserWorker
@@ -118,7 +121,7 @@ func (s *Server) SetEnabled(enabled bool, port int) Status {
 	s.port = port
 	done := make(chan struct{})
 	s.listener, s.done = listener, done
-	s.status.Store(Status{URL: "http://" + host})
+	s.status.Store(Status{URL: "http://" + host, Started: time.Now()})
 	go func() {
 		err := server.Serve(listener)
 		close(done)

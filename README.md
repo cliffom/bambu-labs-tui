@@ -93,6 +93,7 @@ Use arrows or `j` / `k` to select a printer, `Tab` to switch panels, and `?` for
 | `s` | View alert preferences and snooze/resume controls |
 | `N` | Inspect notification activity/ownership; recheck paused delivery |
 | `,` | Edit general settings, alerts, printers, and web server |
+| `W` | Inspect live server status and grouped HTTP client activity |
 | `D` | Preview and confirm a local diagnostic export |
 | `Esc` | Close a dialog |
 | `q` / `Ctrl+C` | Quit after closing dialogs |

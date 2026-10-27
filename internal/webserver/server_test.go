@@ -330,3 +330,31 @@ func TestChangingRunningPortStopsOldListenerAndHonorsConflict(t *testing.T) {
 	}
 	_ = response.Body.Close()
 }
+
+func TestListenerUptimeFollowsSuccessfulLifetime(t *testing.T) {
+	server := New(t.Context())
+	defer server.Close()
+	if !server.Status().Started.IsZero() {
+		t.Fatal("unbound listener has uptime")
+	}
+	port := availablePort(t)
+	first := server.SetEnabled(true, port)
+	if first.Started.IsZero() || first.URL == "" {
+		t.Fatal("bound listener lacks start", first)
+	}
+	if server.SetEnabled(true, port).Started != first.Started {
+		t.Fatal("idempotent enable reset uptime")
+	}
+	stopped := server.SetEnabled(false, 0)
+	if !stopped.Started.IsZero() || stopped.URL != "" {
+		t.Fatal("stopped lifetime retained", stopped)
+	}
+	failed := server.SetEnabled(true, -1)
+	if !failed.Started.IsZero() || failed.URL != "" || failed.Error == "" {
+		t.Fatal("failed bind has uptime", failed)
+	}
+	second := server.SetEnabled(true, port)
+	if !second.Started.After(first.Started) {
+		t.Fatal("restart retained listener uptime")
+	}
+}

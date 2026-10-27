@@ -16,6 +16,7 @@ import (
 
 type fakeWebServer struct {
 	status        webserver.Status
+	clients       webserver.ClientStatus
 	calls         []bool
 	ports         []int
 	snapshot      []byte
@@ -25,6 +26,12 @@ type fakeWebServer struct {
 
 func (s *fakeWebServer) SubmitNotifications(input notifications.Input) {
 	s.notifications = append(s.notifications, input)
+}
+
+func (s *fakeWebServer) Clients() webserver.ClientStatus {
+	result := s.clients
+	result.Events = append([]webserver.ClientEvent(nil), result.Events...)
+	return result
 }
 
 func (s *fakeWebServer) Publish(data []byte)      { s.snapshot = data }

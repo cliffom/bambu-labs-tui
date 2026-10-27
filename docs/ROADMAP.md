@@ -21,7 +21,7 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 
 ## Status message prominence and customizable themes
 
-[#82](https://github.com/cliffom/bambu-tui/issues/82) gives fresh status messages explicit informational/success/warning/error roles and defines a semantic default palette with instance-owned styles. Versioned JSON files can now customize any palette role through the startup `theme_file` setting or a launch-only `--theme` override (also available with `make run THEME=…`), with complete default/Gruvbox Dark/Hotdog examples and body foreground/background support. Feedback lifetimes, dialog state, and reported filament colors remain independent of presentation. Actual layout evidence and limits belong in the [validation record](development/validation.md).
+[#82](https://github.com/cliffom/bambu-tui/issues/82) gives fresh status messages explicit informational/success/warning/error roles and defines a semantic default palette with instance-owned styles. Versioned JSON files can now customize any palette role through the startup `theme_file` setting or a launch-only `--theme` override (also available with `make run THEME=…`), with complete default/Gruvbox Dark/Hotdog/C64 examples and body foreground/background support. Feedback lifetimes, dialog state, and reported filament colors remain independent of presentation. Actual layout evidence and limits belong in the [validation record](development/validation.md).
 
 ## v0.2.9 — consistent status feedback
 

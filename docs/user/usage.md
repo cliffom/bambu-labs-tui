@@ -74,7 +74,7 @@ make run THEME=gruvbox-dark
 make demo THEME=gruvbox-dark
 ```
 
-`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
+`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
 
 For an unmistakable light-theme demonstration, try **Hotdog**, inspired by the red/yellow Hotdog Stand look:
 
@@ -85,6 +85,16 @@ make demo THEME=hotdog
 ```
 
 Hotdog uses a very light cream background, dark body text, vivid red headings/borders, a yellow selection, and a red status bar with bright yellow/white text. Its complete [hotdog.json](../../internal/ui/themes/hotdog.json) is also available as a starting point for customization.
+
+For Commodore-inspired blues, use **C64**:
+
+```sh
+bambu-tui --theme c64
+make run THEME=c64
+make demo THEME=c64
+```
+
+C64 uses a deep blue body, light blue/lavender text and borders, blue selections, and a darker blue status bar. Its base/selection blues and green/yellow accents draw from [VICE's Pepto PAL palette](https://github.com/VICE-Team/svn-mirror/blob/main/vice/data/C64/pepto-pal.vpl); text and feedback colors are brightened for monitoring readability. The complete [c64.json](../../internal/ui/themes/c64.json) is available for customization.
 
 For a persistent custom file, set `theme_file` **before any TOML table** in the configuration file:
 

@@ -410,6 +410,10 @@ func TestBundledPaletteContrast(t *testing.T) {
 			t.Fatal(name, "fresh informational text lost prominence over deliberately dimmed feedback")
 		}
 
+		if contrast(p.SelectedText, p.SelectedBackground) < 4.5 {
+			t.Fatal(name, "selection lost readable text")
+		}
+
 		if name == "hotdog" || name == "c64" || name == "ibm3270" {
 			if name == "hotdog" && luminance(p.Background) < 0.9 {
 				t.Fatal("Hotdog must retain its very light main background")
@@ -418,9 +422,6 @@ func TestBundledPaletteContrast(t *testing.T) {
 				if ratio := contrast(c, p.Background); ratio < 4.5 {
 					t.Fatalf("%s body role %s contrast %.2f, want at least 4.5", name, c, ratio)
 				}
-			}
-			if contrast(p.SelectedText, p.SelectedBackground) < 4.5 {
-				t.Fatal(name, "selection lost readable text")
 			}
 		}
 	}

@@ -163,7 +163,13 @@ func (m Model) notificationActivityView() string {
 			}
 			// Reserve the outcome column so long/untrusted printer names cannot hide it.
 			subject := ansi.Truncate(safe(entry.Subject), max(12, width/3), "…")
-			suffix := " · " + subject + " · " + m.activityOutcome(entry)
+			// The selected row owns its foreground. A nested outcome color may
+			// match the selection background in a user or bundled theme.
+			outcome := safe(entry.Outcome)
+			if i != d.index {
+				outcome = m.activityOutcome(entry)
+			}
+			suffix := " · " + subject + " · " + outcome
 			prefix := marker + entry.At.Local().Format("15:04:05") + " " + safe(entry.Printer)
 			row := ansi.Truncate(prefix, max(1, width-ansi.StringWidth(suffix)), "…") + suffix
 			if i == d.index {

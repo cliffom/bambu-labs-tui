@@ -650,9 +650,9 @@ func (m Model) printerRow(i int) string {
 	row = cell(row, m.width)
 	style := m.styles.text
 	if i == m.selection {
+		// Selection owns the contrasting foreground; Offline remains explicit.
 		style = m.styles.selection
-	}
-	if !p.Online {
+	} else if !p.Online {
 		style = style.Foreground(m.styles.warning.GetForeground())
 	}
 	return style.Render(row)

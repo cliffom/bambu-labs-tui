@@ -25,13 +25,14 @@ function inspector() {
           elements.get("#detail").scrollTop = 0;
       },
       showModal() { value.open = true; },
+      close() { value.open = false; },
     };
     elements.set(selector, value);
     return value;
   }
   for (const id of ["detail", "detail-title", "detail-body", "close-detail",
     "search", "sort", "nav-farm", "nav-attention", "nav-unavailable",
-    "review", "about", "close-about"]) element("#" + id);
+    "review", "about", "close-about", "settings", "settings-dialog", "close-settings"]) element("#" + id);
   let html = "";
   Object.defineProperty(elements.get("#detail-body"), "innerHTML", {
     get: () => html,
@@ -71,6 +72,17 @@ function inspector() {
     },
   };
 }
+
+test("header settings opens and closes independently of live printer inspection", () => {
+  const view = inspector();
+  view.run('$("#settings").onclick()');
+  assert.equal(view.run('$("#settings-dialog").open'), true);
+  view.run('snapshot.printers[0].conditions[0].text = "Updated while settings open"; renderDetail()');
+  assert.equal(view.run('$("#settings-dialog").open'), true);
+  view.run('$("#close-settings").onclick()');
+  assert.equal(view.run('$("#settings-dialog").open'), false);
+  assert.match(view.html(), /Updated while settings open/);
+});
 
 test("dismissed conditions are hidden by default and inspectable without changing decisions", () => {
   const view = inspector();

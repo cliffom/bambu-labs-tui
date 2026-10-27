@@ -1153,3 +1153,31 @@ samp {
   border-color: var(--border);
   cursor: wait;
 }
+
+#settings-dialog {
+  max-width: calc(100% - 28px);
+}
+#settings-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.notification-panel {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.notification-panel > div { min-width: 0; }
+.notification-panel p { margin: 0.5rem 0 0; overflow-wrap: anywhere; }
+.notification-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; min-width: 0; }
+.notification-controls button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: var(--panel);
+  color: var(--green);
+}
+.notification-controls button:hover:not(:disabled) { border-color: var(--green); }
+.notification-controls button:disabled { opacity: 0.55; cursor: default; }

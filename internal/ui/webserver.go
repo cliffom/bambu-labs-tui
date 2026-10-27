@@ -2,6 +2,7 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/cliffom/bambu-tui/internal/session"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
@@ -19,8 +20,9 @@ type (
 	webServerInitMsg   struct{}
 )
 
-// WithWebServer installs a session-owned lifecycle worker. Only immutable,
-// allowlisted JSON leaves the reducer; HTTP clients never touch live farm state.
+// WithWebServer installs session-owned listener and notification workers.
+// Immutable display JSON and normalized notification inputs leave the reducer;
+// HTTP clients receive only allowlisted display values, never live farm state.
 func (m Model) WithWebServer(server webServerClient) Model {
 	m.webServer = server
 	return m
@@ -31,9 +33,7 @@ func (m *Model) syncWebServer() tea.Cmd {
 		return nil
 	}
 	m.webStatus = m.webServer.Status()
-	if m.webEnabled || m.webStatus.URL != "" {
-		m.Publish(m.webServer, m.now)
-	}
+	m.Publish(m.webServer, m.now, session.BrowserPolicy{Alerts: m.alertPrefs, Active: !m.quitting && !m.quitProblem && !m.ended && m.dialog.active != dialogShutdown})
 	if m.webBusy || (m.webInitialized && m.webAttempted == m.webEnabled && (!m.webEnabled || m.webAttemptedPort == m.webPort)) {
 		return nil
 	}

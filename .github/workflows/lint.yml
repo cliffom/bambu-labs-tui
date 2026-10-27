@@ -22,6 +22,8 @@ jobs:
           cache: true
       - name: Check documentation policy and links
         run: make docs-check
+      - name: Test browser interactions
+        run: node --test tools/test-browser-notices.cjs tools/test-browser-notifications.cjs
       - name: Check Go formatting
         run: make fmt-check
       - name: Audit fault codes against pinned upstream catalogues

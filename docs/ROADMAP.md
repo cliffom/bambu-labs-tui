@@ -19,15 +19,9 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for a future release.** Establish hardware-backed feasibility before promising compatibility or delivery; v0.3.0 introduces the local web dashboard.
 
-## v0.3.x — Web dashboard follow-ups
+## v0.3.7 — Browser system notifications
 
-The [v0.3.x milestone](https://github.com/cliffom/bambu-tui/milestone/12) continues extending the shipped local dashboard. The remaining capabilities are planned; patch versions depend on implementation and validation.
-
-| Planned capability | Issue | Release criteria |
-| --- | --- | --- |
-| Browser system notifications | [#91](https://github.com/cliffom/bambu-tui/issues/91) | Explicit permission and opt-in using the browser Notifications API, defined incident/completion policy, deduplication across polls/reloads/tabs, and documented browser/lifecycle limits |
-
-Keep localhost binding and the display-data allowlist. Headless mode does not imply LAN/remote access or an installed background service. Browser notifications work with either server mode and define their own relationship to native macOS delivery; closing a system notification does not dismiss a notice. Browser dismissal reuses local notice decisions and never establishes physical fault resolution or introduces printer control. Preserve unknown/confirmed telemetry distinctions and record actual browser, terminal, persistence, and hardware evidence in the validation record as each feature ships. Usage describes the preserved local dismissal behavior; architecture describes its shared session owner in v0.3.2.
+[#91](https://github.com/cliffom/bambu-tui/issues/91) completes the planned [v0.3.x dashboard follow-ups](https://github.com/cliffom/bambu-tui/milestone/12): explicit browser enable/test/disable controls, Go-generated incident/completion events, separate durable browser claims across tabs/reloads/host restarts, and documented permission/lifecycle limits. Both server modes retain localhost binding and the display-data allowlist. Browser delivery is independent from native macOS opt-in, and closing a system notification never dismisses a notice or establishes physical resolution. See [browser notification policy](user/alerts.md#browser-system-notifications), [architecture](development/architecture.md#browser-notification-worker), and [validation evidence and gaps](development/validation.md#browser-system-notifications-91).
 
 ## v0.3.6 — Saved-decision integrity
 

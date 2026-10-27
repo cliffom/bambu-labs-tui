@@ -25,6 +25,7 @@ type (
 const (
 	dialogNone dialogKind = iota
 	dialogHelp
+	dialogAbout
 	dialogInspector
 	dialogClearHistory
 	dialogClearNotices
@@ -43,6 +44,8 @@ const (
 // Order carries no priority: the explicit active owner selects exactly one route.
 func routeFor(kind dialogKind) dialogRoute {
 	switch kind {
+	case dialogAbout:
+		return dialogRoute{key: (*Model).aboutKey, view: Model.aboutView, sync: (*Model).syncAbout}
 	case dialogHelp:
 		return dialogRoute{key: (*Model).helpKey, view: Model.helpView, sync: (*Model).syncHelp, clear: func(m *Model) { m.help.GotoTop() }}
 	case dialogInspector:

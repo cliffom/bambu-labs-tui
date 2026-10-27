@@ -260,7 +260,7 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, theme 
 	}()
 	state := farm.New(cfg.LowFilamentPercent)
 	savedConfig := cfg.Clone()
-	model := ui.New(state, events, refresh, demo).WithPalette(theme.Palette).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
+	model := ui.New(state, events, refresh, demo).WithTheme(theme).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
 		if err := config.SaveChanges(configPath, savedConfig, snapshot); err != nil {
 			return err
 		}

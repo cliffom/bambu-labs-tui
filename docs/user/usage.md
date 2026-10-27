@@ -181,6 +181,7 @@ Use contrasting text/background pairs, particularly `text`/`background`, `select
 | `o` | Open the HMS troubleshooting page from notice details |
 | `r` | Request a full status snapshot |
 | `?` | Open/close scrollable help; arrows/page keys scroll, Home/End jumps |
+| `A` | Open read-only About: version, platform, active theme, and hue-sorted color grid |
 | `Ctrl+E` | Inspect full status/errors; `Esc` or `Ctrl+E` returns to the same screen |
 | `Esc` | Close help and focus the printer list |
 | `q` / `Ctrl+C` | Quit from the dashboard; close any modal first |
@@ -188,6 +189,8 @@ Use contrasting text/background pairs, particularly `text`/`background`, `select
 Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and notices panels sit side by side; narrower terminals stack them. Focus each panel and scroll to see its full content. Status labels remain readable without color.
 
 The footer follows the focused panel. Fresh informational messages, including delivery ownership and refresh requests, use bright bold text. In the default theme, confirmed local actions use green; warnings use amber and errors use red, with amber dashboard warnings for persistent storage/delivery problems. Custom themes retain these semantic roles with their chosen colors. Labels remain meaningful without color, and ownership does not confirm notification delivery or printer fault resolution.
+
+Press `A` from the dashboard for **About Bambu TUI**. It shows the app name/version, OS/architecture, project URL, branding, and attribution without field labels, followed by the effective bundled theme or custom file path (including launch overrides). **Theme Pallet** shows unique explicit RGB colors as an unlabeled swatch grid, sorted by hue; gray colors come first from dark to light. Colors shared by multiple roles appear once, and an inherited terminal background is omitted because its RGB is unknown. Without color, solid blocks preserve the grid shape but cannot identify the colors; see the [custom theme format](#custom-themes) for named roles and RGB values. About displays no account information. Use arrows/page keys or Home/End to scroll long theme paths; `Enter`, `Esc`, or `A` returns to the prior dashboard focus and selection. Telemetry continues while About is open.
 
 Long feedback shortens before essential controls; multiple failures show an error count. `^E status` means `Ctrl+E`: open **Status / Feedback** for complete messages and recovery guidance, using arrows/page keys or Home/End to scroll. It preserves the current dialog, input, selection, confirmation, and scroll while telemetry and saves continue. Ordinary transient feedback lasts eight seconds; storage, export, browser, and delivery failures remain until their source reports recovery. This view does not acknowledge notices or confirm physical fault resolution.
 

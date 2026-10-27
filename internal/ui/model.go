@@ -36,7 +36,8 @@ type (
 		toastAt                    time.Time
 		toastKind                  feedbackKind
 		exportError, browserError  string
-		help, status               viewport.Model
+		help, status, about        viewport.Model
+		activeTheme                string
 		clearHistoryEvents         []uint64
 		details, notices           viewport.Model
 		noticeKey                  string
@@ -244,6 +245,8 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			m.openDialog(dialogConfig)
 		case keyHelp:
 			m.openDialog(dialogHelp)
+		case keyAbout:
+			m.openAbout()
 		case keyAttention:
 			m.attentionSeen = nil
 			m.syncAttention(true)

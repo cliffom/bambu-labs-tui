@@ -18,6 +18,8 @@ const (
 	fullTableWidth        = 110
 	progressBarWidth      = 8
 	minutesPerHour        = 60
+	aboutPaletteCellWidth = 8
+	aboutSwatchWidth      = 6
 	dialogInset           = 8
 	dialogBorderInset     = 4
 	colorRGBDigits        = 6

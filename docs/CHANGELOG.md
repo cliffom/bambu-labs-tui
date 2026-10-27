@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.11 — About Bambu TUI
+
+- Add read-only About on `A`, with app name/version, platform, project URL, branding, and “Lovingly crafted by Michael Clifford” attribution without field labels, followed by the effective bundled/custom theme source. About displays no account information.
+- Show a responsive, unlabeled grid of unique explicit theme colors sorted by hue. Omit unknown inherited terminal colors, and preserve swatch shapes without color. Preserve dashboard focus/selection, ongoing telemetry, status return, and below-minimum restoration.
+
 ## 0.2.10 — Customizable themes
 
 - Make fresh status notices bright and bold, with distinct informational, local-success, warning, and error styling. Preserve feedback priority and lifetime, and keep local success and native notification acceptance separate from physical fault resolution and confirmed presentation.

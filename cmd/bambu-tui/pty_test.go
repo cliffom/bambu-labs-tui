@@ -507,7 +507,12 @@ func TestPTYThemeOverridePreservesConfiguredThemeThroughSave(t *testing.T) {
 			}
 			child := startPTYChildWithTheme(t, "demo", path, theme)
 			child.expect(t, 0, "Gridfinity baseplate")
-			mark := child.send(t, "F")
+			mark := child.send(t, "A")
+			child.expect(t, mark, "ABOUT")
+			child.expect(t, mark, "Theme: "+theme)
+			mark = child.send(t, "\r")
+			child.expect(t, mark, "PRINTERS")
+			mark = child.send(t, "F")
 			child.expect(t, mark, "No printers match.")
 			child.send(t, "q")
 			child.exited(t, 0)

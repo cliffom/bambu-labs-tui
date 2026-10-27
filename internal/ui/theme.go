@@ -25,6 +25,7 @@ var themeRGB = regexp.MustCompile(`^#[[:xdigit:]]{6}$`)
 // Theme is a fully resolved value. Files may override any subset of colors.
 type Theme struct {
 	Name    string
+	Source  string // Bundled name or resolved custom-file path; independent of JSON name.
 	Palette Palette
 }
 
@@ -63,7 +64,9 @@ func loadThemeOverride(choice string, source fs.FS) (Theme, error) {
 	if fs.ValidPath(choice) && !strings.ContainsAny(choice, `/\`) {
 		data, err := fs.ReadFile(source, "themes/"+choice+".json")
 		if err == nil {
-			return ParseTheme(data)
+			theme, err := ParseTheme(data)
+			theme.Source = choice
+			return theme, err
 		}
 		if !errors.Is(err, fs.ErrNotExist) {
 			return Theme{}, fmt.Errorf("read bundled theme %q: %w", choice, err)
@@ -80,7 +83,9 @@ func LoadTheme(configPath, themeFile string) (Theme, error) {
 		if err != nil {
 			return Theme{}, fmt.Errorf("read bundled default theme: %w", err)
 		}
-		return ParseTheme(data)
+		theme, err := ParseTheme(data)
+		theme.Source = "default"
+		return theme, err
 	}
 	path := themeFile
 	if !filepath.IsAbs(path) {
@@ -99,6 +104,7 @@ func LoadTheme(configPath, themeFile string) (Theme, error) {
 	if err != nil {
 		return Theme{}, fmt.Errorf("theme %q: %w", path, err)
 	}
+	theme.Source = path
 	return theme, nil
 }
 

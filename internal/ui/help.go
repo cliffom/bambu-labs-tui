@@ -24,6 +24,7 @@ func (m *Model) syncHelp() {
 		"s              Printer alert preferences and snoozing",
 		",              Configure general settings, alerts, and printer overrides",
 		"N              Recent notification outcomes and suppression reasons",
+		"A              About Bambu TUI, platform, and theme colors",
 		"Ctrl+E         Inspect full status/errors; Esc returns to the same screen",
 		"!              Reopen unreviewed action-needed alerts",
 		"a              Toggle local acknowledgement of an active notice",

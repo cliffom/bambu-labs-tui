@@ -27,6 +27,7 @@ var assets embed.FS
 type (
 	Status struct{ URL, Error string }
 	Server struct {
+		clients  clientConnections
 		browser  *browserWorker
 		commands chan Command
 		token    string
@@ -112,7 +113,7 @@ func (s *Server) SetEnabled(enabled bool, port int) Status {
 	sub, _ := fs.Sub(assets, "assets")
 	files := http.FileServer(http.FS(sub))
 	handler := s.handler(host, files)
-	server := &http.Server{Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16 << 10}
+	server := &http.Server{Handler: handler, ConnContext: s.clients.context, ConnState: s.clients.state, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16 << 10}
 	s.server = server
 	s.port = port
 	done := make(chan struct{})
@@ -135,6 +136,7 @@ func (s *Server) SetEnabled(enabled bool, port int) Status {
 
 func (s *Server) handler(host string, files http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.clients.request(r)
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
@@ -186,6 +188,7 @@ func (s *Server) closeLocked() {
 	if s.server != nil {
 		_ = s.listener.Close()
 		_ = s.server.Close()
+		s.clients.stop()
 		<-s.done
 		s.listener, s.done = nil, nil
 		s.server = nil

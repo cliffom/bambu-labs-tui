@@ -126,6 +126,7 @@ func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session
 	case <-time.After(serveShutdownTimeout):
 		err = errors.Join(err, errors.New("monitor shutdown timed out"))
 	}
+	display.clients = web.Clients()
 	display.server = "Stopped"
 	if err != nil {
 		display.server = "Failed"
@@ -157,6 +158,7 @@ func serveSessionStatus(ctx context.Context, state *session.Session, web *webser
 		state.Publish(web, time.Now(), preferences...)
 		if display != nil {
 			display.persistence(state)
+			display.clients = web.Clients()
 			displayErr = display.render(time.Now(), false)
 		}
 	}
@@ -197,7 +199,7 @@ running:
 				// diagnostics, and a bad-report flood must not flood stderr.
 				if !warnedRejection {
 					if display != nil {
-						display.note("Telemetry rejected; keeping last accepted state (further warnings suppressed)")
+						display.note("Telemetry rejected; keeping last accepted state (further warnings suppressed)", serveWarning)
 					}
 					_, _ = fmt.Fprintln(diagnostics, "Telemetry report rejected; keeping last accepted state and continuing monitoring (further rejection warnings suppressed for this session)")
 					warnedRejection = true

@@ -49,7 +49,7 @@ func TestPTYHelperProcess(t *testing.T) {
 			args = append(args, "--theme", theme)
 		}
 		err = run(args)
-	case "serve-demo", "serve-occupied":
+	case "serve-demo", "serve-occupied", "serve-color":
 		err = run([]string{"serve", "--demo", "--config", os.Getenv("BAMBU_TUI_PTY_CONFIG")})
 	case "serve-fixture":
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -240,6 +240,9 @@ func startPTYChildWithTheme(t *testing.T, mode, configPath, theme string) *ptyCh
 	}
 	child.cmd = exec.CommandContext(ctx, executable, "-test.run=^TestPTYHelperProcess$", "-test.count=1")
 	child.cmd.Env = append(os.Environ(), "TERM=xterm-256color", "NO_COLOR=1", "CLICOLOR_FORCE=0", "BAMBU_TUI_PTY_CHILD="+mode, "BAMBU_TUI_PTY_CONFIG="+configPath, "BAMBU_TUI_PTY_THEME="+theme)
+	if mode == "serve-color" {
+		child.cmd.Env = append(child.cmd.Env, "NO_COLOR=", "CLICOLOR_FORCE=1", "COLORTERM=truecolor", "CI=")
+	}
 	readyRead, readyWrite, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
@@ -333,7 +336,12 @@ func (p *ptyChild) mark() int { output, _ := p.transcript(); return len(output) 
 
 func (p *ptyChild) expect(t *testing.T, after int, text string) {
 	t.Helper()
-	deadline := time.NewTimer(ptyStepLimit)
+	p.expectWithin(t, after, text, ptyStepLimit)
+}
+
+func (p *ptyChild) expectWithin(t *testing.T, after int, text string, limit time.Duration) {
+	t.Helper()
+	deadline := time.NewTimer(limit)
 	defer deadline.Stop()
 	for {
 		output, err := p.transcript()

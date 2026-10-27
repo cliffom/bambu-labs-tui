@@ -3,9 +3,14 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/muesli/termenv"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/farm"
@@ -58,7 +63,7 @@ func TestServeStatusLayoutsAndPersistentWarnings(t *testing.T) {
 	for range 10 {
 		display.persistence(&state)
 	}
-	if display.recent[0] != "Monitoring: Connected" {
+	if display.recent[0].text != "Monitoring: Connected" {
 		t.Fatal("persistent warnings displaced recent events")
 	}
 	for _, size := range [][2]int{{120, 40}, {80, 24}, {60, 18}, {40, 12}, {20, 10}, {10, 6}, {1, 1}} {
@@ -97,5 +102,68 @@ func TestServeStatusRestoresScreenAfterOutputFailure(t *testing.T) {
 	}
 	if !strings.HasSuffix(output.String(), "\x1b[?25h\x1b[?1049l") {
 		t.Fatal("terminal cleanup missing")
+	}
+}
+
+func TestServeStatusColorProfilesAndClientLedger(t *testing.T) {
+	for _, profile := range []termenv.Profile{termenv.TrueColor, termenv.ANSI256, termenv.Ascii} {
+		t.Run(fmt.Sprint(profile), func(t *testing.T) {
+			var output bytes.Buffer
+			display := newServeDisplay(&output, "http://127.0.0.1:8080", false)
+			renderer := lipgloss.NewRenderer(&output)
+			renderer.SetColorProfile(profile)
+			display.styles = newServeStyles(renderer)
+			if profile != termenv.Ascii {
+				green := display.styled("state", serveSuccess)
+				amber := display.styled("state", serveWarning)
+				red := display.styled("state", serveError)
+				if green == amber || green == red || amber == red {
+					t.Fatal("attention colors do not differ")
+				}
+			}
+			display.observe(monitor.Event{Kind: monitor.EventConnection})
+			display.clients = webserver.ClientStatus{Active: 1, Events: []webserver.ClientEvent{{Sequence: 1, Client: 1, Connected: true, At: display.started, IP: "127.0.0.1", UserAgent: "Synthetic client"}}}
+			for _, size := range [][2]int{{120, 40}, {80, 24}, {60, 18}, {40, 12}, {20, 10}} {
+				view := display.view(size[0], size[1], display.started)
+				if profile != termenv.Ascii && !strings.Contains(view, "\x1b[") {
+					t.Fatal("color missing")
+				}
+				if profile == termenv.Ascii && strings.Contains(view, "\x1b[") {
+					t.Fatal("no-color emitted styling")
+				}
+				for _, line := range strings.Split(view, "\n") {
+					if ansi.StringWidth(line) > size[0] {
+						t.Fatal("colored width overflow", size)
+					}
+				}
+				if len(strings.Split(view, "\n")) > size[1] {
+					t.Fatal("colored height overflow")
+				}
+				if size[0] >= 60 && !strings.Contains(ansi.Strip(view), "Synthetic client") {
+					t.Fatal("client ledger missing", view)
+				}
+			}
+			if err := display.render(display.started, true); err != nil {
+				t.Fatal(err)
+			}
+			initial := output.String()
+			if !strings.Contains(initial, "HTTP ") || !strings.Contains(initial, "127.0.0.1 | Synthetic client") || strings.Contains(initial, "\x1b") {
+				t.Fatal("plain ledger missing/colored", initial)
+			}
+			if err := display.render(display.rendered.Add(time.Second), false); err != nil {
+				t.Fatal(err)
+			}
+			if output.String() != initial {
+				t.Fatal("unchanged ledger reprinted")
+			}
+			display.clients.Active = 0
+			display.clients.Events = append(display.clients.Events, webserver.ClientEvent{Sequence: 2, Client: 1, At: display.started.Add(time.Second), IP: "127.0.0.1", UserAgent: "Synthetic client"})
+			if err := display.render(display.rendered.Add(time.Second), false); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(output.String(), "Disconnected #1") {
+				t.Fatal("disconnect missing")
+			}
+		})
 	}
 }

@@ -4,12 +4,15 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 )
@@ -90,6 +93,44 @@ func TestPTYServeDemoStopsOnSIGTERM(t *testing.T) {
 		t.Fatal(err)
 	}
 	child.expect(t, 0, "Serve stopped; dashboard closed.")
+	child.exited(t, 0)
+	assertWebClosed(t, address)
+}
+
+func TestPTYServeClientLedgerAndColor(t *testing.T) {
+	child := startPTYChildWithConfig(t, "serve-color", ptyWebConfig(t, false))
+	address := ptyWebURL(t, child, 0)
+	child.expect(t, 0, "Monitoring: Connected")
+	transport := &http.Transport{}
+	defer transport.CloseIdleConnections()
+	client := &http.Client{Transport: transport, Timeout: time.Second}
+	request, err := http.NewRequest(http.MethodGet, address+"/api/snapshot", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("User-Agent", "Synthetic PTY browser")
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = io.Copy(io.Discard, response.Body)
+	_ = response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	child.expect(t, 0, "HTTP clients: 1 active")
+	child.expect(t, 0, "127.0.0.1 | Synthetic PTY browser")
+	output, _ := child.transcript()
+	if !strings.Contains(string(output), ";38;2;") {
+		t.Fatal("TrueColor styling not rendered")
+	}
+	mark := len(output)
+	transport.CloseIdleConnections()
+	child.expectWithin(t, mark, "Disconnected #1", 2*ptyStepLimit)
+	child.expect(t, mark, "HTTP clients: 0 active")
+	if err := child.cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		t.Fatal(err)
+	}
 	child.exited(t, 0)
 	assertWebClosed(t, address)
 }

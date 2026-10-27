@@ -8,6 +8,7 @@ const (
 	commandLogin                = "login"
 	commandLogout               = "logout"
 	commandDoctor               = "doctor"
+	commandServe                = "serve"
 	notificationShutdownTimeout = 5 * time.Second
 	eventBufferSize             = 128
 	promptWidth                 = 48

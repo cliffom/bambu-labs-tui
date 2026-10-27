@@ -61,7 +61,7 @@ func run(args []string) error {
 	notify := flags.Bool("notify", false, "doctor: submit a synthetic desktop notification (macOS)")
 	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
 	flags.Usage = func() {
-		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor] [options]\n\nExamples:\n  bambu-tui --demo --theme gruvbox-dark\n  bambu-tui --theme ./my-theme.json\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor|serve] [options]\n\nExamples:\n  bambu-tui --demo --theme gruvbox-dark\n  bambu-tui serve --demo --config ./config.toml\n  bambu-tui --theme ./my-theme.json\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -87,8 +87,8 @@ func run(args []string) error {
 			themeProvided = true
 		}
 	})
-	if command != commandMonitor && command != commandLogin && command != commandLogout && command != commandDoctor {
-		return errors.New("unknown command; use login, logout, doctor, or --help")
+	if command != commandMonitor && command != commandLogin && command != commandLogout && command != commandDoctor && command != commandServe {
+		return errors.New("unknown command; use login, logout, doctor, serve, or --help")
 	}
 	if command != commandLogin && (*token || *code || *sessionOnly) {
 		return errors.New("--token, --email-code, and --session are login options")
@@ -102,14 +102,17 @@ func run(args []string) error {
 	if *token && *code {
 		return errors.New("choose --token or --email-code")
 	}
-	if *demo && command != commandMonitor {
-		return errors.New("--demo is a dashboard option")
+	if *demo && command != commandMonitor && command != commandServe {
+		return errors.New("--demo is a dashboard or serve option")
 	}
 	if command != commandDoctor && (*notify || *sound) {
 		return errors.New("--notify and --sound are doctor options")
 	}
 	if *sound && !*notify {
 		return errors.New("--sound requires doctor --notify")
+	}
+	if command == commandServe && !*demo {
+		return errors.New("cloud-backed serve is not available yet; use bambu-tui serve --demo")
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -119,6 +122,9 @@ func run(args []string) error {
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return err
+	}
+	if command == commandServe {
+		return serveDemo(ctx, cfg, os.Stdout)
 	}
 	var theme ui.Theme
 	if command == commandMonitor || command == commandLogin {

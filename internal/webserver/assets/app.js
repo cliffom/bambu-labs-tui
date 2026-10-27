@@ -247,7 +247,7 @@ async function poll() {
   } catch {
     feedError = true;
     updateFeedWarning(
-      "Cannot reach the dashboard server. Current printer state is unconfirmed. Last-known data remains below. Check the TUI and Web Server setting.",
+      "Cannot reach the dashboard server. Current printer state is unconfirmed. Last-known data remains below. Check the monitoring process and configured web server port.",
     );
     $("#feed-state").textContent = "Dashboard disconnected";
     $("#feed-state").classList.add("amber");

@@ -278,3 +278,31 @@ func TestConfigSerializationAndSnoozeExpiry(t *testing.T) {
 		t.Fatal("removed printer snooze retained")
 	}
 }
+
+func TestShutdownRejectsDecisionsWhileCoalescedWritesDrain(t *testing.T) {
+	s, _ := fixture(t)
+	var snapshots []map[string]farm.Review
+	s.WithNoticePersistence(func(r map[string]farm.Review) error { snapshots = append(snapshots, r); return nil }, nil)
+	key, target := firstTarget(t, &s)
+	decision(&s, target, false)
+	initial, _ := s.Persistence()
+	if initial == nil {
+		t.Fatal("missing first write")
+	}
+	s.Acknowledge(key, true)
+	revision := s.Farm.ReviewRevision()
+	stopping := webserver.Command{Target: target, Retry: true, Reply: make(chan string, 1)}
+	s.ApplyWebCommand(stopping, true, true)
+	if <-stopping.Reply == "applied" || s.Farm.ReviewRevision() != revision {
+		t.Fatal("shutdown changed pending decision")
+	}
+	s.Complete(initial())
+	latest, _ := s.Persistence()
+	if latest == nil || !s.PersistencePending() {
+		t.Fatal("latest accepted state not scheduled for drain")
+	}
+	s.Complete(latest())
+	if s.PersistencePending() || s.HasUnsavedPersistence() || len(snapshots) != 2 || snapshots[0][key].Acknowledged || !snapshots[1][key].Acknowledged {
+		t.Fatal("accepted snapshots not drained independently")
+	}
+}

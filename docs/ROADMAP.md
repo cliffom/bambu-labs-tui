@@ -19,7 +19,7 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for v0.3.0.** Establish hardware-backed feasibility before promising compatibility or delivery.
 
-## Status message prominence and customizable themes
+## v0.2.10 — status message prominence and customizable themes
 
 [#82](https://github.com/cliffom/bambu-tui/issues/82) gives fresh status messages explicit informational/success/warning/error roles and defines a semantic default palette with instance-owned styles. Versioned JSON files can now customize any palette role through the startup `theme_file` setting or a launch-only `--theme` override (also available with `make run THEME=…`), with complete default/Gruvbox Dark/Hotdog/C64/IBM 3270/DeskMate II examples and body foreground/background support. Bundled JSON files are discovered without per-theme Go registration; personal JSON themes load at runtime with no rebuild. Feedback lifetimes, dialog state, and reported filament colors remain independent of presentation. Actual layout evidence and limits belong in the [validation record](development/validation.md).
 

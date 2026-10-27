@@ -19,6 +19,10 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for a future release.** Establish hardware-backed feasibility before promising compatibility or delivery; v0.3.0 introduces the local web dashboard.
 
+## v0.3.10 — Active printers first
+
+[#116](https://github.com/cliffom/bambu-tui/issues/116) groups online non-idle printers before reported idle/finished printers, with offline devices last, before applying the saved sort. Unknown and last-known telemetry retain their distinctions, and selection/focus/scroll follow printer identity during updates. See [sorting](user/farm-view.md#sorting) and [validation](development/validation.md#active-printer-sorting-116).
+
 ## v0.3.9 — TUI server inspection
 
 [#113](https://github.com/cliffom/bambu-tui/issues/113) adds live read-only Server Status on `W` and in Config > Web Server, with listener/monitor states, separate session/listener uptime, bounded diagnostics, storage warnings, and the existing grouped client ledger. It uses shared dialog routing and immutable observations while preserving Config, feedback return paths, ongoing monitoring/persistence, and localhost boundaries. See [usage](user/usage.md#tui-server-status) and [validation evidence and gaps](development/validation.md#tui-server-status-113). This completes the next v0.3.x dashboard follow-up before v0.4.x feature work.

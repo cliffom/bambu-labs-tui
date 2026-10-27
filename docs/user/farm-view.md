@@ -43,7 +43,15 @@ Press uppercase `S` to cycle:
 | State | Alphabetical by displayed state label, ignoring case |
 | Finish | Earliest comparable estimated finish first; missing, paused, finished, and stale/unavailable estimates follow |
 
-Online printers always appear before offline printers; the selected sort applies within each group. This uses the device online flag, so online printers with stale or missing telemetry, or a disconnected cloud link, stay in the online group. Unselected offline rows use the warning color (amber in the default theme). Selected offline rows use the theme's contrasting selection text/background colors. Offline rows show only the printer name and `Offline` link status; all telemetry columns are blank. Compact layouts show `Offline` in the state column because the link column is hidden.
+Every sort first groups printers in this order:
+
+1. **Active / non-idle:** online printers whose reported state is running, preparing, slicing, paused, or failed. Unknown, missing, or unrecognized states also stay in this group for ordering only; they do not establish activity.
+2. **Inactive / idle:** online printers with reported `IDLE` or `FINISH` state.
+3. **Offline:** devices reported offline, regardless of their last-known state.
+
+The selected sort applies within each group. Grouping uses the device online flag and the existing reported state, independently of telemetry freshness or cloud connectivity. Stale states remain last-known, missing states remain unknown, and a disconnected cloud link does not infer that a printer is offline or idle. Telemetry and device updates refresh the ordering while preserving the selected printer's identity, panel focus, and details scroll.
+
+Unselected offline rows use the warning color (amber in the default theme). Selected offline rows use the theme's contrasting selection text/background colors. Offline rows show only the printer name and `Offline` link status; all telemetry columns are blank. Compact layouts show `Offline` in the state column because the link column is hidden.
 
 Use `g` / Home after choosing a sort to jump to its first printer. All ties use case-insensitive name and then stable printer ID. Duplicate names do not combine printers or their notice counts.
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.10 — Active printers first
+
+- Group online non-idle printers before reported idle/finished printers, with offline devices always last (#116). Apply Name, Attention, State, or Finish sorting within each group, retaining deterministic name/ID ties.
+- Keep unknown/missing states outside confirmed idle and preserve last-known telemetry and explicit device connectivity. Reorder on telemetry/device changes while retaining selection, panel focus, and details scroll; filters and saved preferences continue to apply.
+
+See [sorting behavior](user/farm-view.md#sorting) and [validation evidence and limits](development/validation.md#active-printer-sorting-116).
+
 ## 0.3.9 — Live TUI Server Status
 
 - Add read-only Server Status on dashboard `W` and in Config > Web Server (#113), with live HTTP/monitoring states, bound URL, separate session/listener uptime, bounded sanitized diagnostics, and persistent storage warnings.

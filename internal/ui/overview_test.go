@@ -287,12 +287,12 @@ func TestUnavailableFilterTracksCloudConnection(t *testing.T) {
 	}
 }
 
-// TestStateSortingUsesDisplayedLabels puts idle before paused/printing regardless of capitalization.
+// TestStateSortingUsesDisplayedLabels sorts displayed labels within each activity group.
 func TestStateSortingUsesDisplayedLabels(t *testing.T) {
 	m := overviewModel(t)
 	m.printerSort = sortState
 	m.syncPanels()
-	if !slices.Equal(m.printerIDs, []string{"D", "I", "X", "H", "T", "W", "O"}) {
+	if !slices.Equal(m.printerIDs, []string{"X", "H", "T", "W", "D", "I", "O"}) {
 		t.Fatalf("wrong displayed-state order: %v", m.printerIDs)
 	}
 }
@@ -303,10 +303,10 @@ func TestOfflinePrintersFollowOnlineForEverySort(t *testing.T) {
 		sort printerSort
 		want []string
 	}{
-		{"Name", sortName, []string{"H", "X", "D", "I", "T", "W", "O", "Z"}},
+		{"Name", sortName, []string{"H", "X", "T", "W", "D", "I", "O", "Z"}},
 		{"Attention", sortAttention, []string{"X", "T", "W", "H", "D", "I", "Z", "O"}},
-		{"State", sortState, []string{"D", "I", "X", "H", "T", "W", "Z", "O"}},
-		{"Finish", sortFinish, []string{"H", "X", "D", "I", "T", "W", "O", "Z"}},
+		{"State", sortState, []string{"X", "H", "T", "W", "D", "I", "Z", "O"}},
+		{"Finish", sortFinish, []string{"H", "X", "T", "W", "D", "I", "O", "Z"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			m := overviewModel(t)
@@ -318,10 +318,7 @@ func TestOfflinePrintersFollowOnlineForEverySort(t *testing.T) {
 				m.syncPanels()
 				want := tc.want
 				if !connected && tc.sort == sortAttention {
-					want = []string{"X", "H", "D", "I", "T", "W", "Z", "O"}
-				}
-				if !connected && tc.sort == sortFinish {
-					want = []string{"H", "X", "D", "I", "T", "W", "O", "Z"}
+					want = []string{"X", "H", "T", "W", "D", "I", "Z", "O"}
 				}
 				if !slices.Equal(m.printerIDs, want) {
 					t.Fatalf("connected=%v: got %v, want %v", connected, m.printerIDs, want)
@@ -332,22 +329,124 @@ func TestOfflinePrintersFollowOnlineForEverySort(t *testing.T) {
 }
 
 func TestOnlineChangesReorderWithoutMovingSelection(t *testing.T) {
-	m := demoModel()
-	m.selectPrinter("H")
-	m.focus = panelDetails
-	m.details.SetYOffset(3)
-	for _, online := range []bool{false, true} {
-		next, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, At: m.now, Devices: []farm.Device{
-			{ID: "H", Name: "H2D", Online: online},
-			{ID: "X", Name: "X2D", Online: true},
-		}})
-		m = next.(Model)
-		want := []string{"X", "H"}
-		if online {
-			want = []string{"H", "X"}
+	for order := sortName; order < sortCount; order++ {
+		t.Run(string(sortValues[order]), func(t *testing.T) {
+			for _, state := range []string{farm.StateRunning, farm.StatePaused, farm.StateFailed, farm.StateIdle, farm.StateFinished, farm.StateUnknown} {
+				m := demoModel()
+				m.printerSort = order
+				m.Farm.Printers["H"].State = state
+				m.Farm.Printers["X"].State = state
+				m.selectPrinter("H")
+				m.focus = panelDetails
+				m.details.SetYOffset(3)
+				for _, online := range []bool{false, true} {
+					next, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, At: m.now, Devices: []farm.Device{
+						{ID: "H", Name: "H2D", Online: online},
+						{ID: "X", Name: "X2D", Online: true},
+					}})
+					m = next.(Model)
+					want := []string{"X", "H"}
+					if online {
+						want = []string{"H", "X"}
+					}
+					if !slices.Equal(m.printerIDs, want) || m.current().ID != "H" || m.focus != panelDetails || m.details.YOffset != 3 {
+						t.Fatalf("online=%v: order=%v selection=%s scroll=%d", online, m.printerIDs, m.current().ID, m.details.YOffset)
+					}
+				}
+			}
+		})
+	}
+}
+
+// Unknown/missing states stay outside confirmed idle/done, including during a
+// cloud outage. Staleness changes availability, never reported state or online.
+func TestActivityGroupsPreserveTelemetryDistinctions(t *testing.T) {
+	for _, state := range []string{farm.StateRunning, farm.StatePreparing, farm.StateSlicing, farm.StatePaused, farm.StateFailed, farm.StateUnknown, "", "FUTURE_STATE"} {
+		for order := sortName; order < sortCount; order++ {
+			t.Run(fmt.Sprintf("%s/%s", state, sortValues[order]), func(t *testing.T) {
+				m := demoModel()
+				m.Farm.Printers = map[string]*farm.Printer{
+					"active":  {Device: farm.Device{ID: "active", Name: "Zulu", Online: true}, State: state},
+					"idle":    {Device: farm.Device{ID: "idle", Name: "Alpha", Online: true}, State: farm.StateIdle},
+					"done":    {Device: farm.Device{ID: "done", Name: "Beta", Online: true}, State: farm.StateFinished},
+					"offline": {Device: farm.Device{ID: "offline", Name: "Aardvark"}, State: state},
+				}
+				m.printerSort = order
+				for _, connected := range []bool{true, false} {
+					m.Farm.Connected = connected
+					for _, age := range []time.Duration{0, 121 * time.Second, 11 * time.Minute} {
+						for _, p := range m.Farm.Printers {
+							p.LastReport = m.now.Add(-age)
+						}
+						// The unknown state also exercises a genuinely missing report.
+						if state == "" {
+							m.Farm.Printers["active"].LastReport = time.Time{}
+						}
+						m.syncPanels()
+						if m.printerIDs[0] != "active" || m.printerIDs[3] != "offline" || m.overview.idle != 2 {
+							t.Fatalf("connected=%v age=%v: order=%v summary=%+v", connected, age, m.printerIDs, m.overview)
+						}
+						if p := m.Farm.Printers["active"]; p.State != state || !p.Online {
+							t.Fatal("grouping changed telemetry")
+						}
+					}
+				}
+			})
 		}
-		if !slices.Equal(m.printerIDs, want) || m.current().ID != "H" || m.focus != panelDetails || m.details.YOffset != 3 {
-			t.Fatalf("online=%v: order=%v selection=%s scroll=%d", online, m.printerIDs, m.current().ID, m.details.YOffset)
+	}
+}
+
+func TestActivityGroupTiesAndSingleGroupLists(t *testing.T) {
+	for order := sortName; order < sortCount; order++ {
+		for _, state := range []string{farm.StatePaused, farm.StateIdle, farm.StateFinished, farm.StateUnknown} {
+			for _, online := range []bool{true, false} {
+				m := demoModel()
+				m.Farm.Printers = map[string]*farm.Printer{
+					"B": {Device: farm.Device{ID: "B", Name: "same", Online: online}, State: state},
+					"A": {Device: farm.Device{ID: "A", Name: "Same", Online: online}, State: state},
+					"C": {Device: farm.Device{ID: "C", Name: "Zulu", Online: online}, State: state},
+				}
+				m.printerSort = order
+				for range 5 {
+					m.syncPanels()
+					if !slices.Equal(m.printerIDs, []string{"A", "B", "C"}) {
+						t.Fatalf("sort=%s state=%s online=%v: %v", sortValues[order], state, online, m.printerIDs)
+					}
+				}
+				m.printerFilter = filterPrinting
+				m.syncPanels()
+				if m.current() != nil || !strings.Contains(ansi.Strip(m.View()), "No printers match") {
+					t.Fatal("empty single-group filter retained selection")
+				}
+				m = key(m, "0")
+				if m.current() == nil || len(m.printerIDs) != 3 || m.printerSort != sortName {
+					t.Fatal("could not reset empty filter")
+				}
+			}
 		}
+	}
+}
+
+func TestActivityTransitionsPreserveSelectionFocusAndScroll(t *testing.T) {
+	for order := sortName; order < sortCount; order++ {
+		t.Run(string(sortValues[order]), func(t *testing.T) {
+			m := overviewModel(t)
+			m.printerSort = order
+			m.syncPanels()
+			m.selectPrinter("H")
+			m.focus = panelDetails
+			m.details.SetYOffset(3)
+			for _, state := range []string{farm.StateIdle, farm.StateFinished, farm.StateRunning, farm.StatePaused, farm.StateFailed, farm.StateUnknown} {
+				m = attentionReport(t, m, "H", fmt.Sprintf(`{"print":{"gcode_state":%q}}`, state))
+				if m.current().ID != "H" || m.focus != panelDetails || m.details.YOffset != 3 {
+					t.Fatalf("state=%s lost identity/focus/scroll", state)
+				}
+				other := slices.Index(m.printerIDs, "X")
+				idle := state == farm.StateIdle || state == farm.StateFinished
+				if idle && m.selection < other || !idle && m.selection > slices.Index(m.printerIDs, "I") {
+					t.Fatalf("state=%s wrong group: %v", state, m.printerIDs)
+				}
+			}
+		})
 	}
 }

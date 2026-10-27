@@ -164,14 +164,23 @@ func (m Model) attentionRank(id string) attentionPriority {
 	}
 }
 
-// comparePrinters groups online printers first, with deterministic name/ID ties for every sort.
+// printerGroup orders non-idle, idle/done, then offline devices. Unknown states
+// stay outside idle/done; this ordering does not establish activity or freshness.
+func printerGroup(p *farm.Printer) int {
+	if !p.Online {
+		return 2
+	}
+	if p.State == farm.StateIdle || p.State == farm.StateFinished {
+		return 1
+	}
+	return 0
+}
+
+// comparePrinters applies the selected sort within groups, with deterministic name/ID ties.
 func (m Model) comparePrinters(aID, bID string) int {
 	a, b := m.Farm.Printers[aID], m.Farm.Printers[bID]
-	if a.Online != b.Online {
-		if a.Online {
-			return -1
-		}
-		return 1
+	if group := cmp.Compare(printerGroup(a), printerGroup(b)); group != 0 {
+		return group
 	}
 	comparison := 0
 	switch m.printerSort {

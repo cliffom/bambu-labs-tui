@@ -15,36 +15,33 @@ import (
 	"github.com/muesli/termenv"
 )
 
-func TestAboutAccountAndMetadata(t *testing.T) {
-	for _, tc := range []struct {
-		email       string
-		demo, ended bool
-		want        string
-	}{
-		{"operator@example.test", false, false, "operator@example.test"},
-		{"", false, false, "Unavailable (login email not recorded)"},
-		{"ignored@example.test", true, false, "Demo mode (not signed in)"},
-		{"ignored@example.test", false, true, "Not signed in"},
-		{strings.Repeat("long", 35) + "@example.test", false, false, strings.Repeat("long", 35) + "@example.test"},
-	} {
-		m := demoModel().WithLoginEmail(tc.email)
-		m.Demo, m.ended = tc.demo, tc.ended
-		m = key(resizeModel(m, 60, 18), "A")
-		// Rejoin wrapped lines so arbitrarily long addresses remain inspectable.
-		m.about.GotoTop()
-		m.about.Height = m.about.TotalLineCount()
-		content := strings.ReplaceAll(ansi.Strip(m.about.View()), "\n", "")
-		content = strings.ReplaceAll(content, " ", "")
-		for _, want := range []string{tc.want, "Bambu TUI", buildinfo.Version, runtime.GOARCH, "https://github.com/cliffom/bambu-tui", "Loving Crafted by Michael Clifford", "A Suite Potato Spud"} {
-			if !strings.Contains(content, strings.ReplaceAll(want, " ", "")) {
-				t.Fatalf("missing %q in %q", want, content)
-			}
+func TestAboutMetadata(t *testing.T) {
+	m := key(resizeModel(demoModel(), 60, 18), "A")
+	content := ansi.Strip(m.about.View())
+	platform := runtime.GOOS
+	if platform == "darwin" {
+		platform = "macOS"
+	}
+	previous := -1
+	for _, want := range []string{"Bambu TUI " + buildinfo.Version, platform + " / " + runtime.GOARCH, "https://github.com/cliffom/bambu-tui", "A Suite Potato Spud", "Lovingly crafted by Michael Clifford", "Theme: default", "Theme Pallet:"} {
+		at := strings.Index(content, want)
+		if at <= previous {
+			t.Fatalf("missing or out-of-order %q in %q", want, content)
 		}
-		if tc.demo || tc.ended {
-			if strings.Contains(content, "ignored@example.test") {
-				t.Fatal("inactive email exposed")
-			}
+		previous = at
+	}
+	for _, label := range []string{"Application:", "Version:", "Platform:", "Project:", "Login email:"} {
+		if strings.Contains(content, label) {
+			t.Fatal("removed field still shown", label)
 		}
+	}
+}
+
+func TestPaletteColorsDeduplicatesAndSortsByHue(t *testing.T) {
+	p := Palette{Text: "#ff0000", SecondaryText: "#FF0000", Accent: "#00FF00", Info: "#0000FF", Warning: "#FFFF00", Error: "#FF00FF", Focus: "#00FFFF", MutedText: "#808080", Border: "#000000", Success: "#FFFFFF"}
+	want := []lipgloss.Color{"#000000", "#808080", "#FFFFFF", "#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF"}
+	if got := paletteColors(p); !slices.Equal(got, want) {
+		t.Fatal("unexpected unique hue order", got)
 	}
 }
 
@@ -73,28 +70,27 @@ func TestAboutEffectiveThemeAndGrid(t *testing.T) {
 				t.Fatal("effective theme lost", text)
 			}
 			grid := ansi.Strip(m.aboutPalette())
+			unique := make(map[string]bool)
 			palette := reflect.ValueOf(theme.Palette)
 			for i := 0; i < palette.NumField(); i++ {
+				color := strings.ToUpper(palette.Field(i).String())
+				if color != "" {
+					unique[color] = true
+				}
 				role := palette.Type().Field(i).Tag.Get("json")
-				if !slices.Contains(strings.Fields(grid), role) {
-					t.Fatal("missing/duplicated role", role, grid)
+				if strings.Contains(grid, role) {
+					t.Fatal("role label in unlabeled grid", role)
 				}
-				color := palette.Field(i).String()
-				if color == "" {
-					color = "terminal (inherited)"
-				}
-				if !strings.Contains(grid, color) {
-					t.Fatal("missing effective color", color, grid)
-				}
+			}
+			if strings.Count(grid, "█") != len(unique)*aboutSwatchWidth || strings.Contains(grid, "#") || strings.Contains(grid, "inherited") {
+				t.Fatal("grid does not contain only unique swatches", grid)
 			}
 			for _, line := range strings.Split(grid, "\n") {
 				if ansi.StringWidth(line) > size[0]-2 {
 					t.Fatal("grid overflow", line)
 				}
 			}
-			if choice == path && !strings.Contains(grid, "#123456") {
-				t.Fatal("custom override lost")
-			}
+
 		}
 	}
 }
@@ -102,6 +98,7 @@ func TestAboutEffectiveThemeAndGrid(t *testing.T) {
 func TestAboutFocusScrollAndReturn(t *testing.T) {
 	for _, closeKey := range []string{"esc", "enter", "A"} {
 		m := resizeModel(demoModel(), 60, 18)
+		m.activeTheme = strings.Repeat("long/custom/path/", 60)
 		m = key(key(m, "j"), "tab")
 		selection, focus := m.selection, m.focus
 		m = key(m, "A")
@@ -113,7 +110,7 @@ func TestAboutFocusScrollAndReturn(t *testing.T) {
 		}
 		m = key(m, "end")
 		offset := m.about.YOffset
-		if offset == 0 || !strings.Contains(ansi.Strip(m.View()), "footer_separator") {
+		if offset == 0 || !strings.Contains(ansi.Strip(m.View()), "█") {
 			t.Fatal("palette cannot scroll")
 		}
 		m = key(m, "ctrl+e")
@@ -144,15 +141,15 @@ func TestAboutPaletteProfilesAndRecoloring(t *testing.T) {
 		m := key(resizeModel(demoModel(), 60, 18), "A")
 		p := DefaultPalette()
 		p.Text, p.Background, p.Accent = "#123456", "#101010", "#ABCDEF"
-		original := m.aboutPalette()
+		original := paletteColors(m.styles.palette)
 		m = m.WithPalette(p)
-		if !strings.Contains(ansi.Strip(m.aboutPalette()), "#ABCDEF") {
+		if !slices.Contains(paletteColors(m.styles.palette), lipgloss.Color("#ABCDEF")) {
 			t.Fatal("cached palette did not refresh")
 		}
 		if m.dialog.active != dialogAbout {
 			t.Fatal("recolor changed owner")
 		}
-		if original == m.aboutPalette() {
+		if slices.Equal(original, paletteColors(m.styles.palette)) {
 			t.Fatal("palette unchanged")
 		}
 		for _, size := range [][2]int{{60, 18}, {120, 32}, {59, 17}, {60, 18}} {
@@ -198,7 +195,7 @@ func TestAboutConfiguredCustomSource(t *testing.T) {
 		t.Fatal("configuration-relative source lost", theme.Source)
 	}
 	m := key(demoModel().WithTheme(theme), "A")
-	if !strings.Contains(ansi.Strip(m.aboutPalette()), "#123456") {
+	if !slices.Contains(paletteColors(m.styles.palette), lipgloss.Color("#123456")) {
 		t.Fatal("configured palette lost")
 	}
 }

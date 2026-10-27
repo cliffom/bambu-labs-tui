@@ -43,7 +43,6 @@ type (
 
 	Session struct {
 		Token    string `json:"token"`
-		Email    string `json:"email,omitempty"`
 		Username string `json:"username"`
 	}
 
@@ -221,7 +220,7 @@ func (c *Client) Session(ctx context.Context, token string) (Session, error) {
 			return Session{}, errors.New("account response has invalid MQTT user ID")
 		}
 	}
-	return Session{Token: token, Username: mqttUsernamePrefix + uid}, nil
+	return Session{token, mqttUsernamePrefix + uid}, nil
 }
 
 func (c *Client) Devices(ctx context.Context, token string) ([]farm.Device, error) {

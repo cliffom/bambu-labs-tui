@@ -7,6 +7,16 @@ This is the ongoing record of observed hardware behavior and remaining operation
 
 ## v0.2.11 — About Bambu TUI (#85)
 
+### Revised About presentation
+
+On 2026-10-26 (PDT), the user revised the requested About layout: app name/version on one line, unlabeled platform and project URL, branding before “Lovingly crafted by Michael Clifford,” then Theme and “Theme Pallet.” The palette now contains only unique explicit RGB swatches sorted by hue, with achromatic colors first from dark to light; it omits role/RGB labels and unknown inherited terminal colors. No-color mode preserves separated solid blocks without identifying their colors. Account information and the initial optional-email session changes were removed. This presentation supersedes the initial implementation described below.
+
+On local macOS arm64/Go 1.27.3, `make fmt-check lint test check build docs-check` and `make release` passed again. New/updated tests cover exact metadata order and removed field labels, case-insensitive RGB deduplication, independent expected hue order including gray/primary colors, unlabeled grid contents/bounds, active bundled/custom sources, and TrueColor/ANSI256/no-color rendering. A long custom source keeps scroll/status/fallback restoration coverage meaningful now that bundled About views are shorter. Existing ownership, telemetry, attention deferral, and CLI PTY tests remain covered.
+
+Repeated actual `make demo` PTY/emulator captures produced 96 revised frames across all six bundled themes in TrueColor and no color at 120×32 and 60×18, plus status/return, 59×17 fallback/restoration, and dashboard return. Revised rendered contact sheets were inspected for compact metadata, exact wording/order, unique swatches, row spacing, readable URL, and restored navigation. Custom paths and ANSI256 have automated coverage only. These remain synthetic observations; physical terminal/fonts, live printers, native notification presentation, clean-Mac installation, and Intel runtime were not newly validated.
+
+### Initial implementation evidence (superseded presentation)
+
 On 2026-10-26 (PDT), local macOS arm64/Go 1.27.3 prepared v0.2.11 with read-only About on `A`. `make fmt-check lint test check build docs-check` passed using pinned golangci-lint v2.15.0; `make vuln-check` found no vulnerabilities. `make release` passed all four cross-builds, archive documentation/inventory checks, checksums, and universal macOS helper architecture/ad-hoc signature checks. These are local candidate artifacts; signed/notarized distribution and publication were not performed.
 
 The actual synthetic `make demo` was captured through PTYs and a terminal emulator in all six bundled themes (Default, Gruvbox Dark, Hotdog, C64, IBM 3270, DeskMate II), each with TrueColor and no color. Ninety-six frames cover About at 120×32, the top/bottom of its scrollable 60×18 content, Status / Feedback and return, 59×17 fallback, restoration to 60×18 with the same palette position, and return to the dashboard. Rendered contact sheets were inspected for the metadata, readable project URL, exact attribution/branding, labeled 4×6 and 2×12 swatch grids, inherited terminal background, and close/scroll controls. Swatches retain role/RGB labels without color; the final grid row has an unused cell because the palette has 23 roles.

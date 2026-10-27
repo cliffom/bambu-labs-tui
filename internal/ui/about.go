@@ -1,9 +1,11 @@
 package ui
 
 import (
-	"fmt"
+	"cmp"
 	"reflect"
 	"runtime"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -12,13 +14,6 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/buildinfo"
 )
-
-// WithLoginEmail supplies only the account information displayed by About.
-// Tokens and transport identities never enter the UI model.
-func (m Model) WithLoginEmail(email string) Model {
-	m.loginEmail = email
-	return m
-}
 
 // WithTheme retains the effective launch choice rather than the saved preference.
 func (m Model) WithTheme(theme Theme) Model {
@@ -55,15 +50,6 @@ func (m *Model) aboutKey(key string, msg tea.Msg) tea.Cmd {
 
 func (m *Model) syncAbout() {
 	m.about.Width, m.about.Height = max(1, m.width-2), max(1, m.height-4)
-	email := safe(m.loginEmail)
-	switch {
-	case m.Demo:
-		email = "Demo mode (not signed in)"
-	case m.ended:
-		email = "Not signed in"
-	case strings.TrimSpace(email) == "":
-		email = "Unavailable (login email not recorded)"
-	}
 	platform := runtime.GOOS
 	if platform == "darwin" {
 		platform = "macOS"
@@ -77,48 +63,86 @@ func (m *Model) syncAbout() {
 		version = "unknown"
 	}
 	lines := []string{
-		"Application: Bambu TUI",
-		"Version: " + version,
-		"Platform: " + platform + " / " + runtime.GOARCH,
-		"Login email: " + email,
-		"Theme: " + theme,
-		"Project: https://github.com/cliffom/bambu-tui",
-		"Loving Crafted by Michael Clifford",
+		"Bambu TUI " + version,
+		platform + " / " + runtime.GOARCH,
+		"https://github.com/cliffom/bambu-tui",
 		"A Suite Potato Spud",
+		"Lovingly crafted by Michael Clifford",
 		"",
+		"Theme: " + theme,
+		"Theme Pallet:",
 	}
 	content := ansi.Wrap(strings.Join(lines, "\n"), m.about.Width, "")
 	m.about.SetContent(content + "\n" + m.aboutPalette())
 }
 
-// Every effective role appears once, even when several roles share RGB values.
-// Two-line cells keep role names and literal colors legible without color.
-func (m Model) aboutPalette() string {
-	palette := reflect.ValueOf(m.styles.palette)
-	columns := max(1, m.about.Width/aboutPaletteCellWidth)
-	rows := (palette.NumField() + columns - 1) / columns
-	lines := []string{fmt.Sprintf("Theme colors: %d×%d grid (columns × rows)", columns, rows)}
-	for row := 0; row < rows; row++ {
-		var labels, swatches strings.Builder
-		for col := 0; col < columns; col++ {
-			i := row*columns + col
-			if i >= palette.NumField() {
-				break
-			}
-			role := palette.Type().Field(i).Tag.Get("json")
-			color := lipgloss.Color(palette.Field(i).String())
-			value := string(color)
-			swatch := lipgloss.NewStyle().Background(color).Render("  ")
-			if color == "" {
-				value, swatch = "terminal (inherited)", "--"
-			}
-			labels.WriteString(cell(role, aboutPaletteCellWidth))
-			rendered := swatch + " " + value
-			swatches.WriteString(rendered + strings.Repeat(" ", max(0, aboutPaletteCellWidth-ansi.StringWidth(rendered))))
+// paletteColors omits the inherited terminal color, whose RGB is unknown.
+// Normalize case before deduplicating roles that share the same effective RGB.
+func paletteColors(p Palette) []lipgloss.Color {
+	palette := reflect.ValueOf(p)
+	seen := make(map[lipgloss.Color]bool)
+	var colors []lipgloss.Color
+	for i := 0; i < palette.NumField(); i++ {
+		color := lipgloss.Color(strings.ToUpper(palette.Field(i).String()))
+		if color != "" && !seen[color] {
+			seen[color] = true
+			colors = append(colors, color)
 		}
-		lines = append(lines, labels.String(), swatches.String())
 	}
-	return strings.Join(lines, "\n")
+	slices.SortFunc(colors, func(a, b lipgloss.Color) int {
+		ah, as, av := paletteHSV(a)
+		bh, bs, bv := paletteHSV(b)
+		if order := cmp.Compare(ah, bh); order != 0 {
+			return order
+		}
+		if order := cmp.Compare(as, bs); order != 0 {
+			return order
+		}
+		if order := cmp.Compare(av, bv); order != 0 {
+			return order
+		}
+		return cmp.Compare(a, b)
+	})
+	return colors
+}
+
+// Achromatic colors precede the hue wheel, ordered from black to white.
+// Theme loading validates RGB syntax before palettes reach the UI.
+func paletteHSV(color lipgloss.Color) (hue, saturation, value float64) {
+	rgb, _ := strconv.ParseUint(strings.TrimPrefix(string(color), "#"), 16, 24)
+	r, g, b := float64(rgb>>16), float64((rgb>>8)&255), float64(rgb&255)
+	high, low := max(r, g, b), min(r, g, b)
+	delta := high - low
+	if delta == 0 {
+		return -1, 0, high
+	}
+	switch high {
+	case r:
+		hue = (g - b) / delta
+	case g:
+		hue = (b-r)/delta + 2
+	default:
+		hue = (r-g)/delta + 4
+	}
+	if hue < 0 {
+		hue += 6
+	}
+	return hue, delta / high, high
+}
+
+func (m Model) aboutPalette() string {
+	colors := paletteColors(m.styles.palette)
+	columns := max(1, m.about.Width/aboutPaletteCellWidth)
+	var lines []string
+	for start := 0; start < len(colors); start += columns {
+		var row []string
+		for _, color := range colors[start:min(start+columns, len(colors))] {
+			// Solid glyphs preserve the grid shape when ANSI colors are disabled.
+			row = append(row, lipgloss.NewStyle().Foreground(color).Background(color).Render(strings.Repeat("█", aboutSwatchWidth)))
+		}
+		lines = append(lines, strings.Join(row, strings.Repeat(" ", aboutPaletteCellWidth-aboutSwatchWidth)))
+	}
+	return strings.Join(lines, "\n\n")
 }
 
 func (m Model) aboutView() string {

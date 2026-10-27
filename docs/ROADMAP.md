@@ -21,7 +21,7 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 
 ## v0.2.11 — About Bambu TUI
 
-[#85](https://github.com/cliffom/bambu-tui/issues/85) adds read-only About on `A`: application/version/platform, known login email with explicit unavailable/demo states, effective theme source, responsive labeled palette swatches, project URL, attribution, and branding. The dialog preserves focus and telemetry updates. Synthetic layout evidence and remaining live-account/terminal gaps are recorded in the [validation record](development/validation.md).
+[#85](https://github.com/cliffom/bambu-tui/issues/85) adds read-only About on `A`: app name/version, platform, project URL, branding, and attribution without field labels, followed by the effective theme source and an unlabeled grid of unique colors sorted by hue. About displays no account information. The dialog preserves focus and telemetry updates. Synthetic layout evidence and remaining terminal gaps are recorded in the [validation record](development/validation.md).
 
 ## v0.2.10 — status message prominence and customizable themes
 

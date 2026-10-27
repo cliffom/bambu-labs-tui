@@ -510,7 +510,6 @@ func TestPTYThemeOverridePreservesConfiguredThemeThroughSave(t *testing.T) {
 			mark := child.send(t, "A")
 			child.expect(t, mark, "ABOUT")
 			child.expect(t, mark, "Theme: "+theme)
-			child.expect(t, mark, "Demo mode (not signed in)")
 			mark = child.send(t, "\r")
 			child.expect(t, mark, "PRINTERS")
 			mark = child.send(t, "F")

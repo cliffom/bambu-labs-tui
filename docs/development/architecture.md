@@ -6,7 +6,7 @@ Follow [UI direction](ui-direction.md) for visual and interaction contracts and 
 
 ## State and persistence
 
-Successful email authentication stores the supplied email as an optional field in the existing OS-backed session after token validation. Older sessions and token imports may omit it; MQTT identity remains independent. The CLI supplies only that email to the UI for read-only About information, never the session/token. Theme loading retains its bundled name or resolved custom-file source separately from the JSON display name and saved configuration.
+The CLI supplies no session credentials or account information to About. Theme loading retains its bundled name or resolved custom-file source separately from the JSON display name and saved configuration.
 
 Packages separate cloud authentication/discovery, the MQTT transport, the monitor worker, normalized farm state, credential storage, configuration, and the terminal UI. The UI reducer alone mutates farm state. Transports communicate through messages and stop on context cancellation. Configuration, notice, and snooze persistence commands receive immutable snapshots and report completion through messages. Each store permits one write in flight; changes during that write coalesce into a complete latest snapshot after completion. Attempted, successfully saved, and failed revisions stay distinct, with no tick-driven retry of failed revisions. Normal quit waits up to five seconds, then requires an explicit exit or cancellation on failure/timeout; external cancellation reports unconfirmed saves after the terminal is restored.
 

@@ -2,8 +2,8 @@
 
 ## 0.2.11 — About Bambu TUI
 
-- Add read-only About on `A`, with running version/platform, known login email or explicit unavailable/demo state, the effective bundled/custom theme source, project URL, and requested attribution/branding. Retain email from successful email logins in the existing OS-backed session; older sessions and token imports remain explicitly unavailable.
-- Show every effective palette role in a responsive, scrollable swatch grid with RGB labels and inherited terminal colors. Preserve dashboard focus/selection, ongoing telemetry, status return, and below-minimum restoration.
+- Add read-only About on `A`, with app name/version, platform, project URL, branding, and “Lovingly crafted by Michael Clifford” attribution without field labels, followed by the effective bundled/custom theme source. About displays no account information.
+- Show a responsive, unlabeled grid of unique explicit theme colors sorted by hue. Omit unknown inherited terminal colors, and preserve swatch shapes without color. Preserve dashboard focus/selection, ongoing telemetry, status return, and below-minimum restoration.
 
 ## 0.2.10 — Customizable themes
 

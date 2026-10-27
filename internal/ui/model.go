@@ -37,7 +37,7 @@ type (
 		toastKind                  feedbackKind
 		exportError, browserError  string
 		help, status, about        viewport.Model
-		loginEmail, activeTheme    string
+		activeTheme                string
 		clearHistoryEvents         []uint64
 		details, notices           viewport.Model
 		noticeKey                  string

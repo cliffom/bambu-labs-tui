@@ -37,6 +37,7 @@ type (
 		Name              string      `json:"name"`
 		Model             string      `json:"model"`
 		State             string      `json:"state"`
+		Online            bool        `json:"online"`
 		Connection        string      `json:"connection"`
 		Fresh             bool        `json:"fresh"`
 		LastReport        string      `json:"last_report"`
@@ -135,7 +136,7 @@ func SnapshotJSON(state *farm.State, now time.Time, demo bool, decisions ...Deci
 		if model == "" {
 			model = p.ModelCode
 		}
-		out := printer{ID: opaque(id), Image: printerImage(model), Name: p.Name, Model: model, State: p.State, Connection: p.Connection(now, state.Connected), Fresh: p.TelemetryCurrent(now, state.Connected), LastReport: timestamp(p.LastReport), Job: p.Job, Stage: p.Stage, Progress: p.Progress, Remaining: p.Remaining, RemainingReported: timestamp(p.RemainingReported), ETACurrent: p.ETACurrent(now, state.Connected), Layer: p.Layer, TotalLayers: p.TotalLayers, Bed: temp(p.Bed), Chamber: temp(p.Chamber), Nozzles: []nozzle{}, AMS: []ams{}, External: slots(p.External), Conditions: []condition{}, Attention: attention[id]}
+		out := printer{ID: opaque(id), Image: printerImage(model), Name: p.Name, Model: model, State: p.State, Online: p.Online, Connection: p.Connection(now, state.Connected), Fresh: p.TelemetryCurrent(now, state.Connected), LastReport: timestamp(p.LastReport), Job: p.Job, Stage: p.Stage, Progress: p.Progress, Remaining: p.Remaining, RemainingReported: timestamp(p.RemainingReported), ETACurrent: p.ETACurrent(now, state.Connected), Layer: p.Layer, TotalLayers: p.TotalLayers, Bed: temp(p.Bed), Chamber: temp(p.Chamber), Nozzles: []nozzle{}, AMS: []ams{}, External: slots(p.External), Conditions: []condition{}, Attention: attention[id]}
 		for _, n := range p.Nozzles {
 			out.Nozzles = append(out.Nozzles, nozzle{ID: n.ID, Active: n.Active, Temperature: temp(n.Temperature)})
 		}

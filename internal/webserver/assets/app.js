@@ -71,6 +71,13 @@ function swatch(color) {
 function allSlots(p) {
   return [...p.ams.flatMap((unit) => unit.slots), ...p.external];
 }
+// Unknown states remain outside idle/done for ordering only. Neither freshness
+// nor the cloud connection label establishes device connectivity or activity.
+function printerGroup(p) {
+  if (p.online === false) return 2;
+  return p.state === "IDLE" || p.state === "FINISH" ? 1 : 0;
+}
+const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 function visible() {
   return (snapshot?.printers || [])
     .filter(
@@ -82,17 +89,14 @@ function visible() {
         p.name.toLowerCase().includes(query.toLowerCase()),
     )
     .sort((a, b) => {
-      if ((a.connection === "Offline") !== (b.connection === "Offline"))
-        return a.connection === "Offline" ? 1 : -1;
+      const group = printerGroup(a) - printerGroup(b);
+      if (group) return group;
       if (sort === "attention" && a.attention !== b.attention)
         return a.attention ? -1 : 1;
-      if (sort === "state")
-        return (
-          stateLabel(a.state).localeCompare(stateLabel(b.state)) ||
-          a.name.localeCompare(b.name) ||
-          a.id.localeCompare(b.id)
-        );
-      return a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
+      const state = sort === "state"
+        ? compareText(stateLabel(a.state).toLowerCase(), stateLabel(b.state).toLowerCase())
+        : 0;
+      return state || compareText(a.name.toLowerCase(), b.name.toLowerCase()) || compareText(a.id, b.id);
     });
 }
 function machine(p) {

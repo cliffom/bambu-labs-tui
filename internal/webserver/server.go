@@ -115,6 +115,12 @@ func (s *Server) handler(host string, files http.Handler) http.Handler {
 		case "/", "/app.js", "/style.css", "/icon.png":
 			files.ServeHTTP(w, r)
 		default:
+			if isPrinterImage(r.URL.Path) {
+				// These immutable, content-versioned illustrations contain no telemetry.
+				w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
+				files.ServeHTTP(w, r)
+				return
+			}
 			http.NotFound(w, r)
 		}
 	})

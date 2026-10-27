@@ -54,7 +54,7 @@ const localTime = (value) =>
   value ? new Date(value).toLocaleString() : "Unavailable";
 function remaining(p) {
   if (p.state !== "RUNNING") return "—";
- if (p.remaining == null) return "Unknown";
+  if (p.remaining == null) return "Unknown";
   return (
     (current(p) && p.eta_current ? "" : "Last-known: ") + duration(p.remaining)
   );
@@ -93,6 +93,9 @@ function visible() {
     });
 }
 function machine(p) {
+  if (p.image)
+    return `<img class="printer-sprite" src="${escapeHTML(p.image)}" alt="" loading="lazy" decoding="async">`;
+
   const color = p.attention ? "#d5b17d" : "#b2d9b9";
   return `<svg viewBox="0 0 160 150" fill="none" aria-hidden="true"><path d="M25 132L82 144L142 127L84 116Z" fill="#0d110e"/><path d="M29 29L88 16L134 29V124L80 137L29 123Z" fill="#424e46" stroke="#68796c"/><path d="M35 34L81 44V128L35 118Z" fill="#222c25" stroke="#657569"/><path d="M81 44L127 34V118L81 128Z" fill="#101c14" stroke="#657569"/><path d="M29 29L81 41L134 29L88 16Z" fill="#657269"/><path d="M40 39L75 47V117L40 110Z" fill="#19261d"/><path d="M87 48L121 40V111L87 119Z" fill="#1a2920"/><path d="M45 98L84 106L119 97L80 90Z" fill="#66796b"/><path d="M45 98V103L84 112L119 102V97L84 106Z" fill="#3c5042"/><path d="M84 54V96M113 46V95M45 50V95" stroke="#536559" stroke-width="2"/><path d="M45 59L116 69M45 65L116 75" stroke="#66786b" stroke-width="2"/><path d="M75 63L88 66V81L75 78Z" fill="#b3c5b6"/><path d="M88 66L96 63V78L88 81Z" fill="#6d8574"/><path d="M69 89L85 85L99 89V99L84 103L69 99Z" fill="${color}"/><path d="M39 28L62 22L78 26L55 32Z" fill="#9aaba0"/></svg>`;
 }
@@ -162,7 +165,10 @@ function render() {
       : snapshot.connected
         ? "● Monitor connected"
         : "Cloud disconnected";
-  $("#feed-state").classList.toggle("amber", feedUnavailable() || !snapshot.connected);
+  $("#feed-state").classList.toggle(
+    "amber",
+    feedUnavailable() || !snapshot.connected,
+  );
   $("#updated").textContent = localTime(snapshot.at);
   if (selected && $("#detail").open) renderDetail();
 }
@@ -228,7 +234,7 @@ async function poll() {
       "Cannot reach the dashboard server. Current printer state is unconfirmed. Last-known data remains below. Check the TUI and Web Server setting.",
     );
     $("#feed-state").textContent = "Dashboard disconnected";
- $("#feed-state").classList.add("amber");
+    $("#feed-state").classList.add("amber");
   } finally {
     clearTimeout(timeout);
     controller = null;

@@ -15,6 +15,14 @@ New real-CLI PTY regression tests verify enable/disable, HTTP demo snapshots, ru
 
 `make fmt-check lint test check build docs-check` passed with pinned golangci-lint v2.15.0 (installed outside PATH via `GOLANGCI_LINT`); `make vuln-check` reported no known vulnerabilities. JavaScript syntax checks passed. Live printers/cloud accounts, Safari/Firefox, Linux browser rendering, physical terminal presentation, and release packaging were not validated in this change. Localhost access has no authentication; remote access and headless operation remain unsupported.
 
+### Printer sprite follow-up
+
+On the same macOS/Go setup, built-in image generation produced transparent pixel-style H2D, X2D, X1 Carbon, P1S, and A1 mini depictions using Bambu's official model renders for shape and the project's logo/hero for style. Each saved PNG was inspected; all have genuine alpha and transparent corner padding. Source links and exact generation prompts are recorded in [branding](../reference/branding.md#printer-sprites). The reference renders themselves are not bundled.
+
+The real demo server served its H2D/X2D sprites locally. A Chrome 156 response fixture additionally displayed the full five-model set plus an unknown model. Browser checks passed at 1440×1500, 1024×900, 390×844, and 320×700 with no horizontal overflow, JavaScript errors, or external image requests. Every sprite was decoded and inspected in a phone card; CSS retained pixelated rendering and aspect ratio. Desktop/phone captures confirmed the generic SVG fallback for unknown models. Initial asynchronous/lazy image decoding required waiting for image decode before visual inspection; captures taken before decode can have blank artwork. Model images are decorative and do not establish live state or accessory configuration.
+
+`make fmt-check lint test check build docs-check` passed with the pinned lint override. Added Go tests verify known model aliases, rejection of unknown/partial names, no selection from user-assigned printer names, embedded PNG decoding/transparency, version digests matching cached bytes, fixed image routes, and snapshots retaining no-store caching. This update does not change terminal interaction; the full UI/CLI race and PTY suites passed. Safari/Firefox, physical terminals, and live hardware were not newly checked.
+
 ## v0.2.12 — About label styling
 
 On 2026-10-26 (PDT), macOS arm64/Go 1.27.3 synthetic `make demo` PTY/emulator captures covered the default theme with TrueColor and no color at 120×32 and 60×18, Status / Feedback return, 59×17 fallback/restoration, and dashboard return (16 frames). Rendered contact sheets were inspected for secondary-colored “Theme:” / “Theme Palette:” labels, primary theme values, readable metadata/swatches, and restored navigation. Other themes and ANSI256 have automated coverage only; physical terminal/font and live hardware behavior were not newly validated.

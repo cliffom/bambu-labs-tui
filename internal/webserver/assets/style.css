@@ -997,3 +997,14 @@ dialog p {
 .metrics {
   gap: 6px;
 }
+
+/* Raster sprites share the branding palette; retain crisp pixel edges. */
+.printer-view {
+  height: 160px;
+}
+.printer-view .printer-sprite {
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}

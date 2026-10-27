@@ -79,15 +79,15 @@ func TestConfigSaveCoalescesAndBlocksQuit(t *testing.T) {
 	// Dispatch explicitly: persistence must not call the writer in the reducer.
 	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(Model)
-	if len(saved) != 0 || !m.configWrites.inFlight {
+	if len(saved) != 0 || !m.ConfigWrites().InFlight {
 		t.Fatal("save ran in reducer or was not queued")
 	}
 	if strings.Contains(ansi.Strip(m.View()), "Saving…") {
 		t.Fatal("pending saves should remain silent")
 	}
-	first := m.configRevision
+	first := m.ConfigRevision()
 	m = key(m, "enter") // Newer value waits behind the first snapshot.
-	if m.configWrites.attempted != first {
+	if m.ConfigWrites().Attempted != first {
 		t.Fatal("overlapping config writes")
 	}
 	m = key(m, "esc")

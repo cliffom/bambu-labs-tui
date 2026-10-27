@@ -135,9 +135,9 @@ func (m *Model) attentionKey(key string, msg tea.Msg) tea.Cmd {
 		for _, item := range group.items {
 			if _, active := m.attentionActive(item); active {
 				if key == keyAcknowledge {
-					m.Farm.Acknowledge(item.Key, true)
+					m.Acknowledge(item.Key, true)
 				} else {
-					m.Farm.Dismiss(item.Key)
+					m.Dismiss(item.Key)
 				}
 			}
 			m.attentionSeen[attentionOccurrence{item.Key, item.Since}] = true

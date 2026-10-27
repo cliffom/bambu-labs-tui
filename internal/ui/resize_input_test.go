@@ -33,7 +33,7 @@ type hiddenInputState struct {
 }
 
 func hiddenState(m Model) hiddenInputState {
-	state := hiddenInputState{owner: m.dialog, focus: m.focus, selection: m.selection, noticeIndex: m.noticeIndex, noticeKey: m.noticeKey, filter: m.printerFilter, sort: m.printerSort, reviews: m.Farm.Reviews(), events: slices.Clone(m.Farm.Events), snoozes: maps.Clone(m.snoozes)}
+	state := hiddenInputState{owner: m.dialog, focus: m.focus, selection: m.selection, noticeIndex: m.noticeIndex, noticeKey: m.noticeKey, filter: m.printerFilter, sort: m.printerSort, reviews: m.Farm.Reviews(), events: slices.Clone(m.Farm.Events), snoozes: maps.Clone(m.Snoozes)}
 	if m.decisions != nil {
 		state.reset = m.decisions.confirmReset
 	}
@@ -193,7 +193,7 @@ func TestCompactShutdownAndPersistenceContinueBelowMinimumSize(t *testing.T) {
 	}
 	next, _ = m.Update(save())
 	m = next.(Model)
-	if !m.quitProblem || m.reviewWrites.failed == 0 || !strings.Contains(m.shutdownView(), "Storage failed") {
+	if !m.quitProblem || m.ReviewWrites().Failed == 0 || !strings.Contains(m.shutdownView(), "Storage failed") {
 		t.Fatal("hidden persistence failure was lost")
 	}
 	_, quit := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")})

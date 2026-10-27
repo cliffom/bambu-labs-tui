@@ -15,6 +15,7 @@ import (
 	"github.com/cliffom/bambu-tui/internal/diagnostics"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambu-tui/internal/session"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
@@ -24,11 +25,10 @@ type (
 	endMsg struct{}
 
 	Model struct {
+		session.Session
 		styles                     *styles
-		Farm                       *farm.State
 		Events                     <-chan monitor.Event
 		Refresh                    chan<- struct{}
-		Demo                       bool
 		width, height, selection   int
 		focus                      dashboardPanel
 		now                        time.Time
@@ -48,14 +48,9 @@ type (
 		inspected                  *noticeItem
 		inspection                 viewport.Model
 		dialog                     dialogState
-		saveReviews                func(map[string]farm.Review) error
-		reviewWrites               persistence
-		snoozeWrites               persistence
-		snoozeRevision             uint64
 		quitting                   bool
 		quitProblem                bool
 		quitGeneration             uint64
-		noticeStorageError         string
 		attention                  *attentionDialog
 		attentionSeen              map[attentionOccurrence]bool
 		attentionPending           time.Time
@@ -63,10 +58,6 @@ type (
 		decisions                  *decisionsDialog
 		alertDialog                *alertDialog
 		alertPrefs                 config.AlertPreferences
-		snoozes                    map[string]time.Time
-		saveSnoozes                func(map[string]time.Time) error
-		snoozesDirty               bool
-		alertStorageError          string
 		notificationClient         notificationClient
 		notificationStarted        bool
 		testNotification           func(context.Context, bool) error
@@ -91,14 +82,10 @@ type (
 		configResetConfirm         bool
 		configInputError           string
 		configPath                 string
-		saveConfig                 func(config.Config) error
-		configRevision             uint64
-		configWrites               persistence
 		configStorageError         string
 		notificationError          string
 		notificationRevision       uint64
 		notificationActivity       *notificationActivityDialog
-		printersDiscovered         bool
 		printerIDs                 []string
 		printerMetrics             map[string]printerOverview
 		printerFilter              printerFilter
@@ -108,7 +95,6 @@ type (
 		exportDialog               *exportDialog
 		clearNotices               *clearNoticesDialog
 
-		webTargets                                        map[string]webTarget
 		webServer                                         webServerClient
 		webEnabled, webAttempted, webInitialized, webBusy bool
 		webStatus                                         webserver.Status
@@ -119,18 +105,12 @@ type (
 // WithNoticePersistence enables asynchronous saves from the UI reducer. A failed
 // load disables writes for this session to preserve the original file.
 func (m Model) WithNoticePersistence(save func(map[string]farm.Review) error, loadErr error) Model {
-	m.reviewWrites = persistence{attempted: m.Farm.ReviewRevision(), saved: m.Farm.ReviewRevision()}
-	m.saveReviews = nil
-	if loadErr != nil {
-		m.noticeStorageError = "Saved notices unavailable; decisions apply only to this session"
-	} else if !m.Demo {
-		m.saveReviews = save
-	}
+	m.Session.WithNoticePersistence(save, loadErr)
 	return m
 }
 
 func New(state *farm.State, events <-chan monitor.Event, refresh chan<- struct{}, demo bool) Model {
-	m := Model{webPort: config.DefaultWebPort, styles: newStyles(DefaultPalette()), configRegion: config.RegionGlobal, activeRegion: config.RegionGlobal, alertPrefs: config.DefaultAlerts(), Farm: state, Events: events, Refresh: refresh, Demo: demo, width: defaultWidth, height: defaultHeight, now: time.Now(), details: viewport.New(initialDetailsWidth, initialDetailsHeight), notices: viewport.New(initialNoticesWidth, initialNoticesHeight), inspection: viewport.New(initialInspectorWidth, initialInspectorHeight), help: viewport.New(1, 1)}
+	m := Model{webPort: config.DefaultWebPort, styles: newStyles(DefaultPalette()), configRegion: config.RegionGlobal, activeRegion: config.RegionGlobal, alertPrefs: config.DefaultAlerts(), Session: session.New(state, demo), Events: events, Refresh: refresh, width: defaultWidth, height: defaultHeight, now: time.Now(), details: viewport.New(initialDetailsWidth, initialDetailsHeight), notices: viewport.New(initialNoticesWidth, initialNoticesHeight), inspection: viewport.New(initialInspectorWidth, initialInspectorHeight), help: viewport.New(1, 1)}
 	m.syncPanels()
 	return m
 }
@@ -160,11 +140,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	result.syncNotifications()
 	result.syncDialogs()
 	if result.viewPreferences() != previousView {
-		result.configRevision++
+		result.ConfigChanged()
 	}
 	cmd = tea.Batch(cmd, result.persist(), result.syncWebServer())
 	if result.quitting && !result.persistencePending() {
-		if result.reviewWrites.failed != 0 || result.snoozeWrites.failed != 0 || result.configWrites.failed != 0 {
+		if result.ReviewWrites().Failed != 0 || result.SnoozeWrites().Failed != 0 || result.ConfigWrites().Failed != 0 {
 			result.quitting, result.quitProblem = false, true
 		} else {
 			result.stopNotifications()
@@ -207,27 +187,20 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	case tickMsg:
 		m.now = time.Time(v)
-		m.Farm.Reconcile(m.now)
+		m.Reconcile(m.now)
 		if m.now.Sub(m.toastAt) > toastLifetime {
 			m.toast = ""
 		}
 		cmd = tick()
 	case monitor.Event:
 		m.now = time.Now()
-		switch v.Kind {
-		case monitor.EventDevices:
-			m.Farm.Discover(v.Devices, v.At)
-			m.printersDiscovered = true
-		case monitor.EventConnection:
-			m.Farm.Cloud(v.Connected, v.Problem, v.At)
-		case monitor.EventReport:
-			if m.Farm.Printers[v.ID] != nil {
-				m.diagnostics.Record(v.ID, v.Payload)
-			}
-			if err := m.Farm.Report(v.ID, v.Payload, v.At); err != nil {
-				m.setToast(feedbackWarning, "Ignored malformed printer status")
-			}
-		case monitor.EventProblem:
+		if v.Kind == monitor.EventReport && m.Farm.Printers[v.ID] != nil {
+			m.diagnostics.Record(v.ID, v.Payload)
+		}
+		if err := m.ApplyEvent(v); err != nil {
+			m.setToast(feedbackWarning, "Ignored malformed printer status")
+		}
+		if v.Kind == monitor.EventProblem {
 			m.setToast(feedbackWarning, v.Problem)
 		}
 		cmd = m.wait()

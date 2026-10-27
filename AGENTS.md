@@ -26,7 +26,8 @@ Use the pinned tools documented in the contributing guide; Make supports overrid
 - `cmd/bambu-tui`: CLI, login, terminal lifecycle, and PTY smoke tests.
 - `internal/cloud`, `internal/mqtt`, `internal/monitor`: authentication/discovery, transport, and monitor workers.
 - `internal/farm`: telemetry decoding, normalization, condition lifetime, and farm state.
-- `internal/ui`: Bubble Tea reducer, dialogs, panels, and asynchronous persistence commands.
+- `internal/session`: shared serial owner for farm mutations/reconciliation, local browser decisions, immutable publishing, and persistence jobs.
+- `internal/ui`: Bubble Tea adapter, dialogs, panels, notification integration, and interactive shutdown.
 - `internal/webserver`: session-owned localhost HTTP lifecycle, embedded dashboard, and allowlisted immutable display snapshots.
 - `internal/config`, `internal/credentials`, `internal/noticestore`, `internal/alertstore`, `internal/notification_state`, `internal/atomicfile`: configuration and storage.
 - `internal/diagnostics`: allowlisted local exports.

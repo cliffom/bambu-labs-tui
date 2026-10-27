@@ -44,7 +44,7 @@ func TestClearAllNoticesConfirmationAndPersistence(t *testing.T) {
 	m = persistenceKey(m, "y")
 	saved, err := store.Load()
 	if err != nil || len(saved) != active {
-		t.Fatalf("bulk dismissals not saved: %v, %v", saved, err)
+		t.Fatalf("bulk dismissals not Saved: %v, %v", saved, err)
 	}
 	if m.Farm.NoticeCount() != 0 || len(m.Farm.Events) != 0 || len(m.Farm.Active) != len(before) {
 		t.Fatal("bulk clear did not preserve underlying conditions")

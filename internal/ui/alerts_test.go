@@ -102,7 +102,7 @@ func TestSnoozeRestartExpiryAndRecurrence(t *testing.T) {
 	m = persistenceKey(m, "esc") // Existing session suppression must not outlast the snooze.
 	m = persistenceKey(m, "s")
 	m = persistenceKey(m, "2")
-	until := m.snoozes["H"]
+	until := m.Snoozes["H"]
 	saved, err := store.Load()
 	if err != nil || !saved["H"].Equal(until) {
 		t.Fatal("snooze not saved after command completion")
@@ -184,11 +184,11 @@ func TestResumeAndRemovedPrinterCleanup(t *testing.T) {
 	saves := 0
 	m = m.WithSnoozePersistence(map[string]time.Time{"H": m.now.Add(time.Hour), "removed": m.now.Add(time.Hour)}, func(v map[string]time.Time) error { saves++; return nil }, nil)
 	m = attentionTick(attentionReport(t, m, "H", runoutReport))
-	if len(m.snoozes) != 2 {
+	if len(m.Snoozes) != 2 {
 		t.Fatal("pending printer was pruned before discovery")
 	}
 	m = persistenceUpdate(m, monitor.Event{Kind: monitor.EventDevices, Devices: []farm.Device{{ID: "H", Online: true}}, At: m.now})
-	if len(m.snoozes) != 1 || saves != 1 {
+	if len(m.Snoozes) != 1 || saves != 1 {
 		t.Fatal("confirmed removed printer's snooze was not pruned/saved")
 	}
 	m = persistenceKey(m, "s")
@@ -253,7 +253,7 @@ func TestSnoozeDialogBoundsAndLiveRemoval(t *testing.T) {
 	next, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, At: m.now})
 	m = next.(Model)
 	m = key(m, "1")
-	if len(m.snoozes) != 0 {
+	if len(m.Snoozes) != 0 {
 		t.Fatal("removed printer acquired a snooze")
 	}
 }
@@ -264,13 +264,13 @@ func TestResetReviewsDoesNotEndSnooze(t *testing.T) {
 	m = key(m, "a")
 	m = key(m, "s")
 	m = key(m, "3")
-	until := m.snoozes["H"]
+	until := m.Snoozes["H"]
 	m = key(m, "n")
 	m = key(m, "R")
 	m = key(m, "y")
 	m = key(m, "esc")
 	m = attentionTick(m)
-	if !m.snoozes["H"].Equal(until) || m.attention != nil || len(m.Farm.Reviews()) != 0 || m.Farm.Unacknowledged() != 3 {
+	if !m.Snoozes["H"].Equal(until) || m.attention != nil || len(m.Farm.Reviews()) != 0 || m.Farm.Unacknowledged() != 3 {
 		t.Fatal("review reset changed snooze or failed to preserve notices")
 	}
 }

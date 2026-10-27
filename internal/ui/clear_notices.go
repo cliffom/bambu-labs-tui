@@ -41,11 +41,11 @@ func (m *Model) clearNoticesKey(key string, _ tea.Msg) tea.Cmd {
 			// A resolved/replaced occurrence must survive this older confirmation.
 			sameText := key != farm.ConditionCloud && !strings.HasSuffix(key, "/"+farm.ConditionState) || current.Text == before.Text
 			if ok && current.Since.Equal(before.Since) && current.Level == before.Level && current.Code == before.Code && sameText {
-				m.Farm.Dismiss(key)
+				m.Dismiss(key)
 			}
 		}
 		for _, id := range m.clearNotices.events {
-			m.Farm.DeleteEvent(id)
+			m.DeleteEvent(id)
 		}
 		m.closeDialog()
 		m.setToast(feedbackSuccess, "Confirmed notices cleared locally; newer notices and events kept")

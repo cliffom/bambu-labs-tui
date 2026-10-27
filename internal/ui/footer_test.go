@@ -75,9 +75,9 @@ func TestFooterBackgroundIsContinuousThroughFeedbackSeparators(t *testing.T) {
 					m = key(m, "enter")
 					m.toast = "Opened Bambu troubleshooting in your browser"
 				case "error":
-					m.noticeStorageError = "Could not save notices; decisions may be lost on restart"
+					m.NoticeStorageError = "Could not save notices; decisions may be lost on restart"
 				case "overlapping errors":
-					m.noticeStorageError, m.configStorageError = "Could not save notices", "Config save failed"
+					m.NoticeStorageError, m.configStorageError = "Could not save notices", "Config save failed"
 				case "Config pending", "Config accepted", "Config dimmed", "Config failed":
 					m = key(m, ",")
 					m.notificationTestStatusAt = m.now

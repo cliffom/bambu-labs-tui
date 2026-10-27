@@ -191,16 +191,16 @@ func TestActivityOwnershipAndRecoveryAreVisibleAndUseFreshPolicy(t *testing.T) {
 				}
 			}
 		}
-		m.snoozes = map[string]time.Time{"TEST": m.now.Add(time.Hour)}
+		m.Snoozes = map[string]time.Time{"TEST": m.now.Add(time.Hour)}
 		client.status = notifications.Status{Disabled: true}
 		m.Farm.Acknowledge(keyID, true)
-		before := m.configRevision
+		before := m.ConfigRevision()
 		m = key(m, "r")
 		input := client.retryInput
 		if client.retries != 1 || !input.Policies["TEST"].Snoozed || !input.Snapshot["TEST"].Conditions[keyID].Reviewed {
 			t.Fatal("recovery used an old preference/review snapshot")
 		}
-		if m.configRevision != before || !m.Farm.Active[keyID].Acknowledged {
+		if m.ConfigRevision() != before || !m.Farm.Active[keyID].Acknowledged {
 			t.Fatal("recovery edited config or reviews")
 		}
 		m = resizeModel(m, 59, 17)

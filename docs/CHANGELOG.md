@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2 — Shared monitoring session
+
+- Extract shared session ownership for telemetry, reconciliation, local notice decisions, browser occurrence targets, immutable display snapshots, and serialized/coalesced configuration, notice, and snooze saves. The existing TUI uses this foundation while retaining its dialogs, notification integration, and bounded shutdown.
+- Preserve browser/TUI synchronization, stale-target rejection, explicit save retry, failed-load protection, and unknown/confirmed telemetry distinctions. Local decisions never establish physical fault resolution or send printer commands.
+- This is phase 1 of headless monitoring (#96); terminal-free CLI modes remain planned under #90.
+
+See the [validation record](development/validation.md#shared-monitoring-session-96) for synthetic evidence and remaining limits.
+
 ## 0.3.1 — Browser notice dismissal
 
 - Add per-occurrence **Hide notice locally** in the browser inspector. Apply the same saved local dismissal as the TUI without acknowledging, snoozing, controlling the printer, or claiming physical resolution. Keep reported conditions visible with hidden/review labels.

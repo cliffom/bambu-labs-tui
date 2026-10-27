@@ -9,15 +9,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/config"
+	"github.com/cliffom/bambu-tui/internal/session"
 )
 
 type (
 	configSection   uint8
-	configResultMsg struct {
-		revision uint64
-		err      error
-	}
-	configOption struct {
+	configResultMsg = session.ConfigResult
+	configOption    struct {
 		field      config.AlertField
 		name, help string
 	}
@@ -66,13 +64,14 @@ func (m Model) WithConfiguration(cfg config.Config) Model {
 	m.configRegion, m.activeRegion = cfg.Region, cfg.Region
 	m.restoreView(cfg.View)
 	m.alertPrefs = cfg.Alerts
-	m.Farm.LowFilament = cfg.LowFilamentPercent
+	m.SetLowFilament(cfg.LowFilamentPercent, m.now)
 	m.syncPanels()
 	return m
 }
 
 func (m Model) WithConfigPersistence(path string, save func(config.Config) error) Model {
-	m.configPath, m.saveConfig = path, save
+	m.configPath = path
+	m.Session.WithConfigPersistence(save)
 	return m
 }
 
@@ -144,7 +143,7 @@ func (m *Model) configKey(key string, msg tea.Msg) tea.Cmd {
 		case keyEnter:
 			m.alertPrefs = m.configuration().Alerts
 			delete(m.alertPrefs.Printers, m.configTarget())
-			m.configRevision++
+			m.ConfigChanged()
 			m.configResetConfirm = false
 		}
 		return nil
@@ -188,8 +187,8 @@ func (m *Model) configKey(key string, msg tea.Msg) tea.Cmd {
 		if m.configSection == configWebServer && !m.webBusy && m.webStatus.Error != "" {
 			m.webInitialized = false
 		}
-		if m.configWrites.failed != 0 && !m.configWrites.inFlight {
-			m.configRevision++
+		if m.ConfigWrites().Failed != 0 && !m.ConfigWrites().InFlight {
+			m.ConfigChanged()
 		}
 	}
 	return nil
@@ -228,8 +227,7 @@ func (m *Model) changeConfig(direction int, activate bool) {
 			if threshold == m.Farm.LowFilament {
 				return
 			}
-			m.Farm.LowFilament = threshold
-			m.Farm.Reconcile(m.now)
+			m.SetLowFilament(threshold, m.now)
 		}
 	case configAlerts:
 		field := configOptions[m.configSelection].field
@@ -291,7 +289,7 @@ func (m *Model) changeConfig(direction int, activate bool) {
 			}
 		}
 	}
-	m.configRevision++
+	m.ConfigChanged()
 }
 
 func (m *Model) configEditKey(key string, msg tea.Msg) {
@@ -309,7 +307,7 @@ func (m *Model) configEditKey(key string, msg tea.Msg) {
 			}
 			if value != m.webPort {
 				m.webPort = value
-				m.configRevision++
+				m.ConfigChanged()
 			}
 		} else {
 			if err != nil || value < 0 || value > configMaximumPercent {
@@ -317,9 +315,8 @@ func (m *Model) configEditKey(key string, msg tea.Msg) {
 				return
 			}
 			if value != m.Farm.LowFilament {
-				m.Farm.LowFilament = value
-				m.Farm.Reconcile(m.now)
-				m.configRevision++
+				m.SetLowFilament(value, m.now)
+				m.ConfigChanged()
 			}
 		}
 		m.configEditing, m.configInputError = false, ""
@@ -366,25 +363,23 @@ func (m *Model) clearConfig() {
 }
 
 func (m *Model) persistConfig() tea.Cmd {
-	if m.saveConfig == nil || m.configWrites.inFlight || m.configWrites.attempted == m.configRevision {
+	if !m.ConfigSaveNeeded() {
 		return nil
 	}
-	revision, snapshot, save := m.configRevision, m.configuration(), m.saveConfig
-	m.configWrites.inFlight, m.configWrites.attempted = true, revision
-	return func() tea.Msg { return configResultMsg{revision: revision, err: save(snapshot)} }
+	job := m.PersistConfig(m.configuration())
+	if job == nil {
+		return nil
+	}
+	return func() tea.Msg { return job() }
 }
 
 func (m *Model) configResult(msg configResultMsg) {
-	if !m.configWrites.inFlight || msg.revision != m.configWrites.attempted {
+	if !m.CompleteConfig(msg) {
 		return
 	}
-	m.configWrites.inFlight = false
-	if msg.err != nil {
-		m.configWrites.failed = msg.revision
+	m.configStorageError = ""
+	if msg.Err != nil {
 		m.configStorageError = "Config save failed; open , and r to retry"
-	} else {
-		m.configWrites.saved, m.configWrites.failed = msg.revision, 0
-		m.configStorageError = ""
 	}
 }
 

@@ -23,9 +23,9 @@ func TestConfigGeneralValidationAndRegionIsolation(t *testing.T) {
 	m = key(m, "down")
 	m = key(m, "enter")
 	m = key(m, "101")
-	revision := m.configRevision
+	revision := m.ConfigRevision()
 	m = key(m, "enter")
-	if !m.configEditing || m.configInputError == "" || m.Farm.LowFilament != 10 || m.configRevision != revision {
+	if !m.configEditing || m.configInputError == "" || m.Farm.LowFilament != 10 || m.ConfigRevision() != revision {
 		t.Fatal("invalid percentage applied")
 	}
 	m = key(m, "esc")
@@ -38,9 +38,9 @@ func TestConfigGeneralValidationAndRegionIsolation(t *testing.T) {
 	if m.Farm.LowFilament != 0 || m.configEditing {
 		t.Fatal("zero threshold not applied")
 	}
-	revision = m.configRevision
+	revision = m.ConfigRevision()
 	m = key(m, "left")
-	if m.configRevision != revision {
+	if m.ConfigRevision() != revision {
 		t.Fatal("clamped value wrote a new revision")
 	}
 	m = key(m, "enter")
@@ -64,7 +64,7 @@ func TestConfigPercentageRejectsFractionalAndNonNumericInput(t *testing.T) {
 			m = key(m, input)
 		}
 		m = key(m, "enter")
-		if !m.configEditing || m.configInputError == "" || m.Farm.LowFilament != 10 || m.configRevision != 0 {
+		if !m.configEditing || m.configInputError == "" || m.Farm.LowFilament != 10 || m.ConfigRevision() != 0 {
 			t.Fatalf("invalid percentage %q accepted", input)
 		}
 	}
@@ -108,7 +108,7 @@ func TestAllGlobalAndPrinterFieldsWithInheritanceAndConfirmedReset(t *testing.T)
 	m = key(m, "tab")
 	target := m.configTarget()
 	originalReviews := m.Farm.Reviews()
-	m.snoozes = map[string]time.Time{target: m.now.Add(time.Hour)}
+	m.Snoozes = map[string]time.Time{target: m.now.Add(time.Hour)}
 	m = key(m, "down")
 	for _, option := range configOptions {
 		if m.alertPrefs.Printers[target].Value(option.field) != nil {
@@ -271,11 +271,11 @@ func TestConfigEmptyPrinterSectionAndUntrustedNames(t *testing.T) {
 	if !strings.Contains(ansi.Strip(m.View()), "No discovered or configured printers") {
 		t.Fatal("empty printer guidance missing")
 	}
-	revision := m.configRevision
+	revision := m.ConfigRevision()
 	for _, keyName := range []string{"enter", "left", "right", "up", "down"} {
 		m = key(m, keyName)
 	}
-	if m.configRevision != revision {
+	if m.ConfigRevision() != revision {
 		t.Fatal("empty printer controls changed config")
 	}
 	next, _ := m.Update(monitor.Event{Kind: monitor.EventDevices, Devices: []farm.Device{{ID: "SAFE", Name: "name\x1b[2J\nunsafe", Online: true}}, At: m.now})

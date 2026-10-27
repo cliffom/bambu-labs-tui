@@ -1,4 +1,4 @@
-// Package farm owns the normalized farm state. Only the UI reducer
+// Package farm owns the normalized farm state. The serial session owner
 // mutates it; transports deliver immutable reports through messages.
 package farm
 

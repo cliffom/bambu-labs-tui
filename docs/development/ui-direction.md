@@ -65,6 +65,8 @@ Render at most once per second during monitoring. Keep at most three recent diag
 
 ## Browser dashboard readability
 
+Keep browser cards keyed by printer identity through monitoring updates. Patch changing telemetry and accessible labels in place; preserve connected image elements and unchanged source attributes so lazy/async-decoded sprites do not restart on each poll. Filtering, ordering, discovery/removal, and model-image/fallback changes must still reconcile correctly while retaining keyboard focus where the printer remains visible.
+
 Use one inherited modern console-style font stack throughout the dashboard, including headings, metadata, numeric readings, form controls, and dialogs. The local system-monospace stack includes SF Mono/Menlo/Monaco, Consolas, and DejaVu Sans Mono, with a generic monospace fallback; do not introduce a separate serif family through font shorthands. Font assets must not require a CDN request.
 
 At a default 16px browser root, keep body/primary readings at 16px and metadata/control labels at least 14px. Use relative font sizes and comfortable line height so browser text preferences can enlarge them. Let cards, metric columns, filters, and controls reflow instead of shrinking text to fit; check narrow viewports and 200% text enlargement without horizontal scrolling or clipped dialogs. Preserve readable unknown/last-known labels, visible keyboard focus, font-independent close icons, and reduced-motion preferences. Artwork remains decorative.

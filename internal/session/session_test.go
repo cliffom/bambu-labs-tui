@@ -306,3 +306,37 @@ func TestShutdownRejectsDecisionsWhileCoalescedWritesDrain(t *testing.T) {
 		t.Fatal("accepted snapshots not drained independently")
 	}
 }
+
+func TestBrowserNotificationPolicyIndependentFromNative(t *testing.T) {
+	s, at := fixture(t)
+	prefs := config.DefaultAlerts()
+	input := s.BrowserNotificationInput(at, prefs)
+	if prefs.DesktopEnabled() {
+		t.Fatal("fixture should default native delivery off")
+	}
+	if len(input.Snapshot) != 1 || len(input.Policies) != 1 {
+		t.Fatal("missing normalized snapshot")
+	}
+	policy := input.Policies["SYNTHETIC_SERIAL"]
+	allowed := false
+	for _, value := range policy.Allowed {
+		allowed = allowed || value
+	}
+	if !allowed {
+		t.Fatal("native opt-out suppressed browser categories")
+	}
+	prefs.Filament, prefs.Extrusion, prefs.PrinterFaults, prefs.FailedPrints, prefs.UnknownPauses = false, false, false, false, false
+	muted := s.BrowserNotificationInput(at, prefs)
+	for _, value := range muted.Policies["SYNTHETIC_SERIAL"].Allowed {
+		if value {
+			t.Fatal("disabled browser category allowed")
+		}
+	}
+	s.SetSnooze("SYNTHETIC_SERIAL", time.Hour, at)
+	if !s.BrowserNotificationInput(at, prefs).Policies["SYNTHETIC_SERIAL"].Snoozed {
+		t.Fatal("browser ignored local snooze")
+	}
+	if len(s.BrowserNotificationInput(at.Add(time.Hour), prefs).Snapshot) != 0 {
+		t.Fatal("stale data entered browser events")
+	}
+}

@@ -52,7 +52,7 @@ func serveCloud(ctx context.Context, cfg config.Config, output, diagnostics io.W
 	runner := monitor.New(cloud.New(cfg.Region), account)
 	return serveMonitor(ctx, cfg, &state, output, diagnostics, func(ctx context.Context, events chan<- monitor.Event) {
 		runner.Run(ctx, events, nil)
-	})
+	}, account.Username)
 }
 
 // Stores use the same account/region scope and failed-load protection as the TUI.
@@ -81,15 +81,19 @@ func serveDemo(ctx context.Context, cfg config.Config, output io.Writer) error {
 
 // Each foreground host has one monitor regardless of browser-client count.
 // Neither host initializes native notification delivery or writes configuration.
-func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session, output, diagnostics io.Writer, run func(context.Context, chan<- monitor.Event)) error {
+func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session, output, diagnostics io.Writer, run func(context.Context, chan<- monitor.Event), usernames ...string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	if ctx.Err() != nil {
 		return nil
 	}
-	web := webserver.New(ctx)
-	defer web.Close()
-	state.Publish(web, time.Now())
+	username := ""
+	if len(usernames) > 0 {
+		username = usernames[0]
+	}
+	web, closeBrowser := browserServer(ctx, cfg.Region, username, state.Demo)
+	defer closeBrowser()
+	state.Publish(web, time.Now(), session.BrowserPolicy{Alerts: cfg.Alerts, Active: true})
 	status := web.SetEnabled(true, cfg.WebServer.Port)
 	if status.Error != "" {
 		return errors.New(status.Error)
@@ -105,7 +109,7 @@ func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session
 	events := make(chan monitor.Event, eventBufferSize)
 	done := make(chan struct{})
 	go func() { defer close(done); run(ctx, events) }()
-	err := serveSession(ctx, state, web, events, diagnostics, serveShutdownTimeout)
+	err := serveSession(ctx, state, web, events, diagnostics, serveShutdownTimeout, session.BrowserPolicy{Alerts: cfg.Alerts, Active: true})
 	cancel()
 	select {
 	case <-done:
@@ -117,7 +121,7 @@ func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session
 
 // serveSession is the sole mutable-state owner. Jobs receive snapshots and
 // return results here; neither HTTP handlers nor workers touch live farm state.
-func serveSession(ctx context.Context, state *session.Session, web *webserver.Server, events <-chan monitor.Event, diagnostics io.Writer, shutdownTimeout time.Duration) error {
+func serveSession(ctx context.Context, state *session.Session, web *webserver.Server, events <-chan monitor.Event, diagnostics io.Writer, shutdownTimeout time.Duration, preferences ...session.BrowserPolicy) error {
 	ticker := time.NewTicker(serveTickInterval)
 	defer ticker.Stop()
 	results := make(chan session.Result, serveStoreCount)
@@ -129,7 +133,7 @@ func serveSession(ctx context.Context, state *session.Session, web *webserver.Se
 			}
 		}
 	}
-	publish := func() { startJobs(); state.Publish(web, time.Now()) }
+	publish := func() { startJobs(); state.Publish(web, time.Now(), preferences...) }
 	publish()
 	listening := web.ListeningDone()
 	var runErr error

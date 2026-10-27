@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.7 — Opt-in browser system notifications
+
+- Add explicit Enable/Test/Disable controls for desktop browser system notifications in both TUI-owned and foreground dashboards (#91). Show capability, permission, submission errors, and unconfirmed presentation separately.
+- Generate actionable incident and telemetry-confirmed completion candidates in Go, honoring categories, completion settings, reviews, snoozes, and quiet hours independently from native macOS opt-in.
+- Reserve attempts in a separate account/region browser ledger shared across tabs and browsers; preserve deduplication across reloads and host restarts. Lost responses, failed submissions, and crashes do not automatically retry.
+- Establish a baseline on enable, reload, reconnect, and long suspension; deliver new events only, with bounded expiry/rate and no backlog. Hidden enabled pages poll best-effort; closed/suspended pages have no delivery guarantee. Notification clicks inspect a printer; closing never hides a notice.
+
+See [browser notification policy and limits](user/alerts.md#browser-system-notifications) and [validation](development/validation.md#browser-system-notifications-91). Browser acceptance does not establish a visible banner or sound.
+
 ## 0.3.6 — Exclusive saved-decision ownership
 
 - Prevent concurrent cloud TUIs and foreground servers from overwriting saved notice decisions or snoozes (#104). One host per account/region owns both stores before loading; another exits with stop-and-retry guidance.

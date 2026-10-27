@@ -99,6 +99,18 @@
           </div>
           <button id="review">Inspect conditions <span>↗</span></button>
         </div>
+        <section class="notification-panel" aria-labelledby="notification-heading">
+          <div>
+            <h2 id="notification-heading">Browser notifications</h2>
+            <p id="notification-status" role="status" aria-live="polite">Automatic: Off</p>
+            <p class="subtle">New events only, while an enabled page runs. Tabs and browsers share one attempt. Closing a notification never hides a notice.</p>
+          </div>
+          <div class="notification-controls" role="group" aria-label="Browser notification controls">
+            <button id="enable-notifications">Enable</button>
+            <button id="test-notifications">Test</button>
+            <button id="disable-notifications" disabled>Disable</button>
+          </div>
+        </section>
         <section class="fleet">
           <div class="section-title">
             <h2>Printers <span id="visible-count">0</span></h2>
@@ -176,7 +188,7 @@
       </div>
       <p>
         This dashboard shares the existing Bambu TUI monitoring session. It
-        refreshes every three seconds while visible. Stop the monitoring process
+        refreshes every three seconds while visible, and best-effort while hidden when browser notifications are enabled. Suspended or closed pages cannot deliver notifications. Stop the monitoring process
         to stop the server. In terminal mode, you can also disable Web Server
         in Config (,). Closing browser tabs leaves monitoring running.
       </p>
@@ -184,7 +196,7 @@
         The server listens only on 127.0.0.1 and has no authentication. Other
         programs and users on this computer can read display data and hide notices locally. Keep it local; remote
         access is not supported. For a terminal-free synthetic demo, run
-        bambu-tui serve --demo; cloud-backed server-only monitoring is not yet available.
+        bambu-tui serve --demo; use bambu-tui serve for cloud-backed monitoring after saving a login.
       </p>
       <p>
         Printer names, job names, and normalized telemetry appear here.
@@ -198,6 +210,7 @@
       </p>
       <div class="dialog-footer">Bambu TUI · Read-only farm monitoring</div>
     </dialog>
+    <script src="notifications.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

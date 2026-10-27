@@ -6,17 +6,36 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/notifications"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
-type webTarget struct {
-	ID        string
-	Condition farm.Condition
-}
+type (
+	webTarget struct {
+		ID        string
+		Condition farm.Condition
+	}
+	// BrowserPolicy carries current host policy and shutdown eligibility.
+	BrowserPolicy struct {
+		Alerts config.AlertPreferences
+		Active bool
+	}
+)
 
-// Publish sends independent allowlisted bytes, never live farm pointers.
-func (m *Session) Publish(sink interface{ Publish([]byte) }, at time.Time) {
+// Publish sends independent display bytes and normalized notification values,
+// never live farm pointers. Only the display DTO may reach HTTP clients.
+func (m *Session) Publish(sink interface{ Publish([]byte) }, at time.Time, preferences ...BrowserPolicy) {
+	if browser, ok := sink.(interface{ SubmitNotifications(notifications.Input) }); ok {
+		policy := BrowserPolicy{Alerts: config.DefaultAlerts(), Active: true}
+		if len(preferences) > 0 {
+			policy = preferences[0]
+		}
+		input := m.BrowserNotificationInput(at, policy.Alerts)
+		input.Active = policy.Active
+		browser.SubmitNotifications(input)
+	}
 	sink.Publish(webserver.SnapshotJSON(m.Farm, at, m.Demo, m.WebDecisions()))
 }
 
@@ -89,4 +108,22 @@ func (m *Session) ApplyWebCommand(c webserver.Command, stopping, enabled bool) {
 		break
 	}
 	c.Reply <- result
+}
+
+// BrowserNotificationInput shares normalized identities and alert policy with
+// native delivery, while browser opt-in is independent from DesktopNotifications.
+func (m *Session) BrowserNotificationInput(at time.Time, prefs config.AlertPreferences) notifications.Input {
+	snapshot := m.Farm.NotificationSnapshot(at)
+	allowed := map[string]bool{}
+	for _, item := range m.Farm.Attention() {
+		rules := prefs.RulesFor(item.PrinterID)
+		rules.DesktopNotifications = true
+		allowed[item.Key] = rules.AllowsNotification(item.Categories)
+	}
+	policies := map[string]notifications.Policy{}
+	for id := range snapshot {
+		rules := prefs.RulesFor(id)
+		policies[id] = notifications.Policy{PrinterName: m.Farm.Printers[id].Name, Completion: rules.CompletedPrints, Sound: rules.NotificationSound, Snoozed: at.Before(m.Snoozes[id]), Allowed: allowed}
+	}
+	return notifications.Input{Snapshot: snapshot, Policies: policies, Active: true, Demo: m.Demo, Quiet: prefs.QuietHours.Active(at)}
 }

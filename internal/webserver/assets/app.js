@@ -220,7 +220,7 @@ function updateFeedWarning(message) {
 }
 async function poll() {
   clearTimeout(timer);
-  if (document.hidden) return;
+  if (document.hidden && !(typeof browserNotifications !== "undefined" && browserNotifications.enabled())) return;
   controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
@@ -239,6 +239,10 @@ async function poll() {
       throw new Error("Invalid snapshot");
     snapshot = data;
     feedError = false;
+    if (typeof browserNotifications !== "undefined") {
+      if (!feedDelayed()) await browserNotifications.poll();
+      else browserNotifications.disconnected();
+    }
     updateFeedWarning(
       feedDelayed()
         ? "Monitoring snapshot is delayed. Current printer state is unconfirmed; readings below are last-known."
@@ -246,6 +250,7 @@ async function poll() {
     );
   } catch {
     feedError = true;
+    if (typeof browserNotifications !== "undefined") browserNotifications.disconnected();
     updateFeedWarning(
       "Cannot reach the dashboard server. Current printer state is unconfirmed. Last-known data remains below. Check the monitoring process and configured web server port.",
     );

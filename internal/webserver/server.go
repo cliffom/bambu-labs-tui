@@ -27,6 +27,7 @@ var assets embed.FS
 type (
 	Status struct{ URL, Error string }
 	Server struct {
+		browser  *browserWorker
 		commands chan Command
 		token    string
 		ctx      context.Context
@@ -41,12 +42,17 @@ type (
 	}
 )
 
-func New(ctx context.Context) *Server {
+func New(ctx context.Context, ledgers ...BrowserLedger) *Server {
 	var token [32]byte
 	if _, err := rand.Read(token[:]); err != nil {
 		panic(err)
 	}
 	s := &Server{ctx: ctx, commands: make(chan Command, commandQueueCapacity), token: hex.EncodeToString(token[:])}
+	var ledger BrowserLedger
+	if len(ledgers) > 0 {
+		ledger = ledgers[0]
+	}
+	s.browser = newBrowserWorker(ctx, ledger)
 	s.snapshot.Store([]byte(`{"printers":[],"connected":false,"summary":{},"demo":false}`))
 	s.status.Store(Status{})
 	context.AfterFunc(ctx, s.Close)
@@ -138,6 +144,10 @@ func (s *Server) handler(host string, files http.Handler) http.Handler {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
+		if r.URL.Path == "/api/notifications" {
+			s.browserNotifications(w, r, host)
+			return
+		}
 		if r.URL.Path == "/api/dismiss" {
 			s.command(w, r, host)
 			return
@@ -158,7 +168,7 @@ func (s *Server) handler(host string, files http.Handler) http.Handler {
 			if r.Method == http.MethodGet {
 				_, _ = w.Write(s.snapshot.Load().([]byte))
 			}
-		case "/", "/app.js", "/style.css", "/icon.png":
+		case "/", "/app.js", "/notifications.js", "/style.css", "/icon.png":
 			files.ServeHTTP(w, r)
 		default:
 			if isPrinterImage(r.URL.Path) {
@@ -189,6 +199,10 @@ func (s *Server) closeLocked() {
 func (s *Server) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.browser.cancel()
 	s.closed = true
 	s.closeLocked()
 }
+
+// NotificationsDone closes after the browser worker releases all ledger I/O.
+func (s *Server) NotificationsDone() <-chan struct{} { return s.browser.done }

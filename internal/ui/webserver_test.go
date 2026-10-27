@@ -10,15 +10,21 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambu-tui/internal/notifications"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
 type fakeWebServer struct {
-	status   webserver.Status
-	calls    []bool
-	ports    []int
-	snapshot []byte
-	fail     bool
+	status        webserver.Status
+	calls         []bool
+	ports         []int
+	snapshot      []byte
+	notifications []notifications.Input
+	fail          bool
+}
+
+func (s *fakeWebServer) SubmitNotifications(input notifications.Input) {
+	s.notifications = append(s.notifications, input)
 }
 
 func (s *fakeWebServer) Publish(data []byte)      { s.snapshot = data }
@@ -243,5 +249,24 @@ func TestPendingWebPortChangesCoalesce(t *testing.T) {
 	m = completeWeb(m, cmd)
 	if len(server.calls) != 2 || server.ports[0] != config.DefaultWebPort || server.ports[1] != 10000 || m.webStatus.URL != "http://127.0.0.1:10000" {
 		t.Fatal("port changes did not coalesce", server.ports, m.webStatus)
+	}
+}
+
+func TestWebNotificationsObserveWhileDisabledAndStopDuringShutdown(t *testing.T) {
+	server := &fakeWebServer{}
+	m := demoModel().WithWebServer(server)
+	m.syncWebServer()
+	if len(server.notifications) == 0 || !server.notifications[len(server.notifications)-1].Active {
+		t.Fatal("disabled listener lost browser lifecycle observations")
+	}
+	m.quitting = true
+	m.syncWebServer()
+	if server.notifications[len(server.notifications)-1].Active {
+		t.Fatal("shutdown allowed browser delivery")
+	}
+	m.quitting = false
+	m.syncWebServer()
+	if !server.notifications[len(server.notifications)-1].Active {
+		t.Fatal("cancelled shutdown did not resume browser observation")
 	}
 }

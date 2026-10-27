@@ -26,18 +26,25 @@ type Command struct {
 func (s *Server) Commands() <-chan Command { return s.commands }
 func (s *Server) Done() <-chan struct{}    { return s.ctx.Done() }
 
-func (s *Server) command(w http.ResponseWriter, r *http.Request, host string) {
+func (s *Server) allowCommand(w http.ResponseWriter, r *http.Request, host string) bool {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "POST required", http.StatusMethodNotAllowed)
-		return
+		return false
 	}
 	if r.Header.Get("Origin") != "http://"+host || r.Header.Get("X-CSRF-Token") != s.token {
 		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
+		return false
 	}
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(w, "JSON required", http.StatusUnsupportedMediaType)
+		return false
+	}
+	return true
+}
+
+func (s *Server) command(w http.ResponseWriter, r *http.Request, host string) {
+	if !s.allowCommand(w, r, host) {
 		return
 	}
 	var c Command

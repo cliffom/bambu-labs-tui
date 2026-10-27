@@ -80,11 +80,13 @@ macOS may retain its notification settings/history after removal. The helper doe
 
 ## Test evidence
 
-For browser notice visibility changes, run `node --test tools/test-browser-notices.cjs` with Node.js 18 or newer. These dependency-free tests exercise the dashboard script with a minimal DOM stand-in; use a real browser separately to inspect layout and keyboard behavior.
+For browser changes, run `node --test tools/test-browser-notices.cjs tools/test-browser-notifications.cjs` with Node.js 18 or newer (also run by Formatting and lint CI). These dependency-free tests exercise the dashboard script with a minimal DOM stand-in; use a real browser separately to inspect layout and keyboard behavior.
 
 On Linux/macOS, `make test` also runs the [PTY smoke suite](terminal-tests.md), which exercises the real demo CLI and terminal lifecycle without account access. Tests use fake HTTP/native credential processes, an in-memory MQTT broker connection, and **synthetic** H2D/X2D telemetry fixtures. Displayed telemetry has been validated on H2D and X2D, and the native credential-store probe has passed in a normal terminal. Remaining hardware and real-account restart checks are tracked in [the validation record](validation.md). Captured regression fixtures must have tokens, account identifiers, serials, job names, and spool identifiers removed.
 
 Account ownership regressions in `internal/accountstore` use independent handles and pipe-synchronized child processes to cover contention, normal/crash release, stale jobs, and active-write shutdown. Cloud-host tests exercise decision/snooze lifecycle handoffs and pre-terminal contention rejection. Run `go test -race ./internal/accountstore ./cmd/bambu-tui` for these checks. They use synthetic accounts and temporary private storage, without live account/hardware validation.
+
+Browser notification regressions in `internal/webserver/notifications_test.go` and `internal/session/session_test.go` cover separate durable claims, concurrent tabs, completion baselines, clear/recur between polls, policy suppression, expiry, bounded rate/queue behavior, and private HTTP payloads. Run `go test -race ./internal/webserver ./internal/session ./internal/ui ./cmd/bambu-tui`; browser script fixtures cover permission, opt-in, tests, click/close, storage events, and errors. Use real desktop browsers separately for actual API permission, multi-tab/reload/lifecycle behavior and layout; record browser/OS versions and distinguish programmatic permission/event automation from human permission prompts or OS banner/click evidence.
 
 Notification identity regressions use synthetic farm reports and temporary private stores. They cover reconnect/restart replay, family-specific clears and recurrence, job baselines/identities, failed and unknown attempts, cross-process locking semantics, corruption/capacity failures, and reservation write failures. These do not establish live automatic notification delivery.
 

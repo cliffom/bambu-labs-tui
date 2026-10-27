@@ -9,13 +9,20 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type Config struct {
-	ThemeFile          string           `toml:"theme_file,omitempty"`
-	View               ViewPreferences  `toml:"view"`
-	Region             string           `toml:"region"`
-	LowFilamentPercent int              `toml:"low_filament_percent"`
-	Alerts             AlertPreferences `toml:"alerts"`
-}
+type (
+	WebServer struct {
+		Enabled bool `toml:"enabled"`
+	}
+
+	Config struct {
+		WebServer          WebServer        `toml:"web_server"`
+		ThemeFile          string           `toml:"theme_file,omitempty"`
+		View               ViewPreferences  `toml:"view"`
+		Region             string           `toml:"region"`
+		LowFilamentPercent int              `toml:"low_filament_percent"`
+		Alerts             AlertPreferences `toml:"alerts"`
+	}
+)
 
 func Path() (string, error) {
 	dir, err := os.UserConfigDir()

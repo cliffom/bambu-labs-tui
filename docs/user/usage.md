@@ -52,11 +52,30 @@ low_filament_percent = 10
 
 The configuration contains no credentials. Each region uses a separate saved session. All printers discovered on the account appear in the dashboard.
 
-Press `,` in the dashboard to edit general settings and the nine boolean alert defaults/overrides. Quiet-hour schedules and burst windows use [TOML configuration](alerts.md#quiet-hours-and-burst-grouping). `Tab` / `Shift+Tab` switches General, Alerts, and Printers; arrows select rows. In General, use `Enter` or `←` / `→` to switch Cloud region. Region edits are saved for the next launch: **restart and log in for the selected region**. The current cloud connection, credential lookup, notice store, snoozes, and notification ledger keep their original region until exit.
+Press `,` in the dashboard to edit general settings and the nine boolean alert defaults/overrides. Quiet-hour schedules and burst windows use [TOML configuration](alerts.md#quiet-hours-and-burst-grouping). `Tab` / `Shift+Tab` switches General, Alerts, Printers, and Web Server; arrows select rows. In General, use `Enter` or `←` / `→` to switch Cloud region. Region edits are saved for the next launch: **restart and log in for the selected region**. The current cloud connection, credential lookup, notice store, snoozes, and notification ledger keep their original region until exit.
 
 For Low filament threshold, use `←` / `→` to adjust by one percentage point, or `Enter` to type a whole number from 0 to 100. Typing replaces the initial value; `Ctrl+U` clears input, `Backspace` edits it, `Enter` validates/applies, and `Esc` cancels the input before closing Config. Invalid input stays visible with a red error and does not change settings. Threshold edits immediately re-evaluate reported remaining estimates; they do not establish physical fault resolution or create intervention alerts from unknown estimates.
 
 See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine alert defaults, per-printer On/Off/Inherit overrides, reset confirmation, Test Notification, and save failures.
+
+### Local web dashboard
+
+Press `,`, then use `Tab` / `Shift+Tab` to select **Web Server**. `Enter`, Space, or `←` / `→` toggles **Enable web server**. It is off by default. Enabling starts HTTP on an OS-selected free IPv4 loopback port; once running, Settings shows the complete URL, such as `http://127.0.0.1:54321`. Open that exact URL on the same computer. The port can change after disabling/re-enabling or restarting. A failed start remains visible in Status / Feedback; `r` in Web Server explicitly retries it. Closing Settings leaves the server running. Disabling it closes the listener and active browser connections; exiting the TUI also stops it, including on signal cancellation.
+
+The enabled preference saves asynchronously in the active configuration, with the same save-failure/retry/shutdown behavior as other settings:
+
+```toml
+[web_server]
+enabled = false
+```
+
+The dashboard shows the whole-farm summary, searchable/filterable printer cards, print state/progress, remaining-time estimates, temperatures, AMS/external filament, and reported conditions with intervention guidance where available. It polls every three seconds while visible. Multiple browser tabs share the TUI's monitoring connection and one encoded snapshot; they do not create cloud connections. Browser filters/sorting are session-local and do not change TUI preferences. Demo uses the same dashboard with clearly labeled synthetic data (`make demo`).
+
+Unknown fields remain unknown. Stale, offline, and disconnected readings are marked last-known; completion is never inferred from progress or an estimate. A stale remaining-time estimate remains last-known even if temperature reports are fresh. If the dashboard server becomes unreachable or its snapshot is delayed, the browser preserves last-known data with a warning; this does not establish printer connectivity or fault resolution. The summary retains the last server-reported counts during an interruption.
+
+The page is read-only: inspection does not acknowledge, hide, snooze, or clear conditions. Local review/hidden labels reflect TUI decisions and do not establish physical resolution. Use the TUI for notice decisions, and the printer or Bambu's applications for printer actions. The browser receives normalized, allowlisted display data, including printer/job names; credentials, raw payloads, protocol job IDs, raw device serials, account information, storage paths, and backend error text are excluded.
+
+Access is **localhost only, without authentication**. Other users and programs on this computer can access the dashboard. Exact Host/Origin checks protect browser reads, but do not authenticate local clients. LAN binding, reverse-proxy/remote access, TLS, and standalone/headless mode are outside this initial implementation. Keep the TUI running; the web server is not a background service.
 
 ### Custom themes
 

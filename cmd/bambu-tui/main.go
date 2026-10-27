@@ -25,6 +25,7 @@ import (
 	"github.com/cliffom/bambu-tui/internal/notification_state"
 	"github.com/cliffom/bambu-tui/internal/notifications"
 	"github.com/cliffom/bambu-tui/internal/ui"
+	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
 func main() {
@@ -258,9 +259,11 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, theme 
 			monitor.New(api, session).Run(ctx, events, refresh)
 		}
 	}()
+	web := webserver.New(ctx)
+	defer web.Close()
 	state := farm.New(cfg.LowFilamentPercent)
 	savedConfig := cfg.Clone()
-	model := ui.New(state, events, refresh, demo).WithTheme(theme).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
+	model := ui.New(state, events, refresh, demo).WithWebServer(web).WithTheme(theme).WithConfiguration(cfg).WithConfigPersistence(configPath, func(snapshot config.Config) error {
 		if err := config.SaveChanges(configPath, savedConfig, snapshot); err != nil {
 			return err
 		}

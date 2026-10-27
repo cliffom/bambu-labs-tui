@@ -19,6 +19,10 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for v0.3.0.** Establish hardware-backed feasibility before promising compatibility or delivery.
 
+## Optional local web dashboard
+
+[#88](https://github.com/cliffom/bambu-tui/issues/88) adds a default-off Web Server section in Config. Enabling starts a read-only dashboard at an OS-selected `http://127.0.0.1:<port>`, sharing the running TUI's monitoring state. The browser includes farm summaries, filtering/search, printer inspection, AMS/temperatures, and reported conditions with explicit unknown/last-known qualifiers. Disabling or exiting stops the listener. This initial scope is localhost-only without authentication; remote access and standalone/headless mode remain outside scope. See [usage](user/usage.md#local-web-dashboard) and the [validation record](development/validation.md) for evidence and limits.
+
 ## v0.2.11 — About Bambu TUI
 
 [#85](https://github.com/cliffom/bambu-tui/issues/85) adds read-only About on `A`: app name/version, platform, project URL, branding, and attribution without field labels, followed by the effective theme source and an unlabeled grid of unique colors sorted by hue. About displays no account information. The dialog preserves focus and telemetry updates. Synthetic layout evidence and remaining terminal gaps are recorded in the [validation record](development/validation.md).

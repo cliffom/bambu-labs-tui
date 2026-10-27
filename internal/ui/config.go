@@ -27,6 +27,7 @@ const (
 	configGeneral configSection = iota
 	configAlerts
 	configPrinters
+	configWebServer
 	configSectionCount
 	notificationTestAction = int(config.AlertFieldCount)
 	// Four header rows, three metadata rows, and the one-row footer.
@@ -57,6 +58,7 @@ var configOptions = [...]configOption{
 func (m Model) WithConfiguration(cfg config.Config) Model {
 	cfg = cfg.Clone()
 	m.configThemeFile = cfg.ThemeFile
+	m.webEnabled = cfg.WebServer.Enabled
 	m.configRegion, m.activeRegion = cfg.Region, cfg.Region
 	m.restoreView(cfg.View)
 	m.alertPrefs = cfg.Alerts
@@ -71,7 +73,7 @@ func (m Model) WithConfigPersistence(path string, save func(config.Config) error
 }
 
 func (m Model) configuration() config.Config {
-	return config.Config{ThemeFile: m.configThemeFile, View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
+	return config.Config{WebServer: config.WebServer{Enabled: m.webEnabled}, ThemeFile: m.configThemeFile, View: m.viewPreferences(), Region: m.configRegion, LowFilamentPercent: m.Farm.LowFilament, Alerts: m.alertPrefs}.Clone()
 }
 
 func (m Model) configPrinterIDs() []string {
@@ -110,6 +112,8 @@ func (m Model) configTarget() string {
 
 func (m Model) configRowCount() int {
 	switch m.configSection {
+	case configWebServer:
+		return 1
 	case configGeneral:
 		return 2
 	case configPrinters:
@@ -177,6 +181,9 @@ func (m *Model) configKey(key string, msg tea.Msg) tea.Cmd {
 		}
 		m.changeConfig(direction, key == keyEnter || key == " ")
 	case keyRefreshOrRestore:
+		if m.configSection == configWebServer && !m.webBusy && m.webStatus.Error != "" {
+			m.webInitialized = false
+		}
 		if m.configWrites.failed != 0 && !m.configWrites.inFlight {
 			m.configRevision++
 		}
@@ -186,6 +193,8 @@ func (m *Model) configKey(key string, msg tea.Msg) tea.Cmd {
 
 func (m *Model) changeConfig(direction int, activate bool) {
 	switch m.configSection {
+	case configWebServer:
+		m.webEnabled = !m.webEnabled
 	case configGeneral:
 		if m.configSelection == 0 {
 			if m.configRegion == config.RegionGlobal {
@@ -361,6 +370,8 @@ func configOnOff(value bool) string {
 
 func (m Model) configRows() []string {
 	switch m.configSection {
+	case configWebServer:
+		return []string{"Enable web server: " + configOnOff(m.webEnabled)}
 	case configGeneral:
 		region := m.configRegion
 		if region != m.activeRegion {
@@ -404,7 +415,7 @@ func (m Model) configRows() []string {
 }
 
 func (m Model) configView() string {
-	sectionNames := []string{"General", "Alerts", "Printers"}
+	sectionNames := []string{"General", "Alerts", "Printers", "Web Server"}
 	bindings := m.headerHints("Tab section  ↑/↓  Enter edit  Esc / , close  ^E status")
 	if m.configEditing {
 		bindings = m.headerHints("Enter apply  Esc cancel  , close  ^E status")
@@ -423,7 +434,28 @@ func (m Model) configView() string {
 	}
 	lines := []string{m.styles.accent.Bold(true).Render(title), bindings, strings.Join(tabs, " · "), ""}
 	rows := m.configRows()
+	if m.configSection == configWebServer {
+		state := "Stopped"
+		if m.webBusy {
+			state = "Starting…"
+			if !m.webEnabled {
+				state = "Stopping…"
+			}
+		} else if m.webStatus.URL != "" {
+			state = "Running"
+		} else if m.webStatus.Error != "" {
+			state = "Failed · r retry"
+		}
+		lines = append(lines, "Status: "+state)
+		if m.webStatus.URL != "" {
+			lines = append(lines, "URL: "+m.webStatus.URL)
+		}
+		lines = append(lines, "Localhost only · read-only · stops when this TUI exits.", "")
+	}
 	visible := max(1, m.height-configReservedRows)
+	if m.configSection == configWebServer {
+		visible = max(1, visible-4)
+	}
 	start := max(0, m.configSelection-visible+1)
 	for i := start; i < min(len(rows), start+visible); i++ {
 		marker := "  "
@@ -470,6 +502,8 @@ func (m Model) configHelp() string {
 		return "0–100 · Ctrl+U clear · Enter apply · Esc cancel"
 	}
 	switch m.configSection {
+	case configWebServer:
+		return "Enter toggles localhost HTTP; r retries a failed start."
 	case configGeneral:
 		if m.configSelection == 0 {
 			return "Cloud endpoint; restart and log in after changing."

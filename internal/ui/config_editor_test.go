@@ -200,7 +200,9 @@ func TestConfigWholeSnapshotsRemainImmutableWhileSaving(t *testing.T) {
 	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = next.(Model)
 	m = key(m, "enter")
-	m = key(m, "tab")   // General.
+	for m.configSection != configGeneral {
+		m = key(m, "tab")
+	}
 	m = key(m, "enter") // Saved region must join queued snapshot.
 	m = completePersistence(m, cmd)
 	if m.HasUnsavedPersistence() {

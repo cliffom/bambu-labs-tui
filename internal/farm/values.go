@@ -27,6 +27,7 @@ const (
 	ConnectionStale             = "Stale"
 	ConnectionLive              = "Live"
 	activeTelemetryMaxAge       = 2 * time.Minute
+	remainingTelemetryMaxAge    = 2 * time.Minute
 	idleTelemetryMaxAge         = 10 * time.Minute
 	MaxEventHistory             = 500
 	MaxPercent                  = 100

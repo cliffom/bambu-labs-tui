@@ -2,7 +2,7 @@
 
 [Development guide](contributing.md) · [Live-validation record](validation.md)
 
-The PTY suite in `cmd/bambu-tui/pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
+The PTY suite in `cmd/bambu-tui/pty_test.go` and `webserver_pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
 
 Run just this suite, or repeat it to exercise scheduling races:
 
@@ -21,6 +21,7 @@ The parent starts the current Go test executable in a new session with a control
 - `q` and raw Ctrl+C stay inside the dialog: a subsequent arrow sequence visibly advances the unit selection, proving the dialog and process remained active. Ctrl+E opens status and returns to the same selected unit.
 - An actual PTY window-size ioctl plus SIGWINCH produces the undersized resize screen. Restoring the size returns to the dialog with its unit selection intact; Escape returns to the dashboard.
 - Config accepts raw Tab/arrow/Enter input across General, Alerts, and Printers, rejects fractional percentage input, preserves its state across minimum-size resizing, loads a custom JSON theme relative to its configuration directory under `NO_COLOR`, and persists general/global/per-printer edits while preserving `theme_file` in the launch configuration file before quitting.
+- Web Server starts a real localhost HTTP listener from Settings, serves allowlisted synthetic snapshots, preserves its running URL through fallback/restoration, stops on disable, saves enabled state on quit, and starts from saved preferences. Normal quit and SIGTERM both close its listener. Hidden toggle/retry behavior is covered synchronously in UI reducer tests.
 - Launch-only `--theme default`, `--theme gruvbox-dark`, `--theme hotdog`, `--theme c64`, and `--theme ibm3270` bypass a missing configured theme, and a subsequent farm-view save retains the original `theme_file`.
 - Uppercase `N` opens notification activity with its empty-state guidance. The dialog survives resize, captures quit/Ctrl+C, and closes back to the dashboard.
 - Dashboard `q` returns normally. OS SIGINT and SIGTERM also return within a bound, separately from raw Ctrl+C keyboard behavior.

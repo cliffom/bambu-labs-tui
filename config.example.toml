@@ -11,6 +11,11 @@ low_filament_percent = 10
 filter = "all" # all, attention, printing, unavailable
 sort = "name" # name, attention, state, finish
 
+# Optional read-only browser dashboard. Config (,) > Web Server shows the URL.
+# Localhost only; OS chooses a free port each start. Stops with this TUI.
+[web_server]
+enabled = false
+
 # Automatic modals default on; macOS desktop delivery is opt-in.
 [alerts]
 automatic_modals = true

@@ -15,6 +15,7 @@ import (
 	"github.com/cliffom/bambu-tui/internal/diagnostics"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
 type (
@@ -106,6 +107,10 @@ type (
 		diagnostics                diagnostics.Recorder
 		exportDialog               *exportDialog
 		clearNotices               *clearNoticesDialog
+
+		webServer                                         webServerClient
+		webEnabled, webAttempted, webInitialized, webBusy bool
+		webStatus                                         webserver.Status
 	}
 )
 
@@ -142,7 +147,9 @@ func (m Model) wait() tea.Cmd {
 	}
 }
 
-func (m Model) Init() tea.Cmd { return tea.Batch(m.wait(), tick()) }
+func (m Model) Init() tea.Cmd {
+	return tea.Batch(m.wait(), tick(), func() tea.Msg { return webServerInitMsg{} })
+}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	previousView := m.viewPreferences()
@@ -153,7 +160,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if result.viewPreferences() != previousView {
 		result.configRevision++
 	}
-	cmd = tea.Batch(cmd, result.persist())
+	cmd = tea.Batch(cmd, result.persist(), result.syncWebServer())
 	if result.quitting && !result.persistencePending() {
 		if result.reviewWrites.failed != 0 || result.snoozeWrites.failed != 0 || result.configWrites.failed != 0 {
 			result.quitting, result.quitProblem = false, true
@@ -168,6 +175,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch v := msg.(type) {
+	case webServerResultMsg:
+		m.webBusy = false
 	case notificationTestResultMsg:
 		m.notificationTestResult(v)
 	case configResultMsg:
@@ -360,7 +369,7 @@ func (m Model) terminalFits() bool {
 
 // printerTelemetryCurrent reports whether displayed telemetry has a live, fresh source.
 func (m Model) printerTelemetryCurrent(p *farm.Printer) bool {
-	return m.Farm.Connected && p.Online && !p.Stale(m.now)
+	return p.TelemetryCurrent(m.now, m.Farm.Connected)
 }
 
 func safe(s string) string {

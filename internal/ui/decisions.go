@@ -215,11 +215,22 @@ func (m Model) decisionsView() string {
 			"Includes saved decisions awaiting telemetry.", "Active notices become visible and unreviewed.", "Session alert suppression resets; actionable notices can prompt again.", "Printer state and event history remain unchanged.", "",
 			"y: reset decisions     n / Esc: cancel",
 		}
-		return m.fullView([]string{wrapLines(lines, m.width)}, "n / Esc cancel")
+		return m.fullView([]string{wrapLines(lines, m.width)}, "y reset  n / Esc cancel")
 	}
 	mode := "Account and region · local decisions"
 	if m.Demo {
 		mode = "Demo · session decisions only"
 	}
-	return m.fullView([]string{accent.Bold(true).Render("NOTICE DECISIONS"), muted.Render(mode), muted.Render("↑/↓ select · Home/End first/last · PgUp/PgDn scroll"), "", d.view.View()}, "r restore · u unreviewed · R reset all · n / Esc close")
+	hints := "n/Esc close"
+	items := m.decisionItems()
+	if item, ok := d.selectItem(items); ok {
+		if item.review.Acknowledged {
+			hints = "u unreviewed  " + hints
+		}
+		if item.review.Dismissed {
+			hints = "r restore  " + hints
+		}
+		hints = "R reset  " + hints
+	}
+	return m.fullView([]string{accent.Bold(true).Render("NOTICE DECISIONS"), muted.Render(mode), muted.Render("↑/↓ select · Home/End first/last · PgUp/PgDn scroll"), "", d.view.View()}, hints)
 }

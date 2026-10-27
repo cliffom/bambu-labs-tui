@@ -19,6 +19,10 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 4. **Investigate LAN monitoring for v0.3.0.** Establish hardware-backed feasibility before promising compatibility or delivery.
 
+## Footer and feedback consistency
+
+[#79](https://github.com/cliffom/bambu-tui/issues/79) adds contextual compact controls, scrollable Help and Status / Feedback, persistent error details, protected Config editing instructions, and confirmation-scoped history clearing. Footer exceptions and actual validation evidence are recorded in the [validation record](development/validation.md).
+
 ## v0.2.8 — clearer action-needed alerts
 
 [#77](https://github.com/cliffom/bambu-tui/issues/77) improves fault/intervention hierarchy, compact local-action guidance, and the shared footer. Each independent occurrence shows its first app-observed timestamp and a live relative age, preserving review lifetimes and read-only behavior. Synthetic coverage does not establish live hardware fault timing.

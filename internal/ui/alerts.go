@@ -185,7 +185,7 @@ func (m *Model) syncAlertDialog() {
 
 // alertView renders interruption controls with persistent storage warnings.
 func (m Model) alertView() string {
-	return m.fullView([]string{accent.Bold(true).Render("PRINTER ALERTS / SNOOZE"), "1: 15m · 2: 1h · 3: 4h · u: resume · s / Esc close", "", m.alertDialog.view.View()}, "PgUp/PgDn scroll · close before quitting")
+	return m.fullView([]string{accent.Bold(true).Render("PRINTER ALERTS / SNOOZE"), "1: 15m · 2: 1h · 3: 4h · u: resume · s / Esc close", "", m.alertDialog.view.View()}, "PgUp/PgDn scroll  s/Esc close")
 }
 
 // storageWarning keeps storage and desktop delivery failures visible in every view.

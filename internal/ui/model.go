@@ -43,6 +43,9 @@ type (
 		ended                      bool
 		toast                      string
 		toastAt                    time.Time
+		exportError, browserError  string
+		help, status               viewport.Model
+		clearHistoryEvents         []uint64
 		details, notices           viewport.Model
 		noticeKey                  string
 		noticeIndex                int
@@ -125,7 +128,7 @@ func (m Model) WithNoticePersistence(save func(map[string]farm.Review) error, lo
 }
 
 func New(state *farm.State, events <-chan monitor.Event, refresh chan<- struct{}, demo bool) Model {
-	m := Model{configRegion: config.RegionGlobal, activeRegion: config.RegionGlobal, alertPrefs: config.DefaultAlerts(), Farm: state, Events: events, Refresh: refresh, Demo: demo, width: defaultWidth, height: defaultHeight, now: time.Now(), details: viewport.New(initialDetailsWidth, initialDetailsHeight), notices: viewport.New(initialNoticesWidth, initialNoticesHeight), inspection: viewport.New(initialInspectorWidth, initialInspectorHeight)}
+	m := Model{configRegion: config.RegionGlobal, activeRegion: config.RegionGlobal, alertPrefs: config.DefaultAlerts(), Farm: state, Events: events, Refresh: refresh, Demo: demo, width: defaultWidth, height: defaultHeight, now: time.Now(), details: viewport.New(initialDetailsWidth, initialDetailsHeight), notices: viewport.New(initialNoticesWidth, initialNoticesHeight), inspection: viewport.New(initialInspectorWidth, initialInspectorHeight), help: viewport.New(1, 1)}
 	m.syncPanels()
 	return m
 }
@@ -150,8 +153,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	previousView := m.viewPreferences()
 	result, cmd := m.update(msg)
 	result.pruneSnoozes()
-	result.syncDialogs()
 	result.syncNotifications()
+	result.syncDialogs()
 	if result.viewPreferences() != previousView {
 		result.configRevision++
 	}
@@ -187,9 +190,11 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	case exportResultMsg:
 		m.exportResult(v)
 	case browserResultMsg:
+		m.browserError = ""
 		m.toast = "Opened Bambu troubleshooting in your browser"
 		if v.err != nil {
-			m.toast = "Could not open browser; use the troubleshooting URL shown"
+			m.browserError = "Could not open browser; use the troubleshooting URL shown"
+			m.toast = m.browserError
 		}
 		m.toastAt = m.now
 	case tickMsg:
@@ -223,6 +228,14 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		key := v.String()
 		if !m.acceptsKey(key) {
+			return m, nil
+		}
+		if key == keyStatus && m.dialog.active != dialogShutdown {
+			if m.dialog.active == dialogStatus {
+				m.closeDialog()
+			} else {
+				m.openStatus()
+			}
 			return m, nil
 		}
 		if m.hasOpenDialog() {
@@ -285,7 +298,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		case keyClearHistory:
 			if m.focus == panelNotices && len(m.Farm.Events) > 0 {
-				m.openDialog(dialogClearHistory)
+				m.openClearHistory()
 			}
 		case keyClearAll:
 			if m.focus == panelNotices {
@@ -466,10 +479,10 @@ func (m Model) View() string {
 	if m.hasOpenDialog() {
 		return route.view(m)
 	}
-	return m.dashboardView(false)
+	return m.dashboardView()
 }
 
-func (m Model) dashboardView(help bool) string {
+func (m Model) dashboardView() string {
 	header := m.dashboardHeader()
 	lines := []string{header}
 	lines = append(lines, m.overviewLines()...)
@@ -492,25 +505,34 @@ func (m Model) dashboardView(help bool) string {
 	} else {
 		lines = append(lines, m.section("PRINTER DETAILS", m.focus == panelDetails, left), m.details.View(), m.section("NOTICES", m.focus == panelNotices, right), m.notices.View())
 	}
-	foot := footerHints("↑/↓ select  tab panel  m AMS  n reviews  s alerts  N activity  , config  D export  ? help  q quit")
+	foot := "↑/↓ select  Tab panel  m filament  n decisions  s alerts  N activity  , config  D export  ? help  q quit"
 	if m.focus == panelDetails {
-		foot = footerHints("↑/↓ scroll  m filament  n decisions  s alerts  N activity  , config  q quit")
+		foot = "↑/↓ scroll  Tab panel  m filament  n decisions  s alerts  N activity  , config  ? help  q quit"
 	}
 	if m.focus == panelNotices {
-		foot = footerHints("↑/↓ select  enter view  a ack  c clear  X clear all  n decisions  s alerts  N activity  , config")
+		foot = "↑/↓ select  Enter view  a ack  c dismiss  X clear all  n decisions  ? help  q quit"
 	}
-	if m.width < compactTableWidth {
-		foot = footerHints("↑/↓  tab  m AMS  s alerts  N activity  , config  ?  q quit")
+	if ansi.StringWidth(foot) > m.width-13 {
+		switch m.focus {
+		case panelPrinters:
+			foot = "↑/↓ select  Tab panel  s alerts  ? help  q quit"
+		case panelDetails:
+			foot = "↑/↓ scroll  Tab panel  s alerts  ? help  q quit"
+		case panelNotices:
+			foot = "Enter view  a ack  c dismiss  Tab panel  q quit"
+		}
 	}
-	if m.toast != "" {
-		foot = warning.Render(safe(m.toast))
+	if m.focus == panelNotices {
+		if item, ok := m.selectedNotice(); !ok {
+			foot = "Tab panel  ? help  q quit"
+		} else if !item.Active {
+			foot = "Enter view  c delete event  Tab panel  q quit"
+		}
 	}
-	if message := m.storageWarning(); message != "" {
-		foot = warning.Render(message)
+	if len(m.printerIDs) == 0 && m.focus != panelNotices {
+		foot = "F filter  S sort  0 reset  ? help  q quit"
 	}
-	if help {
-		lines = []string{header, "", accent.Render("KEYBOARD"), "", "↑ / ↓  j / k   Select printer/notice; scroll printer details", "Tab / Shift+Tab Switch between printers, details, and notices", "g / G          First / last printer or notice", "PgUp / PgDown  Scroll details or page through notices", "Enter          Open selected notice; Esc/Enter returns", "D              Export local allowlisted diagnostics (confirmation)", "F / S          Cycle printer filter / sort", "0              Reset view to All printers / Name sorting", "f              View selected printer's first active fault", "m              Browse selected printer's AMS/filament", "n              Manage local notice decisions (restore/reset)", "s              Printer alert preferences and snoozing", ",              Configure general settings, alerts, and printer overrides", "N              Recent notification outcomes and suppression reasons", "!              Reopen unreviewed action-needed alerts", "a              Toggle local acknowledgement of an active notice", "c              Dismiss active notice / delete historical event", "C              Clear session event history (asks for confirmation)", "X              Clear all notices across the farm (confirmation)", "o              Open HMS troubleshooting from the detail view", "r              Request a fresh printer status snapshot", "Esc            Close help and focus printers", "q / Ctrl+C     Quit from dashboard (close help first)", "", muted.Render("a marks reviewed. c hides locally; printer state is unchanged."), muted.Render("? or Esc closes help")}
-	}
+	foot = m.statusFooter(foot, "? help  q quit", m.width-2)
 	body := strings.Join(lines, "\n")
 	rows := strings.Split(body, "\n")
 	if len(rows) > m.height-1 {
@@ -525,15 +547,23 @@ func (m Model) dashboardView(help bool) string {
 
 // footerHints emphasizes the key at the start of each double-space-separated hint.
 func footerHints(text string) string {
+	return renderHints(text, footer)
+}
+
+func headerHints(text string) string {
+	return renderHints(text, muted)
+}
+
+func renderHints(text string, base lipgloss.Style) string {
 	hints := strings.Split(text, "  ")
 	for i, hint := range hints {
 		key, label, hasLabel := strings.Cut(hint, " ")
-		hints[i] = footer.Foreground(lipgloss.Color("#E4E9F0")).Bold(true).Render(key)
+		hints[i] = base.Foreground(lipgloss.Color("#E4E9F0")).Bold(true).Render(key)
 		if hasLabel {
-			hints[i] += footer.Render(" " + label)
+			hints[i] += base.Render(" " + label)
 		}
 	}
-	return strings.Join(hints, footer.Render("  "))
+	return strings.Join(hints, base.Render("  "))
 }
 
 func (m Model) footerRow(text string) string {

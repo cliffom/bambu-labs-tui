@@ -16,8 +16,9 @@ The parent starts the current Go test executable in a new session with a control
 ## Covered behavior
 
 - Startup enters raw mode and the alternate screen and shows the connected synthetic farm.
+- Minimum-size Help scrolls through all controls, captures quit/Ctrl+C, suspends for Status / Feedback on raw Ctrl+E, and restores its position through status and below-minimum resizing.
 - Raw `j` input changes the selected printer's details, and `m` opens its filament dialog.
-- `q` and raw Ctrl+C stay inside the dialog: a subsequent arrow sequence visibly advances the unit selection, proving the dialog and process remained active.
+- `q` and raw Ctrl+C stay inside the dialog: a subsequent arrow sequence visibly advances the unit selection, proving the dialog and process remained active. Ctrl+E opens status and returns to the same selected unit.
 - An actual PTY window-size ioctl plus SIGWINCH produces the undersized resize screen. Restoring the size returns to the dialog with its unit selection intact; Escape returns to the dashboard.
 - Config accepts raw Tab/arrow/Enter input across General, Alerts, and Printers, rejects fractional percentage input, preserves its state across minimum-size resizing, and persists general/global/per-printer edits to the launch configuration file before quitting.
 - Uppercase `N` opens notification activity with its empty-state guidance. The dialog survives resize, captures quit/Ctrl+C, and closes back to the dashboard.

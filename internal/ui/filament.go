@@ -312,11 +312,12 @@ func (m Model) filamentView() string {
 			break
 		}
 	}
-	footer := "PgUp/PgDn scroll · m / Esc close"
-	if message := m.storageWarning(); message != "" {
-		footer = ansi.Truncate(message, max(1, m.width-dialogInset), "…")
+	footer := m.statusFooter("PgUp/PgDn scroll  m / Esc close", "m / Esc close", m.width-dialogInset)
+	navigation := "Tab/←/→ unit · ↑/↓ slot · Enter details"
+	if len(units) == 0 {
+		navigation = "Inventory unavailable; telemetry continues."
 	}
-	lines := []string{versionedTitle(accent.Bold(true).Render("AMS / FILAMENT"), max(1, m.width-dialogInset)), white.Render(unit), muted.Render("Tab/←/→ unit · ↑/↓ slot · Enter details"), "", d.view.View(), "", footer}
+	lines := []string{versionedTitle(accent.Bold(true).Render("AMS / FILAMENT"), max(1, m.width-dialogInset)), white.Render(unit), muted.Render(navigation), "", d.view.View(), "", footer}
 	box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color(accentColor)).Padding(0, 1).Width(max(1, m.width-dialogBorderInset)).Render(strings.Join(lines, "\n"))
 	return fit(lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box), m.width, m.height)
 }

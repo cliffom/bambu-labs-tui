@@ -53,6 +53,7 @@ func (m *Model) exportKey(key string, msg tea.Msg) tea.Cmd {
 		doc, err := m.diagnostics.Build(m.Farm, d.printerID, m.now)
 		if err != nil {
 			d.problem = "Printer unavailable. Close this view and select another printer."
+			m.exportError = d.problem
 			return nil
 		}
 		d.writing = true
@@ -71,6 +72,10 @@ func (m *Model) exportKey(key string, msg tea.Msg) tea.Cmd {
 
 // exportResult reports local success/failure without logging raw telemetry or operating-system errors.
 func (m *Model) exportResult(result exportResultMsg) {
+	m.exportError = ""
+	if result.err != nil {
+		m.exportError = "Diagnostic export failed; check destination permissions, then retry from the dashboard (D)."
+	}
 	if d := m.exportDialog; d != nil && d.destination == result.destination {
 		d.writing = false
 		if result.err == nil {
@@ -119,5 +124,16 @@ func (m *Model) syncExport() {
 
 // exportView captures quit keys until the export confirmation/result view is closed.
 func (m Model) exportView() string {
-	return m.fullView([]string{accent.Bold(true).Render("LOCAL DIAGNOSTIC EXPORT"), "Enter export · Esc close · ↑/↓ or PgUp/PgDn scroll", "", m.exportDialog.view.View()}, "D exports only on confirmation; no automatic upload")
+	hints := "Enter export  Esc close"
+	d := m.exportDialog
+	if d.writing {
+		hints = "Writing…  Esc close"
+	} else if d.saved {
+		hints = "Saved locally  Esc close"
+	} else if d.destination == "" || m.Farm.Printers[d.printerID] == nil {
+		hints = "Unavailable  Esc close"
+	} else if d.problem != "" {
+		hints = "Enter retry  Esc close"
+	}
+	return m.fullView([]string{accent.Bold(true).Render("LOCAL DIAGNOSTIC EXPORT"), "↑/↓ or PgUp/PgDn scroll · local file only; no upload", "", d.view.View()}, hints)
 }

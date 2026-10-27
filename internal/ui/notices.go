@@ -317,17 +317,37 @@ func (m *Model) syncInspector() {
 
 func (m Model) inspectorView() string {
 	lines := []string{accent.Bold(true).Render("NOTICE / FAULT DETAILS"), muted.Render("↑/↓ or PgUp/PgDown scroll · Esc/Enter back"), "", m.inspection.View()}
-	footer := "a acknowledge  c clear locally  Esc back"
-	if m.toast != "" {
-		footer = safe(m.toast)
+	footer := "Esc/Enter back"
+	if m.inspected.Active {
+		footer = "a ack  c dismiss  Esc/Enter back"
+	} else if m.inspected.EventID != 0 {
+		footer = "c delete event  Esc/Enter back"
 	}
 	return m.fullView(lines, footer)
 }
 
-func (m Model) fullView(lines []string, footer string) string {
-	if message := m.storageWarning(); message != "" {
-		footer = message
+func (m Model) fullView(lines []string, hints string) string {
+	essential := "Esc back"
+	switch m.dialog.active {
+	case dialogHelp:
+		essential = "?/Esc close"
+	case dialogClearHistory, dialogClearNotices:
+		essential = "y clear  n/Esc cancel"
+	case dialogDecisions:
+		if m.decisions != nil && m.decisions.confirmReset {
+			essential = "y reset  n/Esc cancel"
+		}
+	case dialogAttention:
+		essential = "a ack  c hide  s snooze  Esc close"
+	case dialogExport:
+		if d := m.exportDialog; d != nil && !d.writing && !d.saved && d.destination != "" && m.Farm.Printers[d.printerID] != nil {
+			essential = "Enter export  Esc close"
+		}
 	}
+	return m.frame(lines, m.statusFooter(hints, essential, m.width-2))
+}
+
+func (m Model) frame(lines []string, footer string) string {
 	rows := strings.Split(strings.Join(lines, "\n"), "\n")
 	if len(rows) > 0 {
 		rows[0] = versionedTitle(rows[0], m.width)
@@ -343,5 +363,5 @@ func (m Model) fullView(lines []string, footer string) string {
 }
 
 func (m Model) clearHistoryView() string {
-	return m.fullView([]string{warning.Bold(true).Render("CLEAR RECENT EVENTS?"), "", fmt.Sprintf("Remove %d events from this session's history?", len(m.Farm.Events)), "", "Active notices and printer faults remain visible.", "", "y: clear history     n / Esc: keep history"}, "n / Esc back")
+	return m.fullView([]string{warning.Bold(true).Render("CLEAR RECENT EVENTS?"), "", fmt.Sprintf("Remove %d events from this session's history?", len(m.clearHistoryEvents)), "", "New events are kept. Active notices and printer faults remain.", "", "y: clear history     n / Esc: keep history"}, "y clear history  n/Esc cancel")
 }

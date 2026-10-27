@@ -177,7 +177,8 @@ func TestActivityOwnershipAndRecoveryAreVisibleAndUseFreshPolicy(t *testing.T) {
 			client.status = tc.status
 			m.syncNotificationActivity()
 			view := ansi.Strip(m.View())
-			if !strings.Contains(view, tc.label) || !strings.Contains(view, "r retry") {
+			eligible := !tc.status.Pending && !tc.status.Recovering && (tc.status.Disabled || tc.status.Ownership == notifications.OwnershipStandby)
+			if !strings.Contains(view, tc.label) || strings.Contains(view, "r recheck") != eligible {
 				t.Fatal("ownership/recovery hidden", size, view)
 			}
 			lines := strings.Split(view, "\n")
@@ -191,6 +192,7 @@ func TestActivityOwnershipAndRecoveryAreVisibleAndUseFreshPolicy(t *testing.T) {
 			}
 		}
 		m.snoozes = map[string]time.Time{"TEST": m.now.Add(time.Hour)}
+		client.status = notifications.Status{Disabled: true}
 		m.Farm.Acknowledge(keyID, true)
 		before := m.configRevision
 		m = key(m, "r")

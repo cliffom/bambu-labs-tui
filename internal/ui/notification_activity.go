@@ -62,7 +62,7 @@ func (m *Model) notificationActivityKey(key string, _ tea.Msg) tea.Cmd {
 		m.closeDialog()
 		return nil
 	case keyRefreshOrRestore:
-		if m.notificationClient != nil {
+		if m.notificationRecoveryAvailable() {
 			// Publish current policy/telemetry before requesting recovery.
 			m.syncNotifications()
 			m.notificationClient.Retry()
@@ -109,7 +109,11 @@ func activityOutcome(entry notifications.Activity) string {
 func (m Model) notificationActivityView() string {
 	d := m.notificationActivity
 	width := max(1, m.width-2)
-	hint := white.Bold(true).Render("↑/↓") + muted.Render(" select · ") + white.Bold(true).Render("PgUp/PgDn") + muted.Render(" page · ") + white.Bold(true).Render("r") + muted.Render(" retry · ") + white.Bold(true).Render("N / Esc") + muted.Render(" close")
+	hints := "↑/↓ select  PgUp/PgDn page  N/Esc close"
+	if m.notificationRecoveryAvailable() {
+		hints = "↑/↓ select  PgUp/PgDn  r recheck  N/Esc close"
+	}
+	hint := headerHints(hints)
 	status := notifications.Status{}
 	if m.notificationClient != nil {
 		status = m.notificationClient.Status()
@@ -141,7 +145,10 @@ func (m Model) notificationActivityView() string {
 		} else if status.Ownership == notifications.OwnershipStandby {
 			explanation = "Monitoring continues. Takeover follows owner exit."
 		} else if status.Disabled {
-			explanation = "Fix the reported cause, then press r to check existing state."
+			explanation = "Delivery is stopping; recheck when idle."
+			if m.notificationRecoveryAvailable() {
+				explanation = "Fix the reported cause, then press r to check existing state."
+			}
 		} else if !m.alertPrefs.DesktopEnabled() {
 			explanation = "Desktop delivery is off. Enable it in Config > Alerts."
 		}
@@ -189,5 +196,14 @@ func (m Model) notificationActivityView() string {
 	} else {
 		lines = append(lines, "History is held in memory and clears on restart.", "Config tests and doctor are separate from live activity.", "Accepted does not confirm a visible banner or sound.", "No automatic retries of failed or unconfirmed attempts.")
 	}
-	return m.fullView(lines, "Home newest · End oldest · r checks paused delivery")
+	return m.fullView(lines, "Home newest  End oldest  N/Esc close")
+}
+
+// Recovery checks worker state; it never retries an accepted or consumed attempt.
+func (m Model) notificationRecoveryAvailable() bool {
+	if m.notificationClient == nil || m.ended {
+		return false
+	}
+	status := m.notificationClient.Status()
+	return !status.Pending && !status.Recovering && (status.Disabled || status.Ownership == notifications.OwnershipStandby)
 }

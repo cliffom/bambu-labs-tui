@@ -17,22 +17,13 @@ import (
 	"github.com/cliffom/bambu-tui/internal/monitor"
 )
 
-var (
-	accent   = lipgloss.NewStyle().Foreground(lipgloss.Color(accentColor))
-	muted    = lipgloss.NewStyle().Foreground(lipgloss.Color("#929BA8"))
-	white    = lipgloss.NewStyle().Foreground(lipgloss.Color("#E4E9F0"))
-	warning  = lipgloss.NewStyle().Foreground(lipgloss.Color(warningColor))
-	danger   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF8087"))
-	selected = lipgloss.NewStyle().Background(lipgloss.Color("#263B36")).Foreground(lipgloss.Color("#D9F5E4"))
-	footer   = lipgloss.NewStyle().Background(lipgloss.Color(footerBackgroundColor)).Foreground(lipgloss.Color("#B8C2CE"))
-)
-
 type (
 	tickMsg time.Time
 
 	endMsg struct{}
 
 	Model struct {
+		styles                     *styles
 		Farm                       *farm.State
 		Events                     <-chan monitor.Event
 		Refresh                    chan<- struct{}
@@ -43,6 +34,7 @@ type (
 		ended                      bool
 		toast                      string
 		toastAt                    time.Time
+		toastKind                  feedbackKind
 		exportError, browserError  string
 		help, status               viewport.Model
 		clearHistoryEvents         []uint64
@@ -81,6 +73,7 @@ type (
 		notificationTestPending    bool
 		notificationTestGeneration uint64
 		notificationTestStatus     string
+		notificationTestKind       feedbackKind
 		notificationTestStatusAt   time.Time
 		notificationTestFailed     bool
 		notificationSetupError     string
@@ -128,7 +121,7 @@ func (m Model) WithNoticePersistence(save func(map[string]farm.Review) error, lo
 }
 
 func New(state *farm.State, events <-chan monitor.Event, refresh chan<- struct{}, demo bool) Model {
-	m := Model{configRegion: config.RegionGlobal, activeRegion: config.RegionGlobal, alertPrefs: config.DefaultAlerts(), Farm: state, Events: events, Refresh: refresh, Demo: demo, width: defaultWidth, height: defaultHeight, now: time.Now(), details: viewport.New(initialDetailsWidth, initialDetailsHeight), notices: viewport.New(initialNoticesWidth, initialNoticesHeight), inspection: viewport.New(initialInspectorWidth, initialInspectorHeight), help: viewport.New(1, 1)}
+	m := Model{styles: newStyles(DefaultPalette()), configRegion: config.RegionGlobal, activeRegion: config.RegionGlobal, alertPrefs: config.DefaultAlerts(), Farm: state, Events: events, Refresh: refresh, Demo: demo, width: defaultWidth, height: defaultHeight, now: time.Now(), details: viewport.New(initialDetailsWidth, initialDetailsHeight), notices: viewport.New(initialNoticesWidth, initialNoticesHeight), inspection: viewport.New(initialInspectorWidth, initialInspectorHeight), help: viewport.New(1, 1)}
 	m.syncPanels()
 	return m
 }
@@ -191,12 +184,11 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 		m.exportResult(v)
 	case browserResultMsg:
 		m.browserError = ""
-		m.toast = "Opened Bambu troubleshooting in your browser"
+		m.setToast(feedbackSuccess, "Opened Bambu troubleshooting in your browser")
 		if v.err != nil {
 			m.browserError = "Could not open browser; use the troubleshooting URL shown"
-			m.toast = m.browserError
+			m.setToast(feedbackError, m.browserError)
 		}
-		m.toastAt = m.now
 	case tickMsg:
 		m.now = time.Time(v)
 		m.Farm.Reconcile(m.now)
@@ -217,12 +209,10 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 				m.diagnostics.Record(v.ID, v.Payload)
 			}
 			if err := m.Farm.Report(v.ID, v.Payload, v.At); err != nil {
-				m.toast = "Ignored malformed printer status"
-				m.toastAt = m.now
+				m.setToast(feedbackWarning, "Ignored malformed printer status")
 			}
 		case monitor.EventProblem:
-			m.toast = v.Problem
-			m.toastAt = m.now
+			m.setToast(feedbackWarning, v.Problem)
 		}
 		cmd = m.wait()
 	case tea.KeyMsg:
@@ -306,15 +296,14 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		case keyRefreshOrRestore:
 			if m.ended {
-				m.toast = "Reconnect by restarting bambu-tui after signing in"
+				m.setToast(feedbackWarning, "Reconnect by restarting bambu-tui after signing in")
 			} else {
 				select {
 				case m.Refresh <- struct{}{}:
 				default:
 				}
-				m.toast = "Status refresh requested"
+				m.setToast(feedbackInfo, "Status refresh requested")
 			}
-			m.toastAt = m.now
 		default:
 			switch m.focus {
 			case panelPrinters:
@@ -472,9 +461,9 @@ func (m Model) View() string {
 	route := routeFor(m.dialog.active)
 	if !m.terminalFits() && !route.compact {
 		if m.hasOpenDialog() {
-			return fit(versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
+			return fit(m.versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
 		}
-		return fit(versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
+		return fit(m.versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
 	}
 	if m.hasOpenDialog() {
 		return route.view(m)
@@ -486,9 +475,9 @@ func (m Model) dashboardView() string {
 	header := m.dashboardHeader()
 	lines := []string{header}
 	lines = append(lines, m.overviewLines()...)
-	lines = append(lines, "", m.section("PRINTERS", m.focus == panelPrinters, m.width), muted.Render(m.printerListStatus()), m.tableHeader())
+	lines = append(lines, "", m.section("PRINTERS", m.focus == panelPrinters, m.width), m.styles.secondary.Render(m.printerListStatus()), m.tableHeader())
 	if len(m.printerIDs) == 0 {
-		lines = append(lines, muted.Render(m.emptyPrinterList()))
+		lines = append(lines, m.styles.secondary.Render(m.emptyPrinterList()))
 	} else {
 		count := m.tableRows()
 		start := max(0, m.selection-count+1)
@@ -546,32 +535,32 @@ func (m Model) dashboardView() string {
 }
 
 // footerHints emphasizes the key at the start of each double-space-separated hint.
-func footerHints(text string) string {
-	return renderHints(text, footer)
+func (m Model) footerHints(text string) string {
+	return renderHints(text, m.styles.footer, m.styles.footerHotkey, m.styles.footerSeparator)
 }
 
-func headerHints(text string) string {
-	return renderHints(text, muted)
+func (m Model) headerHints(text string) string {
+	return renderHints(text, m.styles.secondary, m.styles.hotkey, m.styles.secondary)
 }
 
-func renderHints(text string, base lipgloss.Style) string {
+func renderHints(text string, base, hotkey, separator lipgloss.Style) string {
 	hints := strings.Split(text, "  ")
 	for i, hint := range hints {
 		key, label, hasLabel := strings.Cut(hint, " ")
-		hints[i] = base.Foreground(lipgloss.Color("#E4E9F0")).Bold(true).Render(key)
+		hints[i] = hotkey.Render(key)
 		if hasLabel {
 			hints[i] += base.Render(" " + label)
 		}
 	}
-	return strings.Join(hints, base.Render("  "))
+	return strings.Join(hints, separator.Render("  "))
 }
 
 func (m Model) footerRow(text string) string {
 	width := max(0, m.width)
 	if width < 2 {
-		return footer.Width(width).Render("")
+		return m.styles.footer.Width(width).Render("")
 	}
-	return footer.Width(width).Padding(0, 1).Render(ansi.Truncate(text, width-2, ""))
+	return m.styles.footer.Width(width).Padding(0, 1).Render(ansi.Truncate(text, width-2, ""))
 }
 
 func fit(s string, w, h int) string {
@@ -586,10 +575,10 @@ func fit(s string, w, h int) string {
 }
 
 func (m Model) section(title string, focused bool, w int) string {
-	style := muted
+	style := m.styles.secondary
 	marker := "  "
 	if focused {
-		style = accent
+		style = m.styles.focus
 		marker = "› "
 	}
 	text := marker + safe(title) + " "
@@ -599,12 +588,12 @@ func (m Model) section(title string, focused bool, w int) string {
 func (m Model) tableHeader() string {
 	c := columnsFor(m.width)
 	if m.width < compactTableWidth {
-		return muted.Render(cell("  PRINTER", c.name) + cell("STATE", c.state) + cell("PROGRESS", c.progress) + "LEFT")
+		return m.styles.secondary.Render(cell("  PRINTER", c.name) + cell("STATE", c.state) + cell("PROGRESS", c.progress) + "LEFT")
 	}
 	if m.width < fullTableWidth {
-		return muted.Render(cell("  PRINTER", c.name) + cell("LINK", c.link) + cell("STATE", c.state) + cell("DONE", c.progress) + cell("LEFT", c.remaining) + "FINISH")
+		return m.styles.secondary.Render(cell("  PRINTER", c.name) + cell("LINK", c.link) + cell("STATE", c.state) + cell("DONE", c.progress) + cell("LEFT", c.remaining) + "FINISH")
 	}
-	return muted.Render(cell("  PRINTER", c.name) + cell("LINK", c.link) + cell("STATE", c.state) + cell("PROGRESS", c.progress) + cell("LEFT", c.remaining) + cell("FINISH", c.finish) + cell("!", c.notices) + "JOB")
+	return m.styles.secondary.Render(cell("  PRINTER", c.name) + cell("LINK", c.link) + cell("STATE", c.state) + cell("PROGRESS", c.progress) + cell("LEFT", c.remaining) + cell("FINISH", c.finish) + cell("!", c.notices) + "JOB")
 }
 
 func (m Model) printerRow(i int) string {
@@ -654,12 +643,12 @@ func (m Model) printerRow(i int) string {
 		row = cell(name, c.name) + cell(connection, c.link) + cell(state, c.state) + cell(bar+" "+percent(p.Progress), c.progress) + cell(left, c.remaining) + cell(eta, c.finish) + cell(fmt.Sprint(notices), c.notices) + safe(p.Job)
 	}
 	row = cell(row, m.width)
-	style := white
+	style := m.styles.text
 	if i == m.selection {
-		style = selected
+		style = m.styles.selection
 	}
 	if !p.Online {
-		style = style.Foreground(warning.GetForeground())
+		style = style.Foreground(m.styles.warning.GetForeground())
 	}
 	return style.Render(row)
 }

@@ -6,11 +6,34 @@
 
 Keep the interface a compact, keyboard-operated farm monitor. Operators should be able to find unavailable or troubled printers, understand the reported condition, and inspect details without losing their place as telemetry arrives. Preserve read-only behavior unless the user explicitly changes that product scope.
 
-Extend the existing dashboard hierarchy: version/connection header, farm summary, printer list, printer details, and notices. Put detailed inspection or local configuration in the existing dialog system. Reuse the shared styles in `internal/ui/model.go`, colors and layout policies in `internal/ui/values.go`, table widths in `internal/ui/layout.go`, and version helpers in `internal/ui/version.go`. Keep the green accent, muted secondary text, amber warnings/offline rows, red errors, and visible selected-row background consistent. Introduce a new style or layout policy only for a clear operator need, and explain it in the PR.
+Extend the existing dashboard hierarchy: version/connection header, farm summary, printer list, printer details, and notices. Put detailed inspection or local configuration in the existing dialog system. Build shared styles from the semantic palette in `internal/ui/palette.go`; keep layout and timing policies in `internal/ui/values.go`, table widths in `internal/ui/layout.go`, and version helpers in `internal/ui/version.go`. Keep the green accent, muted secondary text, amber warnings/offline rows, red errors, and visible selected-row background consistent. Introduce a new style or layout policy only for a clear operator need, and explain it in the PR.
 
 Color supplements text. Preserve readable state labels, fault codes, focus/selection markers, and unknown/last-known qualifiers when color is unavailable. Treat printer names and other external strings as untrusted terminal text; use existing sanitization and ANSI-aware width/wrapping helpers. Avoid decorative content that consumes space needed for monitoring or navigation.
 
 Use a full-width slate background for the bottom dashboard, action-needed, and full-screen notice footer, with a one-column horizontal inset. Use bold, bright dashboard hotkeys with secondary labels and keep dashboard warnings amber; preserve the footer's single-row height and readable controls without color. Keep hints specific to the focused panel and enabled actions. Essential close/return and confirmation controls remain visible during feedback. Summarize overlapping failures with a count and `^E status` (`Ctrl+E`); show full messages and recovery guidance in the scrollable Status / Feedback view. Ordinary transient feedback lasts eight seconds and does not replace persistent errors. Background notification activity must not replace a local action's feedback interval.
+
+## Palette and message emphasis
+
+`DefaultPalette()` is the authoritative inventory of app-owned colors. `newStyles` builds an immutable style bundle owned by each Model; views use that bundle rather than package-global styles or inline color literals. Start from a copy of the default palette when overriding roles. `WithPalette` rebuilds dashboard and active/suspended dialog caches without scheduling work, opening attention, changing input/confirmation/selection/scroll, or resetting feedback timers. It detaches dialog cache owners so recoloring a model value does not change the original value's rendering. No theme file format or user-facing theme selector is introduced by this boundary.
+
+| Palette roles | Default RGB | Use |
+| --- | --- | --- |
+| `Text`, `Info`, `Hotkey` | `#E4E9F0` | Primary values, fresh body information, header hotkeys |
+| `SecondaryText`, `MutedText` | `#929BA8` | Labels/metadata versus unavailable/de-emphasized content; separate roles despite equal defaults |
+| `Accent`, `Success`, `Focus`, `Border` | `#A3E4BB` | Headings, confirmed local success/OS acceptance, focused sections, dialog border; independently overridable roles |
+| `Warning`, `Error` | `#F4BA72`, `#FF8087` | Warning/error content in the body |
+| `SelectedText`, `SelectedBackground` | `#D9F5E4`, `#263B36` | Selected rows; retain the explicit selection marker |
+| `FooterBackground` | `#3A4652` | Continuous slate surface, including every separator and padding cell |
+| `FooterText`, `FooterSeparator` | `#B8C2CE` | Hint labels and separators; separate roles |
+| `FooterInfo`, `FooterHotkey` | `#E4E9F0` | Bright, bold fresh information and controls; separate roles |
+| `FooterSuccess`, `FooterWarning`, `FooterError` | `#A3E4BB`, `#F4BA72`, `#FF9AA1` | Bold success, warning, and error feedback on slate |
+| `FooterMuted` | `#929BA8` | Deliberately dimmed Config results, without bold |
+
+Fresh informational feedback must be prominent, including “This TUI owns desktop delivery,” standby/observer/recovery coordination, and refresh requests. Confirmed local notice edits and successful local exports/browser commands use success. Notification acceptance uses success but retains its unconfirmed-presentation wording. Malformed/monitor/reconnect problems use warning; explicit operation failures use error. Persistent storage/delivery problems keep the existing amber dashboard warning/red dialog error convention. Meaning is assigned at message creation through `feedbackKind` and notification `MessageKind`, never inferred by matching prose. Meaning, persistence, and display lifetime remain independent: ordinary feedback lasts eight seconds; pending Config tests remain informational, accepted results are success, cancellation is unconfirmed warning, failures stay error, and completed non-failed results dim after four seconds and expire after seven. Fresh messages never default to muted styling. Text continues to explain the state without color.
+
+Declared RGB contrast against the slate footer is approximately 7.9:1 for information/hotkeys, 6.6:1 for success, 5.6:1 for warning, 4.8:1 for error, and 5.4:1 for hint labels/separators. The default palette guards active footer roles at 4.5:1 or more and fresh information at 7:1 or more using sRGB relative luminance; deliberate dimming remains approximately 3.4:1. Selected text/background is approximately 10.3:1. These measurements describe the declared pairs, not a guarantee for every terminal: limited-color profiles quantize colors, fonts/bold vary, and body contrast depends on the inherited terminal background. Plain unstyled prose also inherits the terminal foreground. Inspect TrueColor, ANSI256, and no-color behavior; color cannot replace labels or focus markers.
+
+Printer-reported filament swatches remain a justified color exception: `filamentColor` validates reported RGB/RGBA data and renders its RGB swatch, while preserving the textual color/unknown label. Do not remap reported material colors to a theme's accent. App-owned RGB literals belong in the palette; tests may use independent synthetic palettes/telemetry colors. Future themes can replace palette roles through the existing boundary; loading, selecting, validating, and persisting custom themes need their own design and verification.
 
 ## Interaction and layout contracts
 

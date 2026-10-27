@@ -110,7 +110,7 @@ func (m *Model) decisionsKey(key string, msg tea.Msg) tea.Cmd {
 			m.Farm.ResetReviews()
 			m.attentionSeen = nil
 			d.confirmReset = false
-			m.toast, m.toastAt = "Local notice decisions reset; printer state unchanged", m.now
+			m.setToast(feedbackSuccess, "Local notice decisions reset; printer state unchanged")
 		case keyDecisionsOrNo, keyNoUpper, keyEscape:
 			d.confirmReset = false
 		}
@@ -156,7 +156,7 @@ func (m *Model) decisionsKey(key string, msg tea.Msg) tea.Cmd {
 		if changed {
 			// Explicit review reversal re-arms only this occurrence's session prompt.
 			delete(m.attentionSeen, attentionOccurrence{item.key, item.review.Since})
-			m.toast, m.toastAt = "Local decision updated; printer state unchanged", m.now
+			m.setToast(feedbackSuccess, "Local decision updated; printer state unchanged")
 		}
 	default:
 		var cmd tea.Cmd
@@ -194,9 +194,11 @@ func (m *Model) syncDecisions() {
 		if code == "" {
 			code = "—"
 		}
-		field := func(label, value string) string { return detailField(label, safe(value), d.view.Width, white) }
+		field := func(label, value string) string {
+			return m.detailField(label, safe(value), d.view.Width, m.styles.text)
+		}
 		lines = []string{
-			accent.Render(fmt.Sprintf("Notice %d / %d", d.index+1, len(items))), "",
+			m.styles.accent.Render(fmt.Sprintf("Notice %d / %d", d.index+1, len(items))), "",
 			field("Printer", item.printer), field("Description", item.text), field("Code", code), field("Severity", item.level), field("Status", status),
 			field("Visibility", dismissal), field("Review", acknowledgement), field("First Seen", item.review.Since.Local().Format(noticeTimestampLayout)), "",
 			"r restores visibility and keeps acknowledgement.", "u marks unreviewed and keeps visibility / dismissal.", "Actionable unreviewed notices can alert after this view closes.", "Restoring a notice does not recreate deleted history.",
@@ -210,7 +212,7 @@ func (m Model) decisionsView() string {
 	d := m.decisions
 	if d.confirmReset {
 		lines := []string{
-			warning.Bold(true).Render("RESET NOTICE DECISIONS?"), "",
+			m.styles.warning.Bold(true).Render("RESET NOTICE DECISIONS?"), "",
 			"Reset all notice decisions for this account and region?", "",
 			"Includes saved decisions awaiting telemetry.", "Active notices become visible and unreviewed.", "Session alert suppression resets; actionable notices can prompt again.", "Printer state and event history remain unchanged.", "",
 			"y: reset decisions     n / Esc: cancel",
@@ -232,5 +234,5 @@ func (m Model) decisionsView() string {
 		}
 		hints = "R reset  " + hints
 	}
-	return m.fullView([]string{accent.Bold(true).Render("NOTICE DECISIONS"), muted.Render(mode), muted.Render("↑/↓ select · Home/End first/last · PgUp/PgDn scroll"), "", d.view.View()}, hints)
+	return m.fullView([]string{m.styles.accent.Bold(true).Render("NOTICE DECISIONS"), m.styles.secondary.Render(mode), m.styles.secondary.Render("↑/↓ select · Home/End first/last · PgUp/PgDn scroll"), "", d.view.View()}, hints)
 }

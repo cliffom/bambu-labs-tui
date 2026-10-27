@@ -124,22 +124,21 @@ func (m *Model) focusFault() {
 			return
 		}
 	}
-	m.toast = "No visible faults for " + p.Name
-	m.toastAt = m.now
+	m.setToast(feedbackInfo, "No visible faults for "+p.Name)
 }
 
 func (m *Model) acknowledge(item noticeItem, toggle bool) {
 	if item.ActiveKey == "" || !item.Active {
-		m.toast = "This is a historical event; press c to remove it"
+		m.setToast(feedbackInfo, "This is a historical event; press c to remove it")
 	} else {
 		value := true
 		if toggle {
 			value = !item.Acknowledged
 		}
 		if m.Farm.Acknowledge(item.ActiveKey, value) {
-			m.toast = "Acknowledged locally; the printer condition remains active"
+			m.setToast(feedbackSuccess, "Acknowledged locally; the printer condition remains active")
 			if !value {
-				m.toast = "Notice marked as unreviewed"
+				m.setToast(feedbackSuccess, "Notice marked as unreviewed")
 			}
 		}
 	}
@@ -149,18 +148,16 @@ func (m *Model) acknowledge(item noticeItem, toggle bool) {
 func (m *Model) clearNotice(item noticeItem) {
 	if item.Active {
 		m.Farm.Dismiss(item.ActiveKey)
-		m.toast = "Notice dismissed locally; printer state unchanged"
-		m.toastAt = m.now
+		m.setToast(feedbackSuccess, "Notice dismissed locally; printer state unchanged")
 		m.dismissDialog(dialogInspector)
 		return
 	}
 	if item.EventID != 0 {
 		m.Farm.DeleteEvent(item.EventID)
-		m.toast = "Event removed from this session's history"
+		m.setToast(feedbackSuccess, "Event removed from this session's history")
 	} else {
-		m.toast = "Condition has resolved"
+		m.setToast(feedbackInfo, "Condition has resolved")
 	}
-	m.toastAt = m.now
 	m.dismissDialog(dialogInspector)
 }
 
@@ -189,22 +186,22 @@ func (m *Model) noticeText(w int) string {
 	m.noticeSpans = nil
 	var lines []string
 	if m.Farm.NoticeCount() == 0 {
-		lines = append(lines, accent.Render("✓ No active notices"))
+		lines = append(lines, m.styles.success.Render("✓ No active notices"))
 	} else {
-		lines = append(lines, warning.Bold(true).Render(fmt.Sprintf("%d ACTIVE · %d unreviewed", m.Farm.NoticeCount(), m.Farm.Unacknowledged())))
+		lines = append(lines, m.styles.warning.Bold(true).Render(fmt.Sprintf("%d ACTIVE · %d unreviewed", m.Farm.NoticeCount(), m.Farm.Unacknowledged())))
 	}
 	historyHeader := false
 	for _, item := range items {
 		if !item.Active && !historyHeader {
-			lines = append(lines, "", muted.Render("RECENT EVENTS · THIS SESSION"))
+			lines = append(lines, "", m.styles.secondary.Render("RECENT EVENTS · THIS SESSION"))
 			historyHeader = true
 		}
-		style := muted
+		style := m.styles.secondary
 		switch item.Level {
 		case farm.LevelError:
-			style = danger
+			style = m.styles.err
 		case farm.LevelWarning:
-			style = warning
+			style = m.styles.warning
 		}
 		marker := "  "
 		if item.Key == m.noticeKey {
@@ -215,7 +212,7 @@ func (m *Model) noticeText(w int) string {
 			title = "! " + title
 			if item.Acknowledged {
 				title += " [ACK]"
-				style = muted
+				style = m.styles.secondary
 			}
 		} else {
 			title = item.At.Local().Format(time.TimeOnly) + "  " + title
@@ -227,7 +224,7 @@ func (m *Model) noticeText(w int) string {
 		m.noticeSpans = append(m.noticeSpans, noticeSpan{start: start, end: len(lines) - 1})
 	}
 	if !historyHeader {
-		lines = append(lines, "", muted.Render("RECENT EVENTS · THIS SESSION"), muted.Render("No recent events"))
+		lines = append(lines, "", m.styles.secondary.Render("RECENT EVENTS · THIS SESSION"), m.styles.secondary.Render("No recent events"))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -294,12 +291,12 @@ func (m *Model) syncInspector() {
 	if item.ActiveKey != "" {
 		when = "First seen"
 	}
-	lines := []string{accent.Bold(true).Render(safe(item.Printer)), "", safe(item.Text), "", "Status    " + status, "Severity  " + safe(item.Level), when + "  " + item.At.Local().Format(noticeTimestampLayout)}
+	lines := []string{m.styles.accent.Bold(true).Render(safe(item.Printer)), "", safe(item.Text), "", "Status    " + status, "Severity  " + safe(item.Level), when + "  " + item.At.Local().Format(noticeTimestampLayout)}
 	if item.Code != "" {
 		lines = append(lines, "Code      "+safe(item.Code))
 	}
 	if url := hmsURL(item.Code); url != "" {
-		lines = append(lines, "", accent.Render("BAMBU TROUBLESHOOTING · o opens in browser"), url)
+		lines = append(lines, "", m.styles.accent.Render("BAMBU TROUBLESHOOTING · o opens in browser"), url)
 	}
 	if item.Active {
 		persistence := "Acknowledgements and dismissals are saved across restarts until resolution."
@@ -316,7 +313,7 @@ func (m *Model) syncInspector() {
 }
 
 func (m Model) inspectorView() string {
-	lines := []string{accent.Bold(true).Render("NOTICE / FAULT DETAILS"), muted.Render("↑/↓ or PgUp/PgDown scroll · Esc/Enter back"), "", m.inspection.View()}
+	lines := []string{m.styles.accent.Bold(true).Render("NOTICE / FAULT DETAILS"), m.styles.secondary.Render("↑/↓ or PgUp/PgDown scroll · Esc/Enter back"), "", m.inspection.View()}
 	footer := "Esc/Enter back"
 	if m.inspected.Active {
 		footer = "a ack  c dismiss  Esc/Enter back"
@@ -350,7 +347,7 @@ func (m Model) fullView(lines []string, hints string) string {
 func (m Model) frame(lines []string, footer string) string {
 	rows := strings.Split(strings.Join(lines, "\n"), "\n")
 	if len(rows) > 0 {
-		rows[0] = versionedTitle(rows[0], m.width)
+		rows[0] = m.versionedTitle(rows[0], m.width)
 	}
 	if len(rows) > max(0, m.height-1) {
 		rows = rows[:max(0, m.height-1)]
@@ -363,5 +360,5 @@ func (m Model) frame(lines []string, footer string) string {
 }
 
 func (m Model) clearHistoryView() string {
-	return m.fullView([]string{warning.Bold(true).Render("CLEAR RECENT EVENTS?"), "", fmt.Sprintf("Remove %d events from this session's history?", len(m.clearHistoryEvents)), "", "New events are kept. Active notices and printer faults remain.", "", "y: clear history     n / Esc: keep history"}, "y clear history  n/Esc cancel")
+	return m.fullView([]string{m.styles.warning.Bold(true).Render("CLEAR RECENT EVENTS?"), "", fmt.Sprintf("Remove %d events from this session's history?", len(m.clearHistoryEvents)), "", "New events are kept. Active notices and printer faults remain.", "", "y: clear history     n / Esc: keep history"}, "y clear history  n/Esc cancel")
 }

@@ -93,16 +93,16 @@ func (m *Model) notificationActivityKey(key string, _ tea.Msg) tea.Cmd {
 	return nil
 }
 
-func activityOutcome(entry notifications.Activity) string {
+func (m Model) activityOutcome(entry notifications.Activity) string {
 	switch entry.Outcome {
 	case notifications.OutcomeAccepted:
-		return accent.Render(entry.Outcome)
+		return m.styles.success.Render(entry.Outcome)
 	case notifications.OutcomeFailed, notifications.OutcomePaused:
-		return danger.Render(entry.Outcome)
+		return m.styles.err.Render(entry.Outcome)
 	case notifications.OutcomeUnconfirmed:
-		return warning.Render(entry.Outcome)
+		return m.styles.warning.Render(entry.Outcome)
 	default:
-		return muted.Render(entry.Outcome)
+		return m.styles.secondary.Render(entry.Outcome)
 	}
 }
 
@@ -113,27 +113,27 @@ func (m Model) notificationActivityView() string {
 	if m.notificationRecoveryAvailable() {
 		hints = "↑/↓ select  PgUp/PgDn  r recheck  N/Esc close"
 	}
-	hint := headerHints(hints)
+	hint := m.headerHints(hints)
 	status := notifications.Status{}
 	if m.notificationClient != nil {
 		status = m.notificationClient.Status()
 	}
 	summary := fmt.Sprintf("Accepted %d · Failed %d · Suppressed %d", status.Accepted, status.Failed, status.Suppressed)
 	ownership := notifications.OwnershipText(status)
-	ownerStyle := muted
+	ownerStyle := m.styles.secondary
 	if status.Ownership == notifications.OwnershipOwner {
-		ownerStyle = accent
+		ownerStyle = m.styles.info
 	}
 	if status.Ownership == notifications.OwnershipStandby {
-		ownerStyle = warning
+		ownerStyle = m.styles.info
 	}
 	if status.Disabled {
-		ownerStyle = danger
+		ownerStyle = m.styles.err
 	}
 	if m.notificationClient == nil {
 		ownership = "Desktop delivery unavailable in this session"
 	}
-	lines := []string{accent.Bold(true).Render("NOTIFICATION ACTIVITY"), hint, fmt.Sprintf("Last %d decisions · this session only · newest first", notifications.ActivityLimit), summary, ownerStyle.Render(ansi.Truncate(ownership, width, "…"))}
+	lines := []string{m.styles.accent.Bold(true).Render("NOTIFICATION ACTIVITY"), hint, fmt.Sprintf("Last %d decisions · this session only · newest first", notifications.ActivityLimit), summary, ownerStyle.Render(ansi.Truncate(ownership, width, "…"))}
 	visible := max(1, m.height-activityReservedRows)
 	if len(d.entries) == 0 {
 		lines = append(lines, "No live notification decisions yet.")
@@ -163,11 +163,11 @@ func (m Model) notificationActivityView() string {
 			}
 			// Reserve the outcome column so long/untrusted printer names cannot hide it.
 			subject := ansi.Truncate(safe(entry.Subject), max(12, width/3), "…")
-			suffix := " · " + subject + " · " + activityOutcome(entry)
+			suffix := " · " + subject + " · " + m.activityOutcome(entry)
 			prefix := marker + entry.At.Local().Format("15:04:05") + " " + safe(entry.Printer)
 			row := ansi.Truncate(prefix, max(1, width-ansi.StringWidth(suffix)), "…") + suffix
 			if i == d.index {
-				row = selected.Render(row)
+				row = m.styles.selection.Render(row)
 			}
 			lines = append(lines, row)
 		}

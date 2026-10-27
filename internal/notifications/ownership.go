@@ -70,6 +70,7 @@ func (w *Worker) Retry() bool {
 	}
 	w.status.Revision++
 	w.status.Last = "Notification recovery requested; checking existing identities"
+	w.status.LastKind = MessageInfo
 	w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomeStatus, Reason: ReasonRetry}, "worker/"+ReasonRetry)
 	return true
 }
@@ -114,6 +115,7 @@ func (w *Worker) acquireOwner(input frame) bool {
 			if changed {
 				w.status.Revision++
 				w.status.Last = OwnershipText(w.status)
+				w.status.LastKind = MessageInfo
 				w.appendActivityLocked(Activity{Printer: "Session", Subject: "Notification ownership", Outcome: OutcomeStatus, Reason: reason}, "ownership/"+reason)
 			}
 			w.mu.Unlock()
@@ -153,6 +155,7 @@ func (w *Worker) setOwnedRoleLocked(input frame) {
 	if changed {
 		w.status.Revision++
 		w.status.Last = OwnershipText(w.status)
+		w.status.LastKind = MessageInfo
 		w.appendActivityLocked(Activity{Printer: "Session", Subject: "Notification ownership", Outcome: OutcomeStatus, Reason: reason}, "ownership/"+reason)
 	}
 }

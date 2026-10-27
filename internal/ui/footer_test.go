@@ -56,7 +56,7 @@ func TestFooterHintsEmphasizeKeysAndPreserveLabels(t *testing.T) {
 		}
 	}
 	const hints = "↑/↓ select  tab panel  ?  q quit"
-	if got := footerHints(hints); ansi.Strip(got) != hints || !strings.Contains(got, footer.Render(" select")) || !strings.Contains(got, footer.Render(" panel")) {
+	if got := m.footerHints(hints); ansi.Strip(got) != hints || !strings.Contains(got, newStyles(DefaultPalette()).footer.Render(" select")) || !strings.Contains(got, newStyles(DefaultPalette()).footer.Render(" panel")) {
 		t.Fatalf("footer changed labels or emphasized them with keys: %q", got)
 	}
 }
@@ -66,7 +66,7 @@ func TestFooterBackgroundIsContinuousThroughFeedbackSeparators(t *testing.T) {
 	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
 	for _, color := range []termenv.Profile{termenv.TrueColor, termenv.ANSI256, termenv.Ascii} {
 		lipgloss.SetColorProfile(color)
-		want := footerCellBackgrounds(footer.Render("x"))[0]
+		want := footerCellBackgrounds(newStyles(DefaultPalette()).footer.Render("x"))[0]
 		for _, size := range [][2]int{{60, 18}, {120, 32}} {
 			for _, state := range []string{"hints", "notice feedback", "error", "overlapping errors", "Config pending", "Config accepted", "Config dimmed", "Config failed"} {
 				m := resizeModel(noticeModel(t), size[0], size[1])
@@ -82,6 +82,7 @@ func TestFooterBackgroundIsContinuousThroughFeedbackSeparators(t *testing.T) {
 					m = key(m, ",")
 					m.notificationTestStatusAt = m.now
 					m.notificationTestStatus = "Test accepted by macOS; check banner and sound."
+					m.notificationTestKind = feedbackSuccess
 					switch state {
 					case "Config pending":
 						m.notificationTestPending = true

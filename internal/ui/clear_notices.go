@@ -25,7 +25,7 @@ func (m *Model) openClearNotices() {
 	}
 	if len(d.active)+len(d.events) == 0 {
 		m.focus = panelPrinters
-		m.toast, m.toastAt = "No notices or recent events to clear; focus returned to printers", m.now
+		m.setToast(feedbackInfo, "No notices or recent events to clear; focus returned to printers")
 		return
 	}
 	m.openDialog(dialogClearNotices)
@@ -48,10 +48,10 @@ func (m *Model) clearNoticesKey(key string, _ tea.Msg) tea.Cmd {
 			m.Farm.DeleteEvent(id)
 		}
 		m.closeDialog()
-		m.toast, m.toastAt = "Confirmed notices cleared locally; newer notices and events kept", m.now
+		m.setToast(feedbackSuccess, "Confirmed notices cleared locally; newer notices and events kept")
 		if len(m.noticeItems()) == 0 {
 			m.focus = panelPrinters
-			m.toast = "Confirmed notices cleared locally; focus returned to printers"
+			m.setToast(feedbackSuccess, "Confirmed notices cleared locally; focus returned to printers")
 		}
 	case keyEscape, keyDecisionsOrNo, keyNoUpper:
 		m.closeDialog()
@@ -66,7 +66,7 @@ func (m Model) clearNoticesView() string {
 		persistence = "Demo dismissals apply only to this session."
 	}
 	return m.fullView([]string{
-		warning.Bold(true).Render("CLEAR ALL NOTICES?"), "",
+		m.styles.warning.Bold(true).Render("CLEAR ALL NOTICES?"), "",
 		fmt.Sprintf("Dismiss locally: %d visible active notices", len(d.active)),
 		fmt.Sprintf("Remove: %d recent session events", len(d.events)),
 		"Scope: entire account farm (all printers and filters).", "",

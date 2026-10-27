@@ -210,9 +210,9 @@ func (m *Model) syncAttentionView() {
 	group := d.groups[d.index]
 	var lines []string
 	if p := m.Farm.Printers[group.id]; p != nil {
-		lines = append(lines, white.Bold(true).Render("Reported state: "+safe(stateLabel(p.State))+" · "+safe(p.Connection(m.now, m.Farm.Connected))))
+		lines = append(lines, m.styles.text.Bold(true).Render("Reported state: "+safe(stateLabel(p.State))+" · "+safe(p.Connection(m.now, m.Farm.Connected))))
 	}
-	lines = append(lines, muted.Render("Review each notice below. Actions apply to this printer's displayed active notices."))
+	lines = append(lines, m.styles.secondary.Render("Review each notice below. Actions apply to this printer's displayed active notices."))
 	relevant := map[attentionOccurrence]bool{}
 	for _, item := range m.Farm.Attention() {
 		relevant[attentionOccurrence{item.Key, item.Since}] = true
@@ -239,20 +239,20 @@ func (m *Model) syncAttentionView() {
 		if item.Code != "" {
 			text = strings.TrimSuffix(text, " ["+item.Code+"]")
 		}
-		lines = append(lines, "", warning.Bold(true).Render(fmt.Sprintf("%d. %s", i+1, safe(text))))
+		lines = append(lines, "", m.styles.warning.Bold(true).Render(fmt.Sprintf("%d. %s", i+1, safe(text))))
 		if active && relevant[attentionOccurrence{item.Key, item.Since}] {
-			lines = append(lines, white.Render("Next: "+safe(item.Guidance)))
+			lines = append(lines, m.styles.text.Render("Next: "+safe(item.Guidance)))
 		}
-		lines = append(lines, muted.Render(status), muted.Render(observationTime(item.Since, m.now)))
+		lines = append(lines, m.styles.secondary.Render(status), m.styles.secondary.Render(observationTime(item.Since, m.now)))
 		if item.Code != "" {
-			lines = append(lines, muted.Render("Code: "+safe(item.Code)))
+			lines = append(lines, m.styles.secondary.Render("Code: "+safe(item.Code)))
 		}
 		if url := hmsURL(item.Code); url != "" {
-			lines = append(lines, muted.Render("HMS troubleshooting available (o opens first link; Enter for URL)"))
+			lines = append(lines, m.styles.secondary.Render("HMS troubleshooting available (o opens first link; Enter for URL)"))
 		}
 	}
 	if p := m.Farm.Printers[group.id]; p != nil {
-		lines = append(lines, "", muted.Render("Alerts: "+m.alertStatus(p.ID)))
+		lines = append(lines, "", m.styles.secondary.Render("Alerts: "+m.alertStatus(p.ID)))
 	}
 	lines = append(lines, "", "Local actions: acknowledge marks reviewed; hide removes notices locally.", "Snooze delays this printer's alerts; Esc closes all queued prompts for this session.", "Local review does not resolve a fault. Use the printer or Bambu app for physical intervention and printer controls.", "First observed is app observation time, not printer fault start or desktop delivery time.")
 	d.view.Width, d.view.Height = max(1, m.width), max(1, m.height-4)
@@ -268,6 +268,6 @@ func (m Model) attentionView() string {
 	if m.width >= 100 {
 		hints = "Enter notice  p printer  o link  " + hints
 	}
-	lines := []string{danger.Bold(true).Render("ACTION NEEDED"), accent.Bold(true).Render(ansi.Truncate(fmt.Sprintf("Printer %d / %d · %s", d.index+1, len(d.groups), safe(d.groups[d.index].name)), max(1, m.width), "…")), muted.Render("Tab printer · ↑/↓ scroll · Enter notice · p printer · o link"), d.view.View()}
+	lines := []string{m.styles.err.Bold(true).Render("ACTION NEEDED"), m.styles.accent.Bold(true).Render(ansi.Truncate(fmt.Sprintf("Printer %d / %d · %s", d.index+1, len(d.groups), safe(d.groups[d.index].name)), max(1, m.width), "…")), m.styles.secondary.Render("Tab printer · ↑/↓ scroll · Enter notice · p printer · o link"), d.view.View()}
 	return m.fullView(lines, hints)
 }

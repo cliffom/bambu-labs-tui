@@ -43,6 +43,7 @@ type (
 	Status struct {
 		Revision, Accepted, Failed, Suppressed uint64
 		Last, Error                            string
+		LastKind                               MessageKind
 		Disabled, Pending                      bool
 		History                                []Activity
 		Ownership                              string
@@ -131,6 +132,7 @@ func (w *Worker) Submit(input Input) {
 		w.status.Recovering = false
 		w.status.Error = "Desktop notifications paused: " + ReasonText(ReasonQueue)
 		w.status.Last = w.status.Error
+		w.status.LastKind = MessageError
 		w.status.Revision++
 		w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomePaused, Reason: ReasonQueue}, "worker/queue")
 		if w.cancelFlight != nil {
@@ -150,12 +152,13 @@ func (w *Worker) Status() Status {
 	return status
 }
 
-func (w *Worker) report(message, problem string, accepted, failed, suppressed bool) {
+func (w *Worker) report(kind MessageKind, message, problem string, accepted, failed, suppressed bool) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if !w.status.Disabled {
 		w.status.Revision++
 		w.status.Last = message
+		w.status.LastKind = kind
 		if problem != "" || accepted {
 			w.status.Error = problem
 		}
@@ -175,6 +178,7 @@ func (w *Worker) disable(message, reason string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.status.Disabled, w.status.Last, w.status.Error = true, message, message
+	w.status.LastKind = MessageError
 	w.status.Recovering = false
 	w.status.Revision++
 	w.appendActivityLocked(Activity{Printer: "Session", Subject: "Delivery worker", Outcome: OutcomePaused, Reason: reason}, "worker/"+reason)
@@ -415,7 +419,7 @@ func (w *Worker) process(input frame) bool {
 				reason = ReasonTimeout
 			}
 			w.recordGroup(group, input.Input, OutcomeUnconfirmed, reason, request)
-			w.report("Desktop notification outcome unconfirmed", "Desktop notification outcome unconfirmed; attempt will not be retried", false, false, false)
+			w.report(MessageWarning, "Desktop notification outcome unconfirmed", "Desktop notification outcome unconfirmed; attempt will not be retried", false, false, false)
 			return true
 		}
 		outcome := notification_state.Accepted
@@ -424,10 +428,10 @@ func (w *Worker) process(input frame) bool {
 		}
 		if err != nil {
 			w.recordGroup(group, input.Input, OutcomeFailed, deliveryReason(err), request)
-			w.report("Desktop notification failed", "Desktop notification failed; run doctor --notify", false, true, false)
+			w.report(MessageError, "Desktop notification failed", "Desktop notification failed; run doctor --notify", false, true, false)
 		} else {
 			w.recordGroup(group, input.Input, OutcomeAccepted, ReasonAccepted, request)
-			w.report("Desktop notification accepted by macOS (display unconfirmed)", "", true, false, false)
+			w.report(MessageSuccess, "Desktop notification accepted by macOS (display unconfirmed)", "", true, false, false)
 		}
 		for _, candidate := range group {
 			if saveErr := w.ledger.RecordResult(candidate.ID, outcome); saveErr != nil {

@@ -14,7 +14,7 @@ func TestOfflineRowsRemainDistinctAcrossLayoutsAndSelection(t *testing.T) {
 	profile := lipgloss.ColorProfile()
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
-	warningSGR := strings.SplitN(warning.Render("Offline"), "m", 2)[0]
+	warningSGR := strings.SplitN(newStyles(DefaultPalette()).warning.Render("Offline"), "m", 2)[0]
 	m := overviewModel(t)
 	m = attentionReport(t, m, "O", runoutReport)
 	m.Farm.Printers["O"].Job = "Previous job"

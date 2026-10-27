@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.11 — Retry failed notice and snooze saves
+
+- Add `r retry saves` in Status / Feedback (`Ctrl+E`) for eligible failed notice/snooze writes (#107), with separate saving/saved/failed/session-only status. Recover from transient storage failures without editing existing local decisions.
+- Share retry policy with browser notice-save recovery. Preserve one write per store, latest immutable snapshots, coalescing, failed-load protection, demo isolation, and bounded shutdown; reject delayed completions from earlier attempts of the same revision.
+- Keep notice identities, reviews, snooze deadlines, prompt suppression, and notification attempts unchanged.
+
+See [save recovery](user/usage.md#saved-notice-decisions) and [validation evidence and limits](development/validation.md#explicit-persistence-retry-107).
+
 ## 0.3.10 — Active printers first
 
 - Preserve browser printer-card column widths when filtering down to one or two results, while retaining responsive single-column layouts.

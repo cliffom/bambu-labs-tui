@@ -69,20 +69,7 @@ func (m *Session) WebDecisions() webserver.Decisions {
 		}
 		ids[key] = target.ID
 	}
-	state := "saved"
-	switch {
-	case m.saveReviews == nil && m.NoticeStorageError != "":
-		state = "session-only (saved data unavailable)"
-	case m.reviewWrites.InFlight:
-		state = "saving"
-	case m.NoticeStorageError != "":
-		state = "failed"
-	case m.saveReviews == nil:
-		state = "session-only"
-	case m.reviewWrites.Saved != m.Farm.ReviewRevision():
-		state = "saving"
-	}
-	return webserver.Decisions{Targets: ids, State: state}
+	return webserver.Decisions{Targets: ids, State: m.ReviewSaveState()}
 }
 
 func (m *Session) ApplyWebCommand(c webserver.Command, stopping, enabled bool) {
@@ -97,10 +84,9 @@ func (m *Session) ApplyWebCommand(c webserver.Command, stopping, enabled bool) {
 			continue
 		}
 		if c.Retry {
-			if !current.Dismissed || m.saveReviews == nil || m.reviewWrites.Failed == 0 || m.reviewWrites.InFlight {
+			if !current.Dismissed || !m.RetryPersistence(true, false) {
 				break
 			}
-			m.reviewWrites.Attempted = 0
 		} else if !current.Dismissed {
 			m.Farm.Dismiss(key)
 		}

@@ -14,14 +14,13 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cliffom/bambu-tui/internal/alertstore"
+	"github.com/cliffom/bambu-tui/internal/accountstore"
 	"github.com/cliffom/bambu-tui/internal/buildinfo"
 	"github.com/cliffom/bambu-tui/internal/cloud"
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/credentials"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/noticestore"
 	"github.com/cliffom/bambu-tui/internal/notification_state"
 	"github.com/cliffom/bambu-tui/internal/notifications"
 	"github.com/cliffom/bambu-tui/internal/ui"
@@ -254,6 +253,15 @@ func authenticate(ctx context.Context, api *cloud.Client, importToken, emailCode
 func dashboard(ctx context.Context, configPath string, cfg config.Config, theme ui.Theme, api *cloud.Client, session cloud.Session, demo bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	var stores *accountstore.Store
+	if !demo {
+		var err error
+		stores, err = accountstore.Open(cfg.Region, session.Username)
+		if err != nil {
+			return err
+		}
+		defer stores.Close()
+	}
 	events := make(chan monitor.Event, eventBufferSize)
 	refresh := make(chan struct{}, 1)
 	done := make(chan struct{})
@@ -277,25 +285,17 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, theme 
 		return nil
 	}).WithNotificationTest(ctx, notifications.Test)
 	if !demo {
-		notices, loadErr := noticestore.New(cfg.Region, session.Username)
-		var reviews map[string]farm.Review
-		if loadErr == nil {
-			reviews, loadErr = notices.Load()
-		}
+		reviews, loadErr := stores.LoadReviews()
 		state.RestoreReviews(reviews)
 		if loadErr != nil {
 			fmt.Fprintln(os.Stderr, "Notice persistence:", loadErr)
 		}
-		model = model.WithNoticePersistence(notices.Save, loadErr)
-		snoozeStore, snoozeErr := alertstore.New(cfg.Region, session.Username)
-		var snoozes map[string]time.Time
-		if snoozeErr == nil {
-			snoozes, snoozeErr = snoozeStore.Load()
-		}
+		model = model.WithNoticePersistence(stores.SaveReviews, loadErr)
+		snoozes, snoozeErr := stores.LoadSnoozes()
 		if snoozeErr != nil {
 			fmt.Fprintln(os.Stderr, "Alert persistence:", snoozeErr)
 		}
-		model = model.WithSnoozePersistence(snoozes, snoozeStore.Save, snoozeErr)
+		model = model.WithSnoozePersistence(snoozes, stores.SaveSnoozes, snoozeErr)
 	}
 	{ // Prepare the client; the UI starts ledger observation only after opt-in.
 		var worker *notifications.Worker

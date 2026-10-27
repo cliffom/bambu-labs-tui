@@ -62,6 +62,8 @@ func (s Store) Load() (map[string]time.Time, error) {
 
 // Save replaces the complete snapshot atomically so interruption cannot leave a
 // partially written document. Readers see either the old file or the new file.
+// Cloud hosts must hold accountstore ownership across loading and all saves;
+// atomic replacement alone does not protect independent session snapshots.
 func (s Store) Save(snoozes map[string]time.Time) error {
 	b, err := json.MarshalIndent(document{Version: schemaVersion, Snoozes: snoozes}, "", "  ")
 	if err != nil {

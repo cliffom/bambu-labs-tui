@@ -5,6 +5,14 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Account persistence ownership (#104)
+
+v0.3.6 validation uses synthetic accounts, reports, and temporary private storage on macOS arm64 with Go 1.27.3 (2026-10-27 PDT). Independent owners exercise account/region isolation, visible contention, private stable lock files, stale snapshot rejection after handoff, and a blocked active save retaining ownership through bounded Close. Pipe-synchronized child processes exercise normal exit and forced-crash recovery. Cloud-session tests exercise acknowledgement, hide/restore, mark-unreviewed, reset, confirmed clear/recurrence, snooze/resume, and expired/removed-printer cleanup with ownership rejection and reload between changes. A TUI entry-point regression checks contention before terminal startup.
+
+`make docs-check fmt-check lint test check build` passed, using pinned golangci-lint v2.15.0 via `GOLANGCI_LINT`; the full race suite includes terminal/PTY, failed-load, coalescing, and notification-ownership regressions. The new ownership/lifecycle tests passed ten race-enabled repetitions. `make vuln-check` found no known vulnerabilities. `make release` produced all four v0.3.6 macOS/Linux archives and checksums, including universal helper compilation/ad-hoc signing and archive inventory/documentation checks. `git diff --check` passed.
+
+No terminal layouts or browser styles changed; contention exits before the UI starts, so no new layout states/sizes require inspection. Live cloud accounts, hardware, Linux runtime contention, filesystem/network-mount locking, and mixed-version processes have not been validated. Older hosts must be stopped before upgrading; external edits during monitoring remain unsupported. Synthetic checks do not establish physical printer resolution or native banner delivery.
+
 ## Foreground telemetry rejection (#103)
 
 On 2026-10-27 (PDT), v0.3.5 was checked on macOS arm64 with Go 1.27.3 using synthetic reports and temporary configuration. Foreground owner/HTTP regressions send bursts of malformed JSON, oversized reports, excessive nesting/collections, and cumulatively over-limit partial reports, then accept valid partial telemetry on the same listener/session. They compare browser readings, freshness/ETA timestamps, condition lifetimes, occurrence targets, and local hiding; snoozes remain intact. Diagnostics are exactly one fixed warning per session, independent of report content or burst size. Existing tests retain authentication rejection, reconnect, unexpected stream/listener termination, signal shutdown, and persistence-drain coverage.

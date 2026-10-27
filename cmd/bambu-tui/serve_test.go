@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cliffom/bambu-tui/internal/accountstore"
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
@@ -43,7 +44,13 @@ func TestServeHelperProcess(t *testing.T) {
 		}
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
-		state := cloudServeState(cfg, "synthetic-account", os.Stderr)
+		stores, storeErr := accountstore.Open(cfg.Region, "synthetic-account")
+		if storeErr != nil {
+			fmt.Fprintln(os.Stderr, storeErr)
+			os.Exit(1)
+		}
+		defer stores.Close()
+		state := cloudServeState(cfg, stores, os.Stderr)
 		runner := &monitor.Runner{API: serveAPI{}, Token: "synthetic-token", Dial: func(context.Context) (monitor.Transport, error) {
 			return &serveTransport{closed: make(chan struct{})}, nil
 		}}

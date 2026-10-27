@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cliffom/bambu-tui/internal/accountstore"
 	"github.com/cliffom/bambu-tui/internal/alertstore"
 	"github.com/cliffom/bambu-tui/internal/cloud"
 	"github.com/cliffom/bambu-tui/internal/config"
@@ -28,6 +29,7 @@ import (
 	"github.com/cliffom/bambu-tui/internal/mqtt"
 	"github.com/cliffom/bambu-tui/internal/noticestore"
 	"github.com/cliffom/bambu-tui/internal/session"
+	"github.com/cliffom/bambu-tui/internal/ui"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
@@ -80,7 +82,8 @@ func TestCloudServeStoresRestartScopeAndFailedLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	var diagnostics bytes.Buffer
-	state := cloudServeState(cfg, "synthetic-account", &diagnostics)
+	stores := openTestAccountStores(t, cfg.Region, "synthetic-account")
+	state := cloudServeState(cfg, stores, &diagnostics)
 	at := time.Now()
 	key := applyServeFixture(t, &state, at)
 	state.Dismiss(key)
@@ -91,7 +94,9 @@ func TestCloudServeStoresRestartScopeAndFailedLoad(t *testing.T) {
 	}
 	state.Complete(reviews())
 	state.Complete(snoozes())
-	restored := cloudServeState(cfg, "synthetic-account", &diagnostics)
+	stores.Close()
+	stores = openTestAccountStores(t, cfg.Region, "synthetic-account")
+	restored := cloudServeState(cfg, stores, &diagnostics)
 	applyServeFixture(t, &restored, at)
 	if !restored.Farm.Active[key].Dismissed || !restored.Snoozes["SYNTHETIC"].Equal(at.Add(time.Hour)) || diagnostics.Len() != 0 {
 		t.Fatal("restart lost decisions", diagnostics.String())
@@ -99,7 +104,7 @@ func TestCloudServeStoresRestartScopeAndFailedLoad(t *testing.T) {
 	for _, other := range []struct{ region, account string }{{cfg.Region, "other-synthetic-account"}, {"china", "synthetic-account"}} {
 		otherCfg := cfg
 		otherCfg.Region = other.region
-		isolated := cloudServeState(otherCfg, other.account, &diagnostics)
+		isolated := cloudServeState(otherCfg, openTestAccountStores(t, other.region, other.account), &diagnostics)
 		applyServeFixture(t, &isolated, at)
 		if isolated.Farm.Active[key].Dismissed || len(isolated.Snoozes) != 0 {
 			t.Fatal("cross-account/region decisions")
@@ -118,7 +123,8 @@ func TestCloudServeStoresRestartScopeAndFailedLoad(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	protected := cloudServeState(cfg, "synthetic-account", &diagnostics)
+	stores.Close()
+	protected := cloudServeState(cfg, openTestAccountStores(t, cfg.Region, "synthetic-account"), &diagnostics)
 	key = applyServeFixture(t, &protected, at)
 	protected.Dismiss(key)
 	protected.SetSnooze("SYNTHETIC", time.Hour, at)
@@ -311,7 +317,7 @@ func TestCloudServeExpiredSnoozesSaved(t *testing.T) {
 	if err := store.Save(map[string]time.Time{"SYNTHETIC": time.Now().Add(-time.Hour)}); err != nil {
 		t.Fatal(err)
 	}
-	state := cloudServeState(cfg, "synthetic-account", io.Discard)
+	state := cloudServeState(cfg, openTestAccountStores(t, cfg.Region, "synthetic-account"), io.Discard)
 	state.PruneSnoozes(time.Now())
 	_, job := state.Persistence()
 	if job == nil {
@@ -517,5 +523,108 @@ func TestCloudServeRejectedTelemetryKeepsSession(t *testing.T) {
 			}
 			assertWebClosed(t, status.URL)
 		})
+	}
+}
+
+func openTestAccountStores(t *testing.T, region, username string) *accountstore.Store {
+	t.Helper()
+	stores, err := accountstore.Open(region, username)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stores.Close)
+	return stores
+}
+
+func TestCloudAccountOwnershipCoversDecisionLifecycle(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	stores := openTestAccountStores(t, cfg.Region, "synthetic-account")
+	state := cloudServeState(cfg, stores, io.Discard)
+	at := time.Now().UTC()
+	key := applyServeFixture(t, &state, at)
+	steps := []struct {
+		name   string
+		change func()
+	}{
+		{"acknowledge", func() { state.Acknowledge(key, true) }},
+		{"hide", func() { state.Dismiss(key) }},
+		{"restore", func() { state.RestoreDismissal(key) }},
+		{"mark unreviewed", func() { state.MarkUnreviewed(key) }},
+		{"hide before reset", func() { state.Dismiss(key) }},
+		{"reset", func() { state.ResetReviews() }},
+		{"review before clear", func() { state.Acknowledge(key, true) }},
+		{"confirmed clear", func() {
+			if err := state.ApplyEvent(monitor.Event{Kind: monitor.EventReport, ID: "SYNTHETIC", At: at.Add(time.Second), Payload: []byte(`{"print":{"gcode_state":"RUNNING","print_error":0,"hms":[]}}`)}); err != nil {
+				t.Fatal(err)
+			}
+		}},
+		{"recurrence", func() {
+			key = applyServeFixture(t, &state, at.Add(2*time.Second))
+			if state.Farm.Active[key].Acknowledged || state.Farm.Active[key].Dismissed {
+				t.Fatal("recurrence reviewed")
+			}
+		}},
+		{"snooze", func() { state.SetSnooze("SYNTHETIC", time.Hour, at) }},
+		{"resume", func() { state.SetSnooze("SYNTHETIC", 0, at) }},
+		{"snooze before expiry", func() { state.SetSnooze("SYNTHETIC", time.Hour, at) }},
+		{"expiry cleanup", func() { state.PruneSnoozes(at.Add(2 * time.Hour)) }},
+		{"snooze before removal", func() { state.SetSnooze("SYNTHETIC", time.Hour, at) }},
+		{"removed printer cleanup", func() {
+			if err := state.ApplyEvent(monitor.Event{Kind: monitor.EventDevices, At: at.Add(time.Second)}); err != nil {
+				t.Fatal(err)
+			}
+		}},
+	}
+	ownerTest := t
+	for _, step := range steps {
+		t.Run(step.name, func(t *testing.T) {
+			step.change()
+			reviews, snoozes := state.Persistence()
+			// No other owner may load snapshots while either job is queued.
+			if other, err := accountstore.Open(cfg.Region, "synthetic-account"); !errors.Is(err, accountstore.ErrBusy) {
+				if other != nil {
+					other.Close()
+				}
+				t.Fatal("concurrent state owner allowed", err)
+			}
+			for _, job := range []session.Job{reviews, snoozes} {
+				if job != nil {
+					result := job()
+					if result.Err != nil {
+						t.Fatal(result.Err)
+					}
+					state.Complete(result)
+				}
+			}
+			wantReviews, wantSnoozes := state.Farm.Reviews(), state.Snoozes
+			stores.Close()
+			stores = openTestAccountStores(ownerTest, cfg.Region, "synthetic-account")
+			state = cloudServeState(cfg, stores, io.Discard)
+			if !reflect.DeepEqual(state.Farm.Reviews(), wantReviews) || len(state.Snoozes) != len(wantSnoozes) {
+				t.Fatal("handoff lost saved state")
+			}
+			for id, until := range wantSnoozes {
+				if !state.Snoozes[id].Equal(until) {
+					t.Fatal("handoff changed snooze")
+				}
+			}
+			applyServeFixture(t, &state, at)
+		})
+	}
+}
+
+func TestDashboardRejectsAccountContentionBeforeTerminalStartup(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	cfg := config.Config{Region: "global"}
+	openTestAccountStores(t, cfg.Region, "synthetic-account")
+	err := dashboard(context.Background(), "", cfg, ui.Theme{}, nil, cloud.Session{Username: "synthetic-account"}, false)
+	if !errors.Is(err, accountstore.ErrBusy) {
+		t.Fatal("dashboard reached monitoring/terminal startup", err)
 	}
 }

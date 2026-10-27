@@ -21,7 +21,7 @@ The parent starts the current Go test executable in a new session with a control
 - `q` and raw Ctrl+C stay inside the dialog: a subsequent arrow sequence visibly advances the unit selection, proving the dialog and process remained active. Ctrl+E opens status and returns to the same selected unit.
 - An actual PTY window-size ioctl plus SIGWINCH produces the undersized resize screen. Restoring the size returns to the dialog with its unit selection intact; Escape returns to the dashboard.
 - Config accepts raw Tab/arrow/Enter input across General, Alerts, and Printers, rejects fractional percentage input, preserves its state across minimum-size resizing, loads a custom JSON theme relative to its configuration directory under `NO_COLOR`, and persists general/global/per-printer edits while preserving `theme_file` in the launch configuration file before quitting.
-- Launch-only `--theme default` and `--theme gruvbox-dark` bypass a missing configured theme, and a subsequent farm-view save retains the original `theme_file`.
+- Launch-only `--theme default`, `--theme gruvbox-dark`, and `--theme hotdog` bypass a missing configured theme, and a subsequent farm-view save retains the original `theme_file`.
 - Uppercase `N` opens notification activity with its empty-state guidance. The dialog survives resize, captures quit/Ctrl+C, and closes back to the dashboard.
 - Dashboard `q` returns normally. OS SIGINT and SIGTERM also return within a bound, separately from raw Ctrl+C keyboard behavior.
 - A test-only wrapper around the real UI raises a panic on raw Ctrl+G. Bubble Tea recovers, the dashboard cleanup helper preserves the error, and the child exits nonzero. There is no production fault-injection flag.

@@ -74,7 +74,17 @@ make run THEME=gruvbox-dark
 make demo THEME=gruvbox-dark
 ```
 
-`--theme` accepts `default`, `gruvbox-dark`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
+`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
+
+For an unmistakable light-theme demonstration, try **Hotdog**, inspired by the red/yellow Hotdog Stand look:
+
+```sh
+bambu-tui --theme hotdog
+make run THEME=hotdog
+make demo THEME=hotdog
+```
+
+Hotdog uses a very light cream background, dark body text, vivid red headings/borders, a yellow selection, and a red status bar with bright yellow/white text. Its complete [hotdog.json](../../internal/ui/themes/hotdog.json) is also available as a starting point for customization.
 
 For a persistent custom file, set `theme_file` **before any TOML table** in the configuration file:
 
@@ -84,7 +94,7 @@ theme_file = "gruvbox-dark.json"
 
 Relative paths resolve beside the active configuration file (`--config` selects it); absolute paths work too. Theme files load once at startup. Restart after editing or selecting a theme. Config and farm-view saves preserve this setting and unrelated external edits. Removing the setting restores the built-in default. Theme loading does not change your terminal settings.
 
-Download [gruvbox-dark.json](../../internal/ui/themes/gruvbox-dark.json) beside your config to try the complete sample, or copy [default.json](../../internal/ui/themes/default.json) to customize the current palette. Both bundled themes are embedded in the binary; selecting one by name needs no external theme file. The Gruvbox sample uses a dark body background, warm neutrals, aqua focus, and distinct feedback colors, drawing from the [requested palette](https://www.color-hex.com/color-palette/1026676) and [official Gruvbox colors](https://github.com/morhetz/gruvbox/blob/master/colors/gruvbox.vim). It uses brighter variants for prominent status text.
+Download [gruvbox-dark.json](../../internal/ui/themes/gruvbox-dark.json) beside your config to try the complete sample, or copy [default.json](../../internal/ui/themes/default.json) to customize the current palette. All bundled themes are embedded in the binary; selecting one by name needs no external theme file. The Gruvbox sample uses a dark body background, warm neutrals, aqua focus, and distinct feedback colors, drawing from the [requested palette](https://www.color-hex.com/color-palette/1026676) and [official Gruvbox colors](https://github.com/morhetz/gruvbox/blob/master/colors/gruvbox.vim). It uses brighter variants for prominent status text.
 
 A small override file is sufficient; omitted colors retain the current defaults:
 

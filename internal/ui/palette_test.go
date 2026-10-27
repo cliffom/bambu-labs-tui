@@ -365,12 +365,11 @@ func TestApplicationColorLiteralsBelongToPalette(t *testing.T) {
 	}
 }
 
-func TestDefaultPaletteActiveFooterContrast(t *testing.T) {
-	p := DefaultPalette()
+func TestBundledPaletteContrast(t *testing.T) {
 	luminance := func(c lipgloss.Color) float64 {
 		hex := string(c)
 		if len(hex) != 7 || hex[0] != '#' {
-			t.Fatal("default palette requires explicit RGB for measured pairs", c)
+			t.Fatal("bundled palettes require explicit RGB for measured pairs", c)
 		}
 		rgb, err := strconv.ParseUint(hex[1:], 16, 32)
 		if err != nil {
@@ -392,12 +391,32 @@ func TestDefaultPaletteActiveFooterContrast(t *testing.T) {
 		x, y := luminance(a), luminance(b)
 		return (max(x, y) + 0.05) / (min(x, y) + 0.05)
 	}
-	for _, c := range []lipgloss.Color{p.FooterInfo, p.FooterSuccess, p.FooterWarning, p.FooterError, p.FooterText, p.FooterHotkey, p.FooterSeparator} {
-		if ratio := contrast(c, p.FooterBackground); ratio < 4.5 {
-			t.Fatalf("active footer role %s contrast %.2f, want at least 4.5", c, ratio)
+	for _, name := range []string{"default", "gruvbox-dark", "hotdog"} {
+		theme, err := LoadThemeOverride(name)
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
-	if contrast(p.FooterInfo, p.FooterBackground) < 7 || contrast(p.FooterInfo, p.FooterBackground) <= contrast(p.FooterMuted, p.FooterBackground) {
-		t.Fatal("fresh informational text lost prominence over deliberately dimmed feedback")
+		p := theme.Palette
+		for _, c := range []lipgloss.Color{p.FooterInfo, p.FooterSuccess, p.FooterWarning, p.FooterError, p.FooterText, p.FooterHotkey, p.FooterSeparator} {
+			if ratio := contrast(c, p.FooterBackground); ratio < 4.5 {
+				t.Fatalf("%s active footer role %s contrast %.2f, want at least 4.5", name, c, ratio)
+			}
+		}
+		if contrast(p.FooterInfo, p.FooterBackground) < 7 || contrast(p.FooterInfo, p.FooterBackground) <= contrast(p.FooterMuted, p.FooterBackground) {
+			t.Fatal(name, "fresh informational text lost prominence over deliberately dimmed feedback")
+		}
+		if name == "hotdog" {
+			if luminance(p.Background) < 0.9 {
+				t.Fatal("Hotdog must retain its very light main background")
+			}
+			for _, c := range []lipgloss.Color{p.Text, p.SecondaryText, p.MutedText, p.Info, p.Accent, p.Success, p.Warning, p.Error, p.Focus, p.Border, p.Hotkey} {
+				if ratio := contrast(c, p.Background); ratio < 4.5 {
+					t.Fatalf("Hotdog body role %s contrast %.2f, want at least 4.5", c, ratio)
+				}
+			}
+			if contrast(p.SelectedText, p.SelectedBackground) < 4.5 {
+				t.Fatal("Hotdog selection lost readable text")
+			}
+		}
 	}
 }

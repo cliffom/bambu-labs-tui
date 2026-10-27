@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "Hotdog",
+  "colors": {
+    "text": "#1A1100",
+    "background": "#FFFDE7",
+    "secondary_text": "#554400",
+    "muted_text": "#786A38",
+    "info": "#1A1100",
+    "accent": "#D00000",
+    "success": "#235C00",
+    "warning": "#805000",
+    "error": "#C00000",
+    "focus": "#D00000",
+    "border": "#D00000",
+    "selected_text": "#000000",
+    "selected_background": "#FFFF00",
+    "hotkey": "#B00000",
+    "footer_background": "#A80000",
+    "footer_text": "#FFFF00",
+    "footer_muted": "#FFD0A0",
+    "footer_info": "#FFFF00",
+    "footer_success": "#D7FF9C",
+    "footer_warning": "#FFD166",
+    "footer_error": "#FFFFFF",
+    "footer_hotkey": "#FFFFFF",
+    "footer_separator": "#FFFF00"
+  }
+}

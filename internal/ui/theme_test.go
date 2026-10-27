@@ -13,7 +13,7 @@ import (
 )
 
 func TestThemeFilesAndPartialOverrides(t *testing.T) {
-	for _, file := range []string{"default.json", "gruvbox-dark.json"} {
+	for _, file := range []string{"default.json", "gruvbox-dark.json", "hotdog.json"} {
 		data, err := os.ReadFile(filepath.Join("themes", file))
 		if err != nil {
 			t.Fatal(err)
@@ -136,6 +136,10 @@ func TestThemeOverrideNamesAndWorkingDirectory(t *testing.T) {
 	if err != nil || theme.Name != "Gruvbox Dark" || theme.Palette.Background != "#282828" {
 		t.Fatal(theme, err)
 	}
+	theme, err = LoadThemeOverride("hotdog")
+	if err != nil || theme.Name != "Hotdog" || theme.Palette.Background != "#FFFDE7" {
+		t.Fatal(theme, err)
+	}
 	for _, name := range []string{"", "missing.json", "gruvbox-dakr"} {
 		if _, err := LoadThemeOverride(name); err == nil {
 			t.Fatal("invalid override silently accepted", name)
@@ -146,44 +150,46 @@ func TestThemeOverrideNamesAndWorkingDirectory(t *testing.T) {
 func TestThemeCanvasCoversEverySurfaceAndResize(t *testing.T) {
 	profile := lipgloss.ColorProfile()
 	t.Cleanup(func() { lipgloss.SetColorProfile(profile) })
-	theme, err := LoadTheme("unused.toml", "themes/gruvbox-dark.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	p := theme.Palette
-	for _, profile := range []termenv.Profile{termenv.TrueColor, termenv.ANSI256, termenv.Ascii} {
-		lipgloss.SetColorProfile(profile)
-		for _, route := range []string{"dashboard", "?", "enter", "m", ",", "a", "N", "D", "ctrl+e"} {
-			m := demoModel().WithPalette(p)
-			if route != "dashboard" {
-				m = key(m, route)
-			}
-			for _, size := range [][2]int{{60, 18}, {59, 17}, {120, 32}} {
-				m = resizeModel(m, size[0], size[1])
-				view := m.View()
-				if size[0] == 59 {
-					assertPaint(t, view, "Resize to at least", p.Text, p.Background, false)
+	for _, name := range []string{"gruvbox-dark", "hotdog"} {
+		theme, err := LoadThemeOverride(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := theme.Palette
+		for _, profile := range []termenv.Profile{termenv.TrueColor, termenv.ANSI256, termenv.Ascii} {
+			lipgloss.SetColorProfile(profile)
+			for _, route := range []string{"dashboard", "?", "enter", "m", ",", "a", "N", "D", "ctrl+e"} {
+				m := demoModel().WithPalette(p)
+				if route != "dashboard" {
+					m = key(m, route)
 				}
-				lines := strings.Split(view, "\n")
-				if len(lines) != size[1] {
-					t.Fatal(route, size, "height", len(lines))
-				}
-				for _, line := range lines {
-					if ansi.StringWidth(line) != size[0] {
-						t.Fatal(route, size, "width", ansi.StringWidth(line))
+				for _, size := range [][2]int{{60, 18}, {59, 17}, {120, 32}} {
+					m = resizeModel(m, size[0], size[1])
+					view := m.View()
+					if size[0] == 59 {
+						assertPaint(t, view, "Resize to at least", p.Text, p.Background, false)
 					}
-				}
-				allowed := map[string]bool{}
-				for _, bg := range []lipgloss.Color{p.Background, p.SelectedBackground, p.FooterBackground} {
-					allowed[expectedPaint(p.Text, bg, false).background] = true
-				}
-				for _, cell := range paintedCells(view) {
-					if !allowed[cell.background] || cell.foreground == "default" && profile != termenv.Ascii {
-						t.Fatal(route, size, profile, "unpainted cell", cell)
+					lines := strings.Split(view, "\n")
+					if len(lines) != size[1] {
+						t.Fatal(route, size, "height", len(lines))
 					}
-				}
-				if profile == termenv.Ascii && strings.Contains(view, "\x1b") {
-					t.Fatal("ANSI escaped into no-color output")
+					for _, line := range lines {
+						if ansi.StringWidth(line) != size[0] {
+							t.Fatal(route, size, "width", ansi.StringWidth(line))
+						}
+					}
+					allowed := map[string]bool{}
+					for _, bg := range []lipgloss.Color{p.Background, p.SelectedBackground, p.FooterBackground} {
+						allowed[expectedPaint(p.Text, bg, false).background] = true
+					}
+					for _, cell := range paintedCells(view) {
+						if !allowed[cell.background] || cell.foreground == "default" && profile != termenv.Ascii {
+							t.Fatal(route, size, profile, "unpainted cell", cell)
+						}
+					}
+					if profile == termenv.Ascii && strings.Contains(view, "\x1b") {
+						t.Fatal("ANSI escaped into no-color output")
+					}
 				}
 			}
 		}

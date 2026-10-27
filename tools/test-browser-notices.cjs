@@ -305,3 +305,57 @@ test("changed model images and transitions to/from generic artwork update in pla
   assert.equal(card.children[1].children[0].getAttribute("src"), "/a.png");
   assert.equal(view.container.children[0], card);
 });
+
+for (const mode of ["name", "attention", "state"]) {
+  test(`${mode} sorting groups non-idle, idle/done, and offline devices with deterministic ties`, () => {
+    const view = inspector();
+    const printers = [
+      {id: "offline-idle", name: "A", online: false, state: "IDLE", attention: true},
+      {id: "idle", name: "A idle", online: true, state: "IDLE", attention: true},
+      {id: "done", name: "B done", online: true, state: "FINISH"},
+      {id: "b", name: "same", online: true, state: "RUNNING"},
+      {id: "a", name: "Same", online: true, state: "RUNNING"},
+      {id: "paused", name: "Z paused", online: true, state: "PAUSE", attention: true},
+      {id: "offline-running", name: "B", online: false, state: "RUNNING"},
+    ];
+    view.run(`snapshot.printers = ${JSON.stringify(printers)}; sort = ${JSON.stringify(mode)}`);
+    const ids = () => JSON.parse(view.run('JSON.stringify(visible().map(p => p.id))'));
+    const want = mode === "name"
+      ? ["a", "b", "paused", "idle", "done", "offline-idle", "offline-running"]
+      : mode === "attention"
+        ? ["paused", "a", "b", "idle", "done", "offline-idle", "offline-running"]
+        : ["paused", "a", "b", "done", "idle", "offline-idle", "offline-running"];
+    assert.deepEqual(ids(), want);
+    // A cloud outage masks even offline devices' connection labels. Device
+    // flags and last-known states must still control grouping, never freshness.
+    view.run('feedError = true; snapshot.connected = false; for (const p of snapshot.printers) { p.connection = "Cloud disconnected"; p.fresh = false; }');
+    assert.deepEqual(ids(), want);
+    view.run('filter = "printing"');
+    assert.deepEqual(ids(), ["a", "b", "offline-running"]);
+    view.run('filter = "attention"');
+    assert.deepEqual(ids(), ["paused", "idle", "offline-idle"]);
+    view.run('filter = "all"; query = "same"');
+    assert.deepEqual(ids(), ["a", "b"]);
+    view.run('query = "no matches"');
+    assert.deepEqual(ids(), []);
+  });
+
+  test(`${mode} sorting follows state/online changes without classifying unknown as idle`, () => {
+    const view = inspector();
+    for (const state of ["RUNNING", "PREPARE", "SLICING", "PAUSE", "FAILED", "UNKNOWN", "", "FUTURE_STATE", null]) {
+      view.run(`sort = ${JSON.stringify(mode)}; snapshot.printers = [
+        {id:"active", name:"Z", online:true, state:${JSON.stringify(state)}},
+        {id:"idle", name:"A", online:true, state:"IDLE"},
+        {id:"offline", name:"0", online:false, state:"RUNNING"}
+      ]`);
+      assert.equal(view.run('visible()[0].id'), "active");
+      assert.equal(view.run('visible()[2].id'), "offline");
+      view.run('snapshot.printers[0].state = "FINISH"');
+      assert.equal(view.run('visible()[0].id'), mode === "state" ? "active" : "idle");
+      view.run('snapshot.printers[0].online = false');
+      assert.equal(view.run('visible()[0].id'), "idle");
+      view.run('snapshot.printers[0].online = true; snapshot.printers[0].state = "RUNNING"');
+      assert.equal(view.run('visible()[0].id'), "active");
+    }
+  });
+}

@@ -49,7 +49,7 @@ Every sort first groups printers in this order:
 2. **Inactive / idle:** online printers with reported `IDLE` or `FINISH` state.
 3. **Offline:** devices reported offline, regardless of their last-known state.
 
-The selected sort applies within each group. Grouping uses the device online flag and the existing reported state, independently of telemetry freshness or cloud connectivity. Stale states remain last-known, missing states remain unknown, and a disconnected cloud link does not infer that a printer is offline or idle. Telemetry and device updates refresh the ordering while preserving the selected printer's identity, panel focus, and details scroll.
+The selected sort applies within each group. The local web dashboard uses the same grouping with its Name, Attention, and State sorts; browser filters/sorts remain session-local. Grouping uses the device online flag and the existing reported state, independently of telemetry freshness or cloud connectivity. Stale states remain last-known, missing states remain unknown, and a disconnected cloud link does not infer that a printer is offline or idle. Telemetry and device updates refresh the ordering while preserving the selected printer's identity, panel focus, and details scroll.
 
 Unselected offline rows use the warning color (amber in the default theme). Selected offline rows use the theme's contrasting selection text/background colors. Offline rows show only the printer name and `Offline` link status; all telemetry columns are blank. Compact layouts show `Offline` in the state column because the link column is hidden.
 

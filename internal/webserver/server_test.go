@@ -220,11 +220,12 @@ func TestSnapshotReusesFreshnessETAAndAttention(t *testing.T) {
 		{3 * time.Minute, true, true, farm.ConnectionStale, false, false},
 		{time.Second, false, true, farm.ConnectionOffline, false, false},
 		{time.Second, true, false, farm.ConnectionCloudDisconnected, false, false},
+		{time.Second, false, false, farm.ConnectionCloudDisconnected, false, false},
 	} {
 		p.Online = test.online
 		s.Connected = test.cloud
 		got = decodeSnapshot(t, SnapshotJSON(s, now.Add(test.age), false))
-		if got.Printers[0].Connection != test.connection || got.Printers[0].Fresh != test.fresh || got.Printers[0].ETACurrent != test.eta {
+		if got.Printers[0].Online != test.online || got.Printers[0].Connection != test.connection || got.Printers[0].Fresh != test.fresh || got.Printers[0].ETACurrent != test.eta {
 			t.Fatalf("freshness diverged: %+v", got.Printers[0])
 		}
 	}

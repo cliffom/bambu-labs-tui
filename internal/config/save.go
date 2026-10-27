@@ -20,6 +20,12 @@ func SaveChanges(path string, before, after Config) error {
 	if err != nil {
 		return err
 	}
+	if before.WebServer.Enabled != after.WebServer.Enabled {
+		cfg.WebServer.Enabled = after.WebServer.Enabled
+	}
+	if before.WebServer.Port != after.WebServer.Port {
+		cfg.WebServer.Port = after.WebServer.Port
+	}
 	if before.ThemeFile != after.ThemeFile {
 		cfg.ThemeFile = after.ThemeFile
 	}

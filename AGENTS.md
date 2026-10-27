@@ -27,6 +27,7 @@ Use the pinned tools documented in the contributing guide; Make supports overrid
 - `internal/cloud`, `internal/mqtt`, `internal/monitor`: authentication/discovery, transport, and monitor workers.
 - `internal/farm`: telemetry decoding, normalization, condition lifetime, and farm state.
 - `internal/ui`: Bubble Tea reducer, dialogs, panels, and asynchronous persistence commands.
+- `internal/webserver`: session-owned localhost HTTP lifecycle, embedded dashboard, and allowlisted immutable display snapshots.
 - `internal/config`, `internal/credentials`, `internal/noticestore`, `internal/alertstore`, `internal/notification_state`, `internal/atomicfile`: configuration and storage.
 - `internal/diagnostics`: allowlisted local exports.
 

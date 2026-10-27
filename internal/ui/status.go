@@ -17,6 +17,7 @@ type statusProblem struct {
 func (m Model) statusProblems() []statusProblem {
 	var problems []statusProblem
 	for _, problem := range []statusProblem{
+		{"Web server", m.webStatus.Error, "Open Config (,) > Web Server, choose another port or press r to retry, or disable the server."},
 		{"Config", m.configStorageError, "Return to the dashboard, open Config (,), then press r to retry. During editing, finish or cancel the edit first."},
 		{"Notices", m.noticeStorageError, "Failed writes retry after another local notice change. Unavailable saved data is preserved; check local storage before restarting."},
 		{"Snoozes", m.alertStorageError, "Failed writes retry after another snooze change. Unavailable saved data is preserved; check local storage before restarting."},

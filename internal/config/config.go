@@ -9,13 +9,21 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-type Config struct {
-	ThemeFile          string           `toml:"theme_file,omitempty"`
-	View               ViewPreferences  `toml:"view"`
-	Region             string           `toml:"region"`
-	LowFilamentPercent int              `toml:"low_filament_percent"`
-	Alerts             AlertPreferences `toml:"alerts"`
-}
+type (
+	WebServer struct {
+		Enabled bool `toml:"enabled"`
+		Port    int  `toml:"port"`
+	}
+
+	Config struct {
+		WebServer          WebServer        `toml:"web_server"`
+		ThemeFile          string           `toml:"theme_file,omitempty"`
+		View               ViewPreferences  `toml:"view"`
+		Region             string           `toml:"region"`
+		LowFilamentPercent int              `toml:"low_filament_percent"`
+		Alerts             AlertPreferences `toml:"alerts"`
+	}
+)
 
 func Path() (string, error) {
 	dir, err := os.UserConfigDir()
@@ -26,7 +34,7 @@ func Path() (string, error) {
 }
 
 func Load(path string) (Config, error) {
-	c := Config{Region: RegionGlobal, LowFilamentPercent: defaultLowFilamentPercent, Alerts: DefaultAlerts(), View: (ViewPreferences{}).Normalized()}
+	c := Config{WebServer: WebServer{Port: DefaultWebPort}, Region: RegionGlobal, LowFilamentPercent: defaultLowFilamentPercent, Alerts: DefaultAlerts(), View: (ViewPreferences{}).Normalized()}
 	meta, err := toml.DecodeFile(path, &c)
 	if os.IsNotExist(err) {
 		return c, nil
@@ -43,6 +51,9 @@ func Load(path string) (Config, error) {
 
 // Validate is shared by file loading and interactive editing.
 func (c Config) Validate() error {
+	if c.WebServer.Port < 1 || c.WebServer.Port > 65535 {
+		return fmt.Errorf("web_server.port must be between 1 and 65535")
+	}
 	if c.Region != RegionGlobal && c.Region != RegionChina {
 		return fmt.Errorf("region must be global or china")
 	}

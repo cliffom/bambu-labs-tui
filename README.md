@@ -87,12 +87,14 @@ Use arrows or `j` / `k` to select a printer, `Tab` to switch panels, and `?` for
 | `n` | Manage saved notice decisions |
 | `s` | View alert preferences and snooze/resume controls |
 | `N` | Inspect notification activity/ownership; recheck paused delivery |
-| `,` | Edit general settings, global alerts, and printer overrides |
+| `,` | Edit general settings, alerts, printers, and web server |
 | `D` | Preview and confirm a local diagnostic export |
 | `Esc` | Close a dialog |
 | `q` / `Ctrl+C` | Quit after closing dialogs |
 
 Action-needed alerts highlight faults requiring intervention. Acknowledging or dismissing a notice changes only the TUI; it does not clear a printer fault or resume a print. Filament quantities are estimates, and firmware information reflects what the printer reports. See the [user guide](docs/user/usage.md) for controls, configuration, saved sessions, and telemetry details.
+
+An optional [local web dashboard](docs/user/usage.md#local-web-dashboard) is available from Config (`,`) → Web Server. It stays read-only and stops when the TUI exits.
 
 ## Build from source
 

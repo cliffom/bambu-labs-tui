@@ -80,8 +80,7 @@ func (m Model) selectedPrinterID() string {
 
 // finishTimeCurrent excludes unavailable printers and old remaining-time estimates.
 func (m Model) finishTimeCurrent(p *farm.Printer) bool {
-	_, reported := p.ETA()
-	return reported && m.printerTelemetryCurrent(p) && m.now.Sub(p.RemainingReported) <= etaMaxAge
+	return p.ETACurrent(m.now, m.Farm.Connected)
 }
 
 // syncPrinterList builds a view without changing farm discovery order or alert eligibility.

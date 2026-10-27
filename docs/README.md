@@ -25,7 +25,7 @@ For installation, the demo, and your first connection, start with the [project R
 ## References
 
 - [Protocol sources](reference/protocol-sources.md): community protocol references, firmware reporting, and fault catalogue coverage
-- [Branding artwork](reference/branding.md): asset sources and export instructions
+- [Branding artwork](reference/branding.md) · [Printer sprite prompts](reference/printer-sprite-prompts.md): asset sources and export instructions
 
 ## Planning and history
 

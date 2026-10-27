@@ -4,7 +4,6 @@ import "time"
 
 // UI policies are independent even where durations currently match.
 const (
-	etaMaxAge             = 2 * time.Minute
 	firmwareMaxAge        = 2 * time.Minute
 	attentionDeferral     = 2 * time.Second
 	shutdownSaveTimeout   = 5 * time.Second

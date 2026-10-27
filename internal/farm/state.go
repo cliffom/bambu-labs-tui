@@ -189,6 +189,17 @@ func (p *Printer) Connection(now time.Time, cloud bool) string {
 	return ConnectionLive
 }
 
+// TelemetryCurrent preserves the shared cloud/device/freshness contract.
+func (p *Printer) TelemetryCurrent(now time.Time, cloud bool) bool {
+	return cloud && p.Online && !p.Stale(now)
+}
+
+// ETACurrent requires an independently fresh remaining-time report.
+func (p *Printer) ETACurrent(now time.Time, cloud bool) bool {
+	_, known := p.ETA()
+	return known && p.TelemetryCurrent(now, cloud) && now.Sub(p.RemainingReported) <= remainingTelemetryMaxAge
+}
+
 func (p *Printer) ETA() (time.Time, bool) {
 	if p.State != StateRunning || p.Remaining == nil || p.RemainingReported.IsZero() {
 		return time.Time{}, false

@@ -17,7 +17,11 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 1. **Record current operational evidence ([#38](https://github.com/cliffom/bambu-tui/issues/38)).** Run the remaining applicable live checks on the current release: saved login/restart/logout, notice and snooze persistence/recurrence, pause/completion, firmware/telemetry comparisons, and keyboard/modal behavior during updates. Record host OS/terminal, application version, model/firmware, and actual results in the validation record. Preserve the existing reconnect evidence and explicitly record unavailable scenarios. This follows up the closed original validation issue #6.
 2. **Measure large-farm behavior ([#39](https://github.com/cliffom/bambu-tui/issues/39)).** Benchmark report/tick updates, navigation, dialogs, and rendering with representative synthetic farm sizes and notice/history loads. Record time and allocations, then profile material costs before proposing optimization. No performance defect is assumed, and fragile wall-clock CI thresholds are outside scope.
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
-4. **Investigate LAN monitoring for v0.3.0.** Establish hardware-backed feasibility before promising compatibility or delivery.
+4. **Investigate LAN monitoring for a future release.** Establish hardware-backed feasibility before promising compatibility or delivery; v0.3.0 introduces the local web dashboard.
+
+## v0.3.0 — Local web dashboard
+
+[#88](https://github.com/cliffom/bambu-tui/issues/88) adds a default-off Web Server section in Config. Enabling starts a read-only dashboard at a configurable `http://127.0.0.1:<port>` (default 8080, with a visible error and no fallback if occupied), sharing the running TUI's monitoring state. The browser includes farm summaries, filtering/search, printer inspection, AMS/temperatures, and reported conditions with explicit unknown/last-known qualifiers. Disabling or exiting stops the listener. This initial scope is localhost-only without authentication; remote access and standalone/headless mode remain outside scope. See [usage](user/usage.md#local-web-dashboard) and the [validation record](development/validation.md) for evidence and limits.
 
 ## v0.2.11 — About Bambu TUI
 
@@ -69,7 +73,7 @@ Notifications apply only while the TUI session is running. Quitting ends monitor
 
 The release gate is configurable, testable, deduplicated macOS desktop notifications with visible failure/suppression outcomes and verified shutdown of monitoring and delivery when the TUI exits. Saved reviews and snoozing must remain consistent with delivery. [Saved farm views (#24)](https://github.com/cliffom/bambu-tui/issues/24) restore the last filter/sort from the active configuration, with safe per-field fallbacks and a dashboard `0` reset to All / Name. View changes reuse asynchronous configuration saves without persisting telemetry or changing reviews/snoozes.
 
-## v0.3.0 — LAN monitoring
+## Future — LAN monitoring
 
 [Investigate and prototype read-only LAN monitoring (#12)](https://github.com/cliffom/bambu-tui/issues/12). Verify protocol/authentication requirements and feasibility on available hardware. Plan secure credential storage, mixed cloud/LAN farms, source indicators, identity matching, partial reports, and reconnect handling.
 

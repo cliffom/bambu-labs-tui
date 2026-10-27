@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — Local web dashboard
+
+- Add an optional, read-only browser dashboard sharing the running TUI's monitoring state. Inspect farm summaries, searchable/filterable printer cards, print progress, remaining-time estimates, temperatures, AMS/external filament, and reported conditions with intervention guidance. Preserve explicit unknown and last-known readings; browser inspection does not change local notice decisions or establish physical fault resolution.
+- Add a default-off Web Server section in Config with saved enablement and a configurable port (default 8080). Bind only to `127.0.0.1`, show the running URL, report occupied-port failures without choosing another port, and offer explicit retry. Disabling or exiting the TUI stops the listener.
+- Serve allowlisted display snapshots and bundled assets locally, with Host/Origin checks and no additional cloud connections per browser tab. Access has no authentication; remote access, standalone/headless operation, and printer control remain outside scope.
+- Add bundled pixel-style printer illustrations for H2D, X2D, X1 Carbon, P1S, and A1 mini, plus a generic fallback. Use consistent console typography, readable metadata, responsive cards/dialogs, and centered close icons.
+
+See the [validation record](development/validation.md#local-web-dashboard-88--synthetic-evidence) for synthetic terminal/browser evidence and remaining browser, hardware, and distribution limitations.
+
 ## 0.2.12 — Palette label correction
 
 - Correct “Theme Pallet” to “Theme Palette” in About and the accompanying documentation. Match About theme labels to dashboard secondary text styling while keeping the theme source in primary text.

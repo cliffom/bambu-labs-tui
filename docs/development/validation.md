@@ -5,6 +5,12 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## v0.2.12 — About label styling
+
+On 2026-10-26 (PDT), macOS arm64/Go 1.27.3 synthetic `make demo` PTY/emulator captures covered the default theme with TrueColor and no color at 120×32 and 60×18, Status / Feedback return, 59×17 fallback/restoration, and dashboard return (16 frames). Rendered contact sheets were inspected for secondary-colored “Theme:” / “Theme Palette:” labels, primary theme values, readable metadata/swatches, and restored navigation. Other themes and ANSI256 have automated coverage only; physical terminal/font and live hardware behavior were not newly validated.
+
+`make fmt-check docs-check`, pinned v2.15.0 lint, `go vet`, and UI/CLI race tests passed after the styling fix. A regression test checks label/value paint after palette replacement in TrueColor, ANSI256, and no color; existing About tests cover layout bounds and focus/scroll restoration.
+
 ## v0.2.11 — About Bambu TUI (#85)
 
 ### Revised About presentation

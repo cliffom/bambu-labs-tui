@@ -37,6 +37,22 @@ func TestAboutMetadata(t *testing.T) {
 	}
 }
 
+func TestAboutFieldColors(t *testing.T) {
+	previous := lipgloss.ColorProfile()
+	defer lipgloss.SetColorProfile(previous)
+	for _, profile := range []termenv.Profile{termenv.TrueColor, termenv.ANSI256, termenv.Ascii} {
+		lipgloss.SetColorProfile(profile)
+		m := key(resizeModel(demoModel(), 60, 18), "A")
+		p := DefaultPalette()
+		p.Text, p.SecondaryText, p.Background = "#FFFFFF", "#808080", "#101010"
+		m = m.WithPalette(p)
+		view := m.View()
+		assertPaint(t, view, "Theme:", p.SecondaryText, p.Background, false)
+		assertPaint(t, view, "Theme Palette:", p.SecondaryText, p.Background, false)
+		assertPaint(t, view, "default", p.Text, p.Background, false)
+	}
+}
+
 func TestPaletteColorsDeduplicatesAndSortsByHue(t *testing.T) {
 	p := Palette{Text: "#ff0000", SecondaryText: "#FF0000", Accent: "#00FF00", Info: "#0000FF", Warning: "#FFFF00", Error: "#FF00FF", Focus: "#00FFFF", MutedText: "#808080", Border: "#000000", Success: "#FFFFFF"}
 	want := []lipgloss.Color{"#000000", "#808080", "#FFFFFF", "#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF"}

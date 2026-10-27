@@ -2,7 +2,7 @@
 
 ## 0.2.12 — Palette label correction
 
-- Correct “Theme Pallet” to “Theme Palette” in About and the accompanying documentation.
+- Correct “Theme Pallet” to “Theme Palette” in About and the accompanying documentation. Match About theme labels to dashboard secondary text styling while keeping the theme source in primary text.
 
 ## 0.2.11 — About Bambu TUI
 

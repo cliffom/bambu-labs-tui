@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2 — Preserve live print job names
+
+- Preserve newly reported job names across partial print-start reports instead of clearing them again when the running state or delayed task/subtask IDs arrive (#129, #130).
+- Clear previous-job metadata at the first reported start or changed known identity. Treat numeric/string zero and other unknown IDs as placeholders, preserving the new name, estimates, stage, and observed state when a confirmed identity arrives later.
+- Keep table and printer-details names synchronized, with the G-code filename/path as a fallback until a name is reported. Preserve selection, focus, read-only monitoring, and separate notification identity evidence.
+
+See [job-name display behavior](user/farm-view.md) and [validation evidence and limits](development/validation.md#live-print-job-names-129).
+
 ## 0.4.1 — Sustainable notification history and shared session policy
 
 - Keep retired notification job identities in exact, checksummed on-disk archives instead of filling the bounded live ledger with lifetime job history (#105). Preserve replay suppression, conservative identity reuse, and at-most-once attempts across restarts and legacy migration.

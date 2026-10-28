@@ -103,7 +103,7 @@ func ReasonText(reason string) string {
 	case ReasonStorageBusy:
 		return "Identity storage busy; delivery paused. Press r after competing access ends."
 	case ReasonStorageFull:
-		return "Identity capacity reached; delivery paused. Restart cannot free capacity."
+		return "Live identity limit. Stop hosts; see alerts guide for explicit job compaction."
 	case ReasonStorage:
 		return "Identity storage unavailable; delivery paused. Fix storage, then press r in activity."
 	case ReasonReservation:

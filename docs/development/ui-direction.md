@@ -73,6 +73,8 @@ Use one inherited modern console-style font stack throughout the dashboard, incl
 
 At a default 16px browser root, keep body/primary readings at 16px and metadata/control labels at least 14px. Use relative font sizes and comfortable line height so browser text preferences can enlarge them. Let cards, metric columns, filters, and controls reflow instead of shrinking text to fit; check narrow viewports and 200% text enlargement without horizontal scrolling or clipped dialogs. Preserve readable unknown/last-known labels, visible keyboard focus, font-independent close icons, and reduced-motion preferences. Artwork remains decorative.
 
+Notification activity reports live identity use as `IDs used/4096`; append a textual `!` and warning styling at 80% capacity. Keep capacity visible at 60 × 18 alongside outcomes and ownership. Browser notification status carries the same near-limit guidance independently from submission feedback. Recovery guidance directs users to stop cloud hosts and run `compact-notifications --consume-unfinished`, explicitly explaining forfeited unfinished completions. Activity recheck never performs compaction or resets identities; no confirmation or maintenance action is added to the dialog.
+
 ## Verification for a UI change
 
 Extend the relevant behavioral tests when changing an interaction contract. Prefer semantic assertions, ANSI-aware bounds, synthetic telemetry, and explicit synchronization over full-frame snapshots or sleeps. Existing examples include `internal/ui/dialogs_test.go`, `modal_keys_test.go`, `resize_input_test.go`, `overview_test.go`, `offline_test.go`, and the [PTY suite](terminal-tests.md). `make test` runs these with the race detector in Linux/macOS CI.

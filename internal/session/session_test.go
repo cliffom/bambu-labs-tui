@@ -1,8 +1,6 @@
 package session_test
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"reflect"
 	"strings"
@@ -16,9 +14,11 @@ import (
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
-type recordingSink struct{ snapshots [][]byte }
+type recordingSink struct{ snapshots []session.DisplayState }
 
-func (s *recordingSink) Publish(data []byte) { s.snapshots = append(s.snapshots, data) }
+func (s *recordingSink) PublishDisplay(state session.DisplayState) {
+	s.snapshots = append(s.snapshots, state)
+}
 
 const faultReport = `{"print":{"gcode_state":"PAUSE","print_error":117473297,"hms":[{"attr":117448704,"code":131073}]}}`
 
@@ -50,7 +50,7 @@ func report(t *testing.T, s *session.Session, payload string, at time.Time) {
 
 func decision(s *session.Session, target string, retry bool) string {
 	c := webserver.Command{Target: target, Retry: retry, Reply: make(chan string, 1)}
-	s.ApplyWebCommand(c, false, true)
+	c.Reply <- string(s.ApplyDecision(session.DecisionCommand{Target: c.Target, Retry: c.Retry}, false, true))
 	return <-c.Reply
 }
 
@@ -101,7 +101,7 @@ func TestOccurrenceLifetimeWithoutTerminal(t *testing.T) {
 	}
 	for _, gate := range []struct{ stopping, enabled bool }{{true, true}, {false, false}} {
 		c := webserver.Command{Target: s.WebDecisions().Targets[key], Reply: make(chan string, 1)}
-		s.ApplyWebCommand(c, gate.stopping, gate.enabled)
+		c.Reply <- string(s.ApplyDecision(session.DecisionCommand{Target: c.Target, Retry: c.Retry}, gate.stopping, gate.enabled))
 		if <-c.Reply == "applied" {
 			t.Fatal("shutdown/disable accepted mutation")
 		}
@@ -209,18 +209,14 @@ func TestSnapshotIsolationAndMalformedReport(t *testing.T) {
 	s, at := fixture(t)
 	sink := &recordingSink{}
 	s.Publish(sink, at)
-	original := bytes.Clone(sink.snapshots[0])
-	var snapshot map[string]any
-	if err := json.Unmarshal(original, &snapshot); err != nil {
-		t.Fatal(err)
-	}
-	if bytes.Contains(original, []byte("SYNTHETIC_SERIAL")) || snapshot["decisions"] != "session-only" {
-		t.Fatal("snapshot exposed identity or wrong storage state")
+	original := sink.snapshots[0]
+	if original.Decisions != "session-only" || original.Printers[0].ID == "SYNTHETIC_SERIAL" {
+		t.Fatal("display exposed identity or wrong storage state")
 	}
 	key, target := firstTarget(t, &s)
 	decision(&s, target, false)
 	s.Publish(sink, at)
-	if !bytes.Equal(original, sink.snapshots[0]) || bytes.Equal(original, sink.snapshots[1]) {
+	if !reflect.DeepEqual(original, sink.snapshots[0]) || reflect.DeepEqual(original, sink.snapshots[1]) {
 		t.Fatal("snapshot bytes not independent")
 	}
 	before := s.Farm.Active[key]
@@ -235,7 +231,7 @@ func TestSnapshotIsolationAndMalformedReport(t *testing.T) {
 		t.Fatal("elapsed time resolved occurrence")
 	}
 	s.Publish(sink, at.Add(24*time.Hour))
-	if !bytes.Contains(sink.snapshots[2], []byte(`"fresh":false`)) {
+	if sink.snapshots[2].Printers[0].Fresh {
 		t.Fatal("stale telemetry labeled current")
 	}
 }
@@ -292,7 +288,7 @@ func TestShutdownRejectsDecisionsWhileCoalescedWritesDrain(t *testing.T) {
 	s.Acknowledge(key, true)
 	revision := s.Farm.ReviewRevision()
 	stopping := webserver.Command{Target: target, Retry: true, Reply: make(chan string, 1)}
-	s.ApplyWebCommand(stopping, true, true)
+	stopping.Reply <- string(s.ApplyDecision(session.DecisionCommand{Target: stopping.Target, Retry: stopping.Retry}, true, true))
 	if <-stopping.Reply == "applied" || s.Farm.ReviewRevision() != revision {
 		t.Fatal("shutdown changed pending decision")
 	}

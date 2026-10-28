@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"reflect"
@@ -22,7 +23,7 @@ const (
 	browserEventLifetime = 15 * time.Second
 	browserBatchLimit    = 12
 	browserRateWindow    = time.Minute
-	browserLedgerError   = "Browser notifications paused: identity storage unavailable, full, or observation queue overflowed. Repair storage and restart the monitor."
+	browserLedgerError   = "Browser notifications paused: identity storage unavailable, full, or observation queue overflowed. Repair storage; for capacity, stop hosts and run compact-notifications --consume-unfinished, then restart."
 )
 
 type (
@@ -40,9 +41,10 @@ type (
 		Sound   bool   `json:"sound"`
 	}
 	browserResult struct {
-		Cursor uint64         `json:"cursor"`
-		Events []browserEvent `json:"events"`
-		Error  string         `json:"error,omitempty"`
+		Cursor  uint64         `json:"cursor"`
+		Events  []browserEvent `json:"events"`
+		Error   string         `json:"error,omitempty"`
+		Warning string         `json:"warning,omitempty"`
 	}
 	browserRequest struct {
 		Baseline bool   `json:"baseline"`
@@ -73,6 +75,7 @@ type (
 		attempts            []time.Time
 		seen                map[string]browserOccurrence
 		candidates          []notification_state.Candidate
+		capacity            notification_state.Capacity
 	}
 )
 
@@ -130,6 +133,7 @@ func (b *browserWorker) observe(input notifications.Input) {
 		b.failed.Store(true)
 		return
 	}
+	b.capacity = observation.Capacity
 	// Retire old identities even while a family is unknown. A confirmed clear
 	// can have removed the ledger entry already; that is safe to forget locally.
 	retired := map[string]bool{}
@@ -194,6 +198,9 @@ func browserEligible(c notification_state.Candidate, input notifications.Input) 
 
 func (b *browserWorker) claim(request browserRequest) browserResult {
 	result := browserResult{Cursor: b.sequence, Events: []browserEvent{}}
+	if b.capacity.NearLimit() {
+		result.Warning = fmt.Sprintf("Live notification IDs %d/%d: near limit. Stop hosts; compact-notifications --consume-unfinished permanently suppresses retained completions.", b.capacity.Entries, b.capacity.Limit)
+	}
 	if b.failed.Load() {
 		result.Error = browserLedgerError
 		return result

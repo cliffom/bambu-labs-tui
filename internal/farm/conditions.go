@@ -115,7 +115,7 @@ func (s *State) Reconcile(now time.Time) {
 		old, ongoing := s.Active[k]
 		// An expired session or failed print is a new condition even if a
 		// previous connection problem or pause used the same list identity.
-		changed := old.Level != c.Level || old.Code != c.Code || ((k == ConditionCloud || strings.HasSuffix(k, "/"+ConditionState)) && old.Text != c.Text)
+		changed := !SameCondition(k, old, c)
 		if ongoing && !changed {
 			c.Since, c.Acknowledged = old.Since, old.Acknowledged
 			c.Dismissed = old.Dismissed

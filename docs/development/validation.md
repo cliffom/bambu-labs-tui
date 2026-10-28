@@ -5,6 +5,16 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Live print job names (#129)
+
+The v0.4.2 fix was checked on 2026-10-28 (PDT), macOS 27.0.1 (26A434) arm64 with Go 1.27.3. Synthetic regressions reproduce name loss when task/name reports precede running, when IDs arrive after slicing/preparing/running, and when numeric/string zero IDs are replaced by confirmed identities. Tests cover both identity arrival orders, null/empty/whitespace-zero placeholders, preserved names/estimates/stages/state, and subsequent known job boundaries that still clear old metadata. Notification evidence retains separate explicit-state tracking with shared ID normalization.
+
+TUI update/render tests checked filename-to-name updates, delayed identities, selection/focus preservation, table/details consistency, and width bounds at 60 × 18, 120 × 32, and 160 × 50. Actual `make demo` PTY output was inspected at 120 × 32 (table/details names and ongoing telemetry), 60 × 18 (compact dashboard), and 40 × 10 (resize fallback). No layout or styling changed. These are synthetic/text checks, not human visual inspection in a desktop terminal or live printer validation.
+
+`make docs-check fmt-check lint lint-actions lint-make audit-faults vuln-check test check build release` passed with pinned tools, including the full race/PTY suites. No known vulnerabilities were found. Local packaging verified all four v0.4.2 macOS/Linux archives, checksums, documentation/inventory, and the universal ad-hoc signed helper; the native CLI reported 0.4.2. Distribution signing and notarization remain the release workflow's responsibility.
+
+Live reproduction on H2D/X2D, printer firmware identity ordering, Linux runtime, and clean-Mac distribution/notification delivery remain unverified. The reported screenshot establishes the original H2D display symptom on firmware 01.04.00.00, not live validation of this fix.
+
 ## Notification history and session boundaries (#105, #106)
 
 The v0.4.1 candidate was checked on 2026-10-27 (PDT), macOS 27.0.1 (26A434) arm64, Go 1.27.3. Synthetic regressions cover a full 4,096-job v1 ledger upgrading into exact archives, repeated job turnover with bounded live state, startup baselines, identity reuse and RUNNING/FINISH replay after restart, consumed failed/accepted/reserved attempts, known successor jobs, absent/unknown printers, overflow buckets, checksums and missing markers, archive I/O failure, interrupted compaction, competing owners and concurrent claims. A replayed retired identity cannot displace unfinished activity for the current job. Explicit maintenance takes account and delivery ownership, requires `--consume-unfinished`, preserves intervention/local-decision state, and forfeits retained unfinished completions in both channels.

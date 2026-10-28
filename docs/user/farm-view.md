@@ -6,6 +6,8 @@ The dashboard summary always describes the **whole account farm**. Filtering cha
 
 The bottom dashboard row uses a contrasting background and bold hotkeys to separate navigation hints from printer data. Hints show `↑/↓` for selection or scrolling; `j` / `k` remain available. Toasts and storage warnings can temporarily replace the hints.
 
+The printer table's `JOB` column and printer details' `Job Name` use the reported job name, falling back to the G-code filename/path until a name is reported. Both update as partial reports arrive while the app is running. A changed task/subtask identity or a reported start from idle/done/failed clears the previous job's name and estimates; a new identity without an accompanying print state remains unknown until the printer reports its state.
+
 ## Summary definitions
 
 | Count | Meaning |

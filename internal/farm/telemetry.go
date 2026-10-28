@@ -36,13 +36,26 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	previous := p.State
 	// A new job must not inherit the previous job's ETA/progress while its
 	// initial report is still arriving.
-	task := str(delta[fieldTaskID])
-	newTask := task != "" && str(p.Raw[fieldTaskID]) != "" && task != str(p.Raw[fieldTaskID])
-	restart := str(delta[fieldGcodeState]) == StateRunning && (previous == StateFinished || previous == StateFailed || previous == StateIdle)
-	if newTask || restart {
-		for _, k := range []string{fieldRemainingMinutes, fieldProgress, fieldLayerNum, fieldTotalLayerNum, fieldSubtaskName, fieldGcodeFile, fieldStage} {
+	task, previousTask := protocolJobID(delta[fieldTaskID]), protocolJobID(p.Raw[fieldTaskID])
+	newTask := task != "" && previousTask != "" && task != previousTask
+	subtask, previousSubtask := protocolJobID(delta[fieldSubtaskID]), protocolJobID(p.Raw[fieldSubtaskID])
+	newSubtask := subtask != "" && previousSubtask != "" && subtask != previousSubtask
+	newIdentity := newTask || newSubtask
+	next := str(delta[fieldGcodeState])
+	restart := (next == StateSlicing || next == StatePreparing || next == StateRunning) && (previous == StateFinished || previous == StateFailed || previous == StateIdle)
+	if newIdentity || restart {
+		// This boundary ends both old identity associations. IDs omitted from
+		// the start report are unknown for the new job; their later arrival
+		// fills that gap rather than resetting metadata received since startup.
+		for _, k := range []string{fieldTaskID, fieldSubtaskID, fieldRemainingMinutes, fieldProgress, fieldLayerNum, fieldTotalLayerNum, fieldSubtaskName, fieldGcodeFile, fieldStage} {
 			delete(raw, k)
 		}
+	}
+	if newIdentity {
+		// The old state belongs to the old identity. Besides showing unknown
+		// until explicitly reported, this prevents a later RUNNING delta from
+		// clearing the new name a second time after an inherited FINISH/IDLE.
+		delete(raw, fieldGcodeState)
 	}
 	merge(raw, delta)
 	if !telemetryWithinLimits(raw) {
@@ -50,7 +63,7 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	}
 	p.Raw = raw
 	p.versionReport(object(envelope[fieldInfo]), now)
-	if newTask || restart {
+	if newIdentity || restart {
 		p.RemainingReported = time.Time{}
 	}
 	if _, ok := delta[fieldRemainingMinutes]; ok {

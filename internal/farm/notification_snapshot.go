@@ -8,7 +8,7 @@ import (
 	"unicode"
 )
 
-const maxNotificationProtocolIDBytes = 128
+const maxProtocolJobIDBytes = 128
 
 type (
 	// NotificationSnapshot contains only fresh normalized observations. An omitted
@@ -95,14 +95,14 @@ func notificationStateKnown(state string) bool {
 func (p *Printer) observeNotificationJob(delta map[string]any) {
 	next := p.notificationJob
 	if value, supplied := delta[fieldTaskID]; supplied {
-		task := notificationProtocolID(value)
+		task := protocolJobID(value)
 		if task != next.Task {
 			next.Subtask = ""
 		}
 		next.Task = task
 	}
 	if value, supplied := delta[fieldSubtaskID]; supplied {
-		next.Subtask = notificationProtocolID(value)
+		next.Subtask = protocolJobID(value)
 	}
 	if next.Task != p.notificationJob.Task || next.Subtask != p.notificationJob.Subtask {
 		next.State = StateUnknown
@@ -117,7 +117,9 @@ func (p *Printer) observeNotificationJob(delta map[string]any) {
 	p.notificationJob = next
 }
 
-func notificationProtocolID(value any) string {
+// protocolJobID gives telemetry boundaries and notification evidence the same
+// identity interpretation. Zero/empty/invalid values are unknown, not a job ID.
+func protocolJobID(value any) string {
 	var id string
 	switch v := value.(type) {
 	case string:
@@ -130,7 +132,7 @@ func notificationProtocolID(value any) string {
 	default:
 		return ""
 	}
-	if id == "" || id == "0" || len(id) > maxNotificationProtocolIDBytes || strings.ContainsFunc(id, unicode.IsControl) {
+	if id == "" || id == "0" || len(id) > maxProtocolJobIDBytes || strings.ContainsFunc(id, unicode.IsControl) {
 		return ""
 	}
 	return id

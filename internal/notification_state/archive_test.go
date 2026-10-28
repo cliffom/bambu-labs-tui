@@ -225,6 +225,52 @@ func TestArchivedJobCannotBeReservedAfterInterruptedCompaction(t *testing.T) {
 	}
 }
 
+func TestObserveRecommitsArchivedUnfinishedJobBeforeRemovingLiveRecord(t *testing.T) {
+	store := Store{Path: filepath.Join(t.TempDir(), "state.json")}
+	if _, err := store.Observe(jobSnapshot("unfinished", farm.StateRunning)); err != nil {
+		t.Fatal(err)
+	}
+	key := hashParts("SYNTHETIC", "unfinished", "")
+	// Model compaction's visible bucket after rename but before a successful
+	// directory commit or live-ledger replacement. Recovery cannot infer durability.
+	if _, err := store.archived(key, true); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(store.Path+".jobs", key[:archivePrefixDigits]+".bin")
+	before, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = before.Close() }()
+	original, err := before.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	restarted := Store{Path: store.Path}
+	if events, err := restarted.Observe(jobSnapshot("unfinished", farm.StateRunning)); err != nil || len(events) != 0 {
+		t.Fatal(events, err)
+	}
+	after, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if os.SameFile(original, after) {
+		t.Fatal("overlapping archive bucket was not recommitted")
+	}
+	d, err := restarted.load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := d.Jobs[key]; exists {
+		t.Fatal("recovered archive left duplicate live record")
+	}
+	for _, state := range []string{farm.StateFinished, farm.StateRunning, farm.StateFinished} {
+		if events, err := restarted.Observe(jobSnapshot("unfinished", state)); err != nil || len(events) != 0 {
+			t.Fatal("consumed unfinished job replayed", events, err)
+		}
+	}
+}
+
 func TestConcurrentArchiveClaimsRemainAtMostOnce(t *testing.T) {
 	store := Store{Path: filepath.Join(t.TempDir(), "state.json")}
 	if _, err := store.Observe(jobSnapshot("job", farm.StateRunning)); err != nil {

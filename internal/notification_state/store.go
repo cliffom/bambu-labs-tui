@@ -178,6 +178,11 @@ func (s Store) ObserveActivity(snapshot farm.NotificationSnapshot) (Observation,
 			}
 			if retired {
 				if _, exists := d.Jobs[key]; exists {
+					// A visible bucket may have survived a failed directory sync.
+					// Recommit it before durably removing the live fallback.
+					if _, err := s.archived(key, true); err != nil {
+						return false, err
+					}
 					delete(d.Jobs, key)
 					dirty = true
 				}

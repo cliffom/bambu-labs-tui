@@ -44,7 +44,10 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	next := str(delta[fieldGcodeState])
 	restart := (next == StateSlicing || next == StatePreparing || next == StateRunning) && (previous == StateFinished || previous == StateFailed || previous == StateIdle)
 	if newIdentity || restart {
-		for _, k := range []string{fieldRemainingMinutes, fieldProgress, fieldLayerNum, fieldTotalLayerNum, fieldSubtaskName, fieldGcodeFile, fieldStage} {
+		// This boundary ends both old identity associations. IDs omitted from
+		// the start report are unknown for the new job; their later arrival
+		// fills that gap rather than resetting metadata received since startup.
+		for _, k := range []string{fieldTaskID, fieldSubtaskID, fieldRemainingMinutes, fieldProgress, fieldLayerNum, fieldTotalLayerNum, fieldSubtaskName, fieldGcodeFile, fieldStage} {
 			delete(raw, k)
 		}
 	}
@@ -53,9 +56,6 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 		// until explicitly reported, this prevents a later RUNNING delta from
 		// clearing the new name a second time after an inherited FINISH/IDLE.
 		delete(raw, fieldGcodeState)
-	}
-	if newTask {
-		delete(raw, fieldSubtaskID)
 	}
 	merge(raw, delta)
 	if !telemetryWithinLimits(raw) {

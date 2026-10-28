@@ -36,10 +36,10 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	previous := p.State
 	// A new job must not inherit the previous job's ETA/progress while its
 	// initial report is still arriving.
-	task := str(delta[fieldTaskID])
-	newTask := task != "" && str(p.Raw[fieldTaskID]) != "" && task != str(p.Raw[fieldTaskID])
-	subtask := str(delta[fieldSubtaskID])
-	newSubtask := subtask != "" && str(p.Raw[fieldSubtaskID]) != "" && subtask != str(p.Raw[fieldSubtaskID])
+	task, previousTask := protocolJobID(delta[fieldTaskID]), protocolJobID(p.Raw[fieldTaskID])
+	newTask := task != "" && previousTask != "" && task != previousTask
+	subtask, previousSubtask := protocolJobID(delta[fieldSubtaskID]), protocolJobID(p.Raw[fieldSubtaskID])
+	newSubtask := subtask != "" && previousSubtask != "" && subtask != previousSubtask
 	newIdentity := newTask || newSubtask
 	next := str(delta[fieldGcodeState])
 	restart := (next == StateSlicing || next == StatePreparing || next == StateRunning) && (previous == StateFinished || previous == StateFailed || previous == StateIdle)

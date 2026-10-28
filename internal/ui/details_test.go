@@ -17,7 +17,7 @@ func TestJobNameUpdatesDuringRunningSession(t *testing.T) {
 		m = next.(Model)
 		m = attentionReport(t, m, "H", `{"print":{"task_id":"previous","subtask_id":"previous","gcode_state":"FINISH","subtask_name":"Previous job"}}`)
 		for _, step := range []struct{ payload, want string }{
-			{`{"print":{"gcode_state":"PREPARE","gcode_file":"plate_2.gcode"}}`, "plate_2.gcode"},
+			{`{"print":{"gcode_state":"PREPARE","gcode_file":"plate_2.gcode","task_id":0,"subtask_id":"0"}}`, "plate_2.gcode"},
 			{`{"print":{"subtask_name":"Fixture next"}}`, "Fixture next"},
 			{`{"print":{"subtask_id":"next"}}`, "Fixture next"},
 			{`{"print":{"task_id":"next"}}`, "Fixture next"},

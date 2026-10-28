@@ -1,9 +1,38 @@
 package farm
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
+
+func TestUnknownJobIDsDoNotResetStartupMetadata(t *testing.T) {
+	for _, field := range []string{"task_id", "subtask_id"} {
+		for _, placeholder := range []string{`0`, `"0"`, `" 0 "`, `null`, `""`} {
+			t.Run(field+"/"+placeholder, func(t *testing.T) {
+				s, p, now := setup(t, "h2d")
+				report(t, s, `{"subtask_id":"previous","gcode_state":"FINISH"}`, now)
+				started := now.Add(time.Minute)
+				report(t, s, fmt.Sprintf(`{"gcode_state":"PREPARE","subtask_name":"Fixture next","mc_remaining_time":30,"mc_percent":2,"stg_cur":13,%q:%s}`, field, placeholder), started)
+				for _, delta := range []string{
+					fmt.Sprintf(`{%q:"next"}`, field),
+					`{"gcode_state":"RUNNING","gcode_file":"/data/Metadata/plate_2.gcode"}`,
+					fmt.Sprintf(`{%q:%s}`, field, placeholder),
+					fmt.Sprintf(`{%q:"next"}`, field),
+				} {
+					report(t, s, delta, started.Add(time.Second))
+					if p.Job != "Fixture next" || p.State == StateUnknown || p.Remaining == nil || *p.Remaining != 30 || p.Progress == nil || *p.Progress != 2 || p.Stage != "Homing" || !p.RemainingReported.Equal(started) {
+						t.Fatalf("placeholder identity reset startup metadata after %s: job=%q state=%q remaining=%v progress=%v stage=%q reported=%v", delta, p.Job, p.State, p.Remaining, p.Progress, p.Stage, p.RemainingReported)
+					}
+				}
+				report(t, s, fmt.Sprintf(`{%q:"different-job"}`, field), started.Add(2*time.Second))
+				if p.Job != "" || p.State != StateUnknown || p.Remaining != nil || p.Progress != nil {
+					t.Fatal("a changed known identity retained previous metadata")
+				}
+			})
+		}
+	}
+}
 
 func TestJobStartPreservesMetadataThroughDelayedIdentities(t *testing.T) {
 	for _, terminal := range []string{"IDLE", "FINISH", "FAILED"} {

@@ -428,3 +428,11 @@ func TestBrowserClaimsDoNotConsumeNativeLedger(t *testing.T) {
 		t.Fatal("browser consumed native identity")
 	}
 }
+
+func TestBrowserCapacityWarningOnBaseline(t *testing.T) {
+	b := &browserWorker{capacity: notification_state.Capacity{Entries: 3500, Limit: 4096}}
+	result := b.claim(browserRequest{Baseline: true})
+	if !strings.Contains(result.Warning, "3500/4096") || len(result.Events) != 0 || result.Error != "" {
+		t.Fatal(result)
+	}
+}

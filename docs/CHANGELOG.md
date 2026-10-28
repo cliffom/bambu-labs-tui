@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1 — Sustainable notification history and shared session policy
+
+- Keep retired notification job identities in exact, checksummed on-disk archives instead of filling the bounded live ledger with lifetime job history (#105). Preserve replay suppression, conservative identity reuse, and at-most-once attempts across restarts and legacy migration.
+- Show live identity use and near-limit warnings in Notification activity and browser notification status. Add offline `compact-notifications` maintenance for exhausted job tracking; it preserves deduplication and intervention identities while explicitly forfeiting unfinished completions.
+- Give the shared session transport-independent display and local-decision contracts, keep HTTP wire encoding in the web adapter, centralize farm occurrence comparison, and share account persistence initialization/failure policy across terminal and foreground hosts (#106).
+- Preserve local notice decisions, request protections, read-only monitoring, serialized/coalesced persistence, and bounded shutdown. Exact history grows gradually on disk; unreadable/corrupt state still fails closed. Older binaries reject upgraded notification ledgers.
+
+See [history and recovery policy](user/alerts.md#notification-history-and-capacity), [architecture](development/architecture.md#exact-job-history-and-maintenance), and [validation evidence and limits](development/validation.md#notification-history-and-session-boundaries-105-106).
+
 ## 0.4.0 — Terminal safety and persistence durability
 
 - Remove terminal control characters from unrecognized printer-state labels before rendering (#119), closing a telemetry-driven escape-injection path in printer details. Preserve readable future state labels and the original telemetry used for interpretation.

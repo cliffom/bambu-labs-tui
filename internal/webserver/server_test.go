@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/session"
 )
 
 func TestReadOnlyRoutesAndBrowserBoundary(t *testing.T) {
@@ -172,7 +173,7 @@ func decodeSnapshot(t *testing.T, data []byte) snapshot {
 
 func TestSnapshotAllowlistIsolationAndUnknowns(t *testing.T) {
 	s, now := syntheticState(t)
-	data := SnapshotJSON(s, now, true)
+	data := snapshotJSON(s, now, true)
 	for _, secret := range []string{"PRIVATE-SERIAL", "PRIVATE-TASK", "PRIVATE-SUBTASK", "PRIVATE-TOKEN", "PRIVATE-ACCOUNT", "PRIVATE-BACKEND-ERROR", "Raw", "access_token"} {
 		if bytes.Contains(data, []byte(secret)) {
 			t.Fatal("sensitive field escaped allowlist", secret)
@@ -196,14 +197,14 @@ func TestSnapshotReusesFreshnessETAAndAttention(t *testing.T) {
 	if err := s.Report(p.ID, []byte(`{"print":{"gcode_state":"FAILED"}}`), now); err != nil {
 		t.Fatal(err)
 	}
-	got := decodeSnapshot(t, SnapshotJSON(s, now, false))
+	got := decodeSnapshot(t, snapshotJSON(s, now, false))
 	if got.Summary.Attention != 1 || !got.Printers[0].Attention || len(got.Printers[0].Conditions) == 0 {
 		t.Fatal("failed-state attention missing")
 	}
 	for _, a := range s.Attention() {
 		s.Acknowledge(a.Key, true)
 	}
-	got = decodeSnapshot(t, SnapshotJSON(s, now, false))
+	got = decodeSnapshot(t, snapshotJSON(s, now, false))
 	if got.Summary.Attention != 0 || !got.Printers[0].Conditions[0].Reviewed {
 		t.Fatal("local review lost")
 	}
@@ -224,7 +225,7 @@ func TestSnapshotReusesFreshnessETAAndAttention(t *testing.T) {
 	} {
 		p.Online = test.online
 		s.Connected = test.cloud
-		got = decodeSnapshot(t, SnapshotJSON(s, now.Add(test.age), false))
+		got = decodeSnapshot(t, snapshotJSON(s, now.Add(test.age), false))
 		if got.Printers[0].Online != test.online || got.Printers[0].Connection != test.connection || got.Printers[0].Fresh != test.fresh || got.Printers[0].ETACurrent != test.eta {
 			t.Fatalf("freshness diverged: %+v", got.Printers[0])
 		}
@@ -235,12 +236,12 @@ func TestSnapshotReusesFreshnessETAAndAttention(t *testing.T) {
 	if err := s.Report(p.ID, []byte(`{"print":{"bed_temper":61}}`), now.Add(3*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	got = decodeSnapshot(t, SnapshotJSON(s, now.Add(3*time.Minute), false))
+	got = decodeSnapshot(t, snapshotJSON(s, now.Add(3*time.Minute), false))
 	if !got.Printers[0].Fresh || got.Printers[0].ETACurrent {
 		t.Fatal("temperature refreshed ETA")
 	}
 	s.Discover([]farm.Device{{ID: "EMPTY", Name: "Waiting", Online: true}}, now)
-	got = decodeSnapshot(t, SnapshotJSON(s, now, false))
+	got = decodeSnapshot(t, snapshotJSON(s, now, false))
 	if got.Printers[0].Connection != farm.ConnectionWaiting || got.Printers[0].Progress != nil || got.Printers[0].Remaining != nil {
 		t.Fatal("unknown startup inferred values")
 	}
@@ -251,7 +252,7 @@ func TestSnapshotProgressAndETADoNotConfirmCompletion(t *testing.T) {
 	if err := state.Report("PRIVATE-SERIAL", []byte(`{"print":{"mc_percent":100,"mc_remaining_time":0}}`), now); err != nil {
 		t.Fatal(err)
 	}
-	got := decodeSnapshot(t, SnapshotJSON(state, now.Add(time.Minute), false))
+	got := decodeSnapshot(t, snapshotJSON(state, now.Add(time.Minute), false))
 	if got.Summary.Printing != 1 || got.Printers[0].State != farm.StateRunning {
 		t.Fatal("progress or elapsed estimate implied completion")
 	}
@@ -358,4 +359,8 @@ func TestListenerUptimeFollowsSuccessfulLifetime(t *testing.T) {
 	if !second.Started.After(first.Started) {
 		t.Fatal("restart retained listener uptime")
 	}
+}
+
+func snapshotJSON(state *farm.State, now time.Time, demo bool) []byte {
+	return EncodeDisplay(session.BuildDisplay(state, now, demo))
 }

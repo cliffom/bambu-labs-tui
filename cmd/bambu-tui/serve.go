@@ -58,16 +58,8 @@ func serveCloud(ctx context.Context, cfg config.Config, output, diagnostics io.W
 // Stores use the same account/region scope and failed-load protection as the TUI.
 func cloudServeState(cfg config.Config, stores *accountstore.Store, diagnostics io.Writer) session.Session {
 	state := session.New(farm.New(cfg.LowFilamentPercent), false)
-	reviews, loadErr := stores.LoadReviews()
-	state.Farm.RestoreReviews(reviews)
-	state.WithNoticePersistence(stores.SaveReviews, loadErr)
-	if loadErr != nil {
-		_, _ = fmt.Fprintln(diagnostics, "Notice persistence: saved data unavailable; decisions apply only to this session; repair the notice store and restart")
-	}
-	deadlines, snoozeErr := stores.LoadSnoozes()
-	state.WithSnoozePersistence(deadlines, stores.SaveSnoozes, snoozeErr)
-	if snoozeErr != nil {
-		_, _ = fmt.Fprintln(diagnostics, "Alert persistence: saved data unavailable; changes apply only to this session; repair the snooze store and restart")
+	for _, warning := range state.WithAccountPersistence(stores) {
+		_, _ = fmt.Fprintln(diagnostics, warning)
 	}
 	return state
 }
@@ -210,7 +202,7 @@ running:
 			state.Reconcile(at)
 			state.PruneSnoozes(at)
 		case command := <-web.Commands():
-			state.ApplyWebCommand(command, ctx.Err() != nil, true)
+			command.Reply <- string(state.ApplyDecision(session.DecisionCommand{Target: command.Target, Retry: command.Retry}, ctx.Err() != nil, true))
 		case result := <-results:
 			state.Complete(result)
 		}

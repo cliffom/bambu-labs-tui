@@ -58,8 +58,9 @@ func run(args []string) error {
 	version := flags.Bool("version", false, "show version")
 	notify := flags.Bool("notify", false, "doctor: submit a synthetic desktop notification (macOS)")
 	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
+	consumeUnfinished := flags.Bool("consume-unfinished", false, "compact-notifications: consume all retained unfinished completions")
 	flags.Usage = func() {
-		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor|serve] [options]\n\nExamples:\n  bambu-tui --demo --theme gruvbox-dark\n  bambu-tui serve\n  bambu-tui serve --demo --config ./config.toml\n  bambu-tui --theme ./my-theme.json\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambu-tui --demo --theme gruvbox-dark\n  bambu-tui serve\n  bambu-tui serve --demo --config ./config.toml\n  bambu-tui --theme ./my-theme.json\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -85,8 +86,8 @@ func run(args []string) error {
 			themeProvided = true
 		}
 	})
-	if command != commandMonitor && command != commandLogin && command != commandLogout && command != commandDoctor && command != commandServe {
-		return errors.New("unknown command; use login, logout, doctor, serve, or --help")
+	if command != commandMonitor && command != commandLogin && command != commandLogout && command != commandDoctor && command != commandServe && command != commandCompact {
+		return errors.New("unknown command; use login, logout, doctor, serve, compact-notifications, or --help")
 	}
 	if command != commandLogin && (*token || *code || *sessionOnly) {
 		return errors.New("--token, --email-code, and --session are login options")
@@ -109,6 +110,12 @@ func run(args []string) error {
 	if *sound && !*notify {
 		return errors.New("--sound requires doctor --notify")
 	}
+	if command == commandCompact && !*consumeUnfinished {
+		return errors.New("compact-notifications requires --consume-unfinished: retained jobs will never notify completion; prior attempts and intervention identities remain protected")
+	}
+	if command != commandCompact && *consumeUnfinished {
+		return errors.New("--consume-unfinished is only for compact-notifications")
+	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	if command == commandDoctor && *notify {
@@ -117,6 +124,9 @@ func run(args []string) error {
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return err
+	}
+	if command == commandCompact {
+		return compactNotifications(ctx, cfg, os.Stdout)
 	}
 	if command == commandServe {
 		if *demo {
@@ -284,17 +294,9 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, theme 
 		return nil
 	}).WithNotificationTest(ctx, notifications.Test)
 	if !demo {
-		reviews, loadErr := stores.LoadReviews()
-		state.RestoreReviews(reviews)
-		if loadErr != nil {
-			fmt.Fprintln(os.Stderr, "Notice persistence:", loadErr)
+		for _, warning := range model.WithAccountPersistence(stores) {
+			fmt.Fprintln(os.Stderr, warning)
 		}
-		model = model.WithNoticePersistence(stores.SaveReviews, loadErr)
-		snoozes, snoozeErr := stores.LoadSnoozes()
-		if snoozeErr != nil {
-			fmt.Fprintln(os.Stderr, "Alert persistence:", snoozeErr)
-		}
-		model = model.WithSnoozePersistence(snoozes, stores.SaveSnoozes, snoozeErr)
 	}
 	{ // Prepare the client; the UI starts ledger observation only after opt-in.
 		var worker *notifications.Worker

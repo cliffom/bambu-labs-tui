@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	schemaVersion = 1
+	schemaVersion = 2
 	maxEntries    = 4096
 	maxFileBytes  = 2 * 1024 * 1024
 	nonceBytes    = 16
@@ -32,7 +32,7 @@ const (
 
 var (
 	ErrBusy        = errors.New("notification state is in use")
-	ErrCapacity    = errors.New("notification identity capacity reached; delivery disabled rather than forgetting deduplication history")
+	ErrCapacity    = errors.New("notification identity capacity reached; reconnect printers or stop hosts and run compact-notifications --consume-unfinished; history is never reset")
 	ErrUnknown     = errors.New("notification occurrence is no longer current")
 	ErrNotReserved = errors.New("notification occurrence has not been reserved")
 )
@@ -41,6 +41,7 @@ type (
 	Observation struct {
 		Candidates []Candidate
 		Suppressed []Suppression
+		Capacity   Capacity
 	}
 	Suppression struct {
 		Candidate
@@ -57,6 +58,7 @@ type (
 
 	document struct {
 		Version   int                 `json:"version"`
+		Archive   bool                `json:"archive,omitempty"`
 		Incidents map[string]incident `json:"incidents"`
 		Jobs      map[string]job      `json:"jobs"`
 	}
@@ -117,7 +119,10 @@ func (s Store) Observe(snapshot farm.NotificationSnapshot) ([]Candidate, error) 
 func (s Store) ObserveActivity(snapshot farm.NotificationSnapshot) (Observation, error) {
 	var result Observation
 	err := s.transact(func(d *document) (bool, error) {
-		dirty := false
+		dirty, err := s.retireJobs(d, snapshot, false)
+		if err != nil {
+			return false, err
+		}
 		for _, id := range sortedKeys(snapshot) {
 			p := snapshot[id]
 			printer := hashParts(id)
@@ -167,6 +172,25 @@ func (s Store) ObserveActivity(snapshot farm.NotificationSnapshot) (Observation,
 				continue // No trustworthy protocol identity; never guess from names/ETA.
 			}
 			key := hashParts(id, p.Job.Task, p.Job.Subtask)
+			retired, err := s.archived(key, false)
+			if err != nil {
+				return false, err
+			}
+			if retired {
+				if _, exists := d.Jobs[key]; exists {
+					// A visible bucket may have survived a failed directory sync.
+					// Recommit it before durably removing the live fallback.
+					if _, err := s.archived(key, true); err != nil {
+						return false, err
+					}
+					delete(d.Jobs, key)
+					dirty = true
+				}
+				if p.Job.State == farm.StateFinished {
+					result.Suppressed = append(result.Suppressed, Suppression{Candidate: Candidate{ID: key[:nonceBytes*2], PrinterID: id, Kind: Completion}, Reason: SuppressedBaseline})
+				}
+				continue
+			}
 			old, present := d.Jobs[key]
 			if !farmJobStateKnown(p.Job.State) {
 				continue
@@ -207,6 +231,7 @@ func (s Store) ObserveActivity(snapshot farm.NotificationSnapshot) (Observation,
 				result.Suppressed = append(result.Suppressed, Suppression{Candidate: Candidate{ID: next.ID, PrinterID: id, Kind: Completion}, Reason: reason})
 			}
 		}
+		result.Capacity = Capacity{Entries: len(d.Incidents) + len(d.Jobs), Limit: maxEntries}
 		return dirty, nil
 	})
 	if err != nil {
@@ -229,7 +254,7 @@ func (s Store) ReserveBatch(ids []string) ([]string, error) {
 	var claimed []string
 	err := s.transact(func(d *document) (bool, error) {
 		for _, id := range ids {
-			_, err := changeIn(d, id, func(o *occurrence, ready bool) (bool, error) {
+			_, err := s.changeIn(d, id, func(o *occurrence, ready bool) (bool, error) {
 				if !ready || o.Attempt != Pending {
 					return false, nil
 				}
@@ -269,10 +294,10 @@ func (s Store) RecordResult(id string, result Attempt) error {
 }
 
 func (s Store) changeOccurrence(id string, change func(*occurrence, bool) (bool, error)) error {
-	return s.transact(func(d *document) (bool, error) { return changeIn(d, id, change) })
+	return s.transact(func(d *document) (bool, error) { return s.changeIn(d, id, change) })
 }
 
-func changeIn(d *document, id string, change func(*occurrence, bool) (bool, error)) (bool, error) {
+func (s Store) changeIn(d *document, id string, change func(*occurrence, bool) (bool, error)) (bool, error) {
 	for key, value := range d.Incidents {
 		if value.ID == id {
 			dirty, err := change(&value.occurrence, true)
@@ -282,6 +307,13 @@ func changeIn(d *document, id string, change func(*occurrence, bool) (bool, erro
 	}
 	for key, value := range d.Jobs {
 		if value.ID == id {
+			archived, err := s.archived(key, false)
+			if err != nil {
+				return false, err
+			}
+			if archived {
+				return false, ErrUnknown
+			}
 			dirty, err := change(&value.occurrence, value.Active && value.Completed && !value.Closed)
 			d.Jobs[key] = value
 			return dirty, err
@@ -315,10 +347,25 @@ func (s Store) transact(change func(*document) (bool, error)) error {
 	if err != nil {
 		return err
 	}
+	// Publish the new schema before archiving. Older binaries must reject the
+	// ledger even if a crash interrupts the first retirement transaction.
+	if !d.Archive {
+		if err := s.archiveReady(true); err != nil {
+			return err
+		}
+		d.Version, d.Archive = schemaVersion, true
+		if err := s.save(d); err != nil {
+			return err
+		}
+	}
 	dirty, err := change(&d)
 	if err != nil || !dirty {
 		return err
 	}
+	return s.save(d)
+}
+
+func (s Store) save(d document) error {
 	if err := validate(d); err != nil {
 		return err
 	}
@@ -364,6 +411,11 @@ func (s Store) load() (document, error) {
 	if err := validate(d); err != nil {
 		return d, err
 	}
+	if d.Archive {
+		if err := s.archiveReady(false); err != nil {
+			return d, err
+		}
+	}
 	if d.Incidents == nil {
 		d.Incidents = map[string]incident{}
 	}
@@ -374,8 +426,11 @@ func (s Store) load() (document, error) {
 }
 
 func validate(d document) error {
-	if d.Version != schemaVersion {
+	if (d.Version != schemaVersion && d.Version != 1) || (d.Version == 1 && d.Archive) {
 		return errors.New("unsupported notification state version")
+	}
+	if d.Version == schemaVersion && !d.Archive {
+		return errors.New("notification job archive marker is required")
 	}
 	if d.Incidents == nil || d.Jobs == nil {
 		return errors.New("invalid notification state collections")

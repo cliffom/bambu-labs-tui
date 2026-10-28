@@ -133,7 +133,7 @@ Open the localhost URL in the [foreground status display](#foreground-server-sta
 
 Browser notice decisions reuse the TUI's account/region-scoped files and survive restart. Snoozes are loaded and expired deadlines are saved; browser hiding remains separate from snoozing and physical fault resolution. Unreadable stores are preserved with writes disabled and session-only guidance; repair them and restart. Failed writes remain visible with explicit browser retry for notice decisions. Shutdown closes HTTP and drains accepted writes/coalesced revisions for up to five seconds, returning a failure for failed or unconfirmed saves; monitor cancellation/join is bounded separately to five seconds. One cloud host per account/region and storage directory is enforced before loading decisions; another host exits with stop-and-retry guidance. See [saved notice decisions](#saved-notice-decisions) for upgrade and external-edit limits.
 
-Native desktop delivery stays disabled even if saved preferences enable it. Browser system notifications remain planned. This is a localhost-only foreground process, without dashboard authentication, remote access, or an installed background service. Other local users/programs can read the dashboard and submit local notice decisions as described above.
+Native desktop delivery stays disabled even if saved preferences enable it. Browser system notifications are independently opt-in; see [browser notification policy](alerts.md#browser-system-notifications). This is a localhost-only foreground process, without dashboard authentication, remote access, or an installed background service. Other local users/programs can read the dashboard and submit local notice decisions as described above.
 
 ### Terminal-free demo server
 
@@ -149,7 +149,7 @@ make build
 
 Open the printed listening URL on the same computer. This command starts HTTP even when `[web_server].enabled = false`, uses the configured port (default 8080), and never rewrites that preference or the configuration file. An occupied port exits with an error and no fallback; a listening URL is printed only after binding succeeds. Invalid configuration also stops startup. Terminal themes are unused; `--theme` is rejected.
 
-Browser inspection and local notice hiding use the same dashboard and shared session. Demo decisions are **session-only** and reset on restart; real-account notice, snooze, credential, and notification stores are not opened. Native desktop delivery is disabled even if saved preferences enable it, and those preferences are preserved. Browser system notifications are not implemented.
+Browser inspection and local notice hiding use the same dashboard and shared session. Demo decisions are **session-only** and reset on restart; real-account notice, snooze, credential, and notification stores are not opened. Native desktop delivery is disabled even if saved preferences enable it, and those preferences are preserved. Browser system notifications use temporary demo-only storage and explicit browser opt-in; see [browser notification policy](alerts.md#browser-system-notifications).
 
 Stop with `Ctrl+C` or `SIGTERM`. Closing browser tabs leaves the foreground process running. Shutdown closes the listener and rejects new decisions, drains accepted persistence jobs for up to five seconds, and reports unconfirmed saves as a failure; demo has no durable decision writes. Unexpected HTTP termination also exits with an error. For real printers, use the [cloud server](#terminal-free-cloud-server) after saving a login. This mode does not install a service or enable remote access.
 
@@ -378,3 +378,7 @@ Monitoring requests only: the MQTT client can subscribe to reports and request f
 ### Firmware
 
 Printer details also show the installed printer **Firmware** and **FW Status**. Status is the printer's reported assessment: **Current (printer reported)**, **Update available** with the offered OTA version, or **Unknown (not confirmed)**. Component-only updates do not imply a printer firmware update. Old assessments or disconnected/stale printers show **Last known**; press `r` to request fresh status and firmware metadata. This is not a live comparison against a public release catalogue, and no firmware installation is performed.
+
+## Notification history maintenance
+
+Use `compact-notifications --consume-unfinished` only after stopping account hosts. It preserves deduplication history and frees live job capacity, while consuming unfinished completion tracking in both native and browser channels. See [retention, command examples, consequences, and backup policy](alerts.md#notification-history-and-capacity) before running it. Ordinary activity recheck does not perform maintenance or retry consumed delivery attempts.

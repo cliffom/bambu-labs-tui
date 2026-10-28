@@ -3,16 +3,20 @@ package session
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"strings"
 	"time"
 
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/notifications"
-	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
 type (
+	DecisionCommand struct {
+		Target string
+		Retry  bool
+	}
+	DecisionResult string
+
 	webTarget struct {
 		ID        string
 		Condition farm.Condition
@@ -24,9 +28,9 @@ type (
 	}
 )
 
-// Publish sends independent display bytes and normalized notification values,
+// Publish sends independent display values and normalized notification values,
 // never live farm pointers. Only the display DTO may reach HTTP clients.
-func (m *Session) Publish(sink interface{ Publish([]byte) }, at time.Time, preferences ...BrowserPolicy) {
+func (m *Session) Publish(sink interface{ PublishDisplay(DisplayState) }, at time.Time, preferences ...BrowserPolicy) {
 	if browser, ok := sink.(interface{ SubmitNotifications(notifications.Input) }); ok {
 		policy := BrowserPolicy{Alerts: config.DefaultAlerts(), Active: true}
 		if len(preferences) > 0 {
@@ -36,23 +40,16 @@ func (m *Session) Publish(sink interface{ Publish([]byte) }, at time.Time, prefe
 		input.Active = policy.Active
 		browser.SubmitNotifications(input)
 	}
-	sink.Publish(webserver.SnapshotJSON(m.Farm, at, m.Demo, m.WebDecisions()))
+	sink.PublishDisplay(BuildDisplay(m.Farm, at, m.Demo, m.WebDecisions()))
 }
 
-func sameWebOccurrence(key string, a, b farm.Condition) bool {
-	// Match farm.Reconcile: only cloud and print-state text identifies a
-	// replacement. Filament estimates can change during an ongoing occurrence.
-	textMatches := a.Text == b.Text || (key != farm.ConditionCloud && !strings.HasSuffix(key, "/"+farm.ConditionState))
-	return a.Since.Equal(b.Since) && a.Level == b.Level && a.Code == b.Code && textMatches
-}
-
-func (m *Session) WebDecisions() webserver.Decisions {
+func (m *Session) WebDecisions() Decisions {
 	if m.webTargets == nil {
 		m.webTargets = map[string]webTarget{}
 	}
 	for key, target := range m.webTargets {
 		c, ok := m.Farm.Active[key]
-		if !ok || !sameWebOccurrence(key, target.Condition, c) {
+		if !ok || !farm.SameOccurrence(key, target.Condition, c) {
 			delete(m.webTargets, key)
 		}
 	}
@@ -69,18 +66,17 @@ func (m *Session) WebDecisions() webserver.Decisions {
 		}
 		ids[key] = target.ID
 	}
-	return webserver.Decisions{Targets: ids, State: m.ReviewSaveState()}
+	return Decisions{Targets: ids, State: m.ReviewSaveState()}
 }
 
-func (m *Session) ApplyWebCommand(c webserver.Command, stopping, enabled bool) {
-	result := "Stale or unknown notice; refresh before retrying"
+func (m *Session) ApplyDecision(c DecisionCommand, stopping, enabled bool) DecisionResult {
+	result := DecisionStale
 	if stopping || !enabled {
-		c.Reply <- "Session is stopping or web server disabled"
-		return
+		return DecisionUnavailable
 	}
 	for key, target := range m.webTargets {
 		current, ok := m.Farm.Active[key]
-		if target.ID != c.Target || !ok || !sameWebOccurrence(key, target.Condition, current) {
+		if target.ID != c.Target || !ok || !farm.SameOccurrence(key, target.Condition, current) {
 			continue
 		}
 		if c.Retry {
@@ -90,10 +86,10 @@ func (m *Session) ApplyWebCommand(c webserver.Command, stopping, enabled bool) {
 		} else if !current.Dismissed {
 			m.Farm.Dismiss(key)
 		}
-		result = "applied"
+		result = DecisionApplied
 		break
 	}
-	c.Reply <- result
+	return result
 }
 
 // BrowserNotificationInput shares normalized identities and alert policy with
@@ -113,3 +109,9 @@ func (m *Session) BrowserNotificationInput(at time.Time, prefs config.AlertPrefe
 	}
 	return notifications.Input{Snapshot: snapshot, Policies: policies, Active: true, Demo: m.Demo, Quiet: prefs.QuietHours.Active(at)}
 }
+
+const (
+	DecisionApplied     DecisionResult = "applied"
+	DecisionStale       DecisionResult = "Stale or unknown notice; refresh before retrying"
+	DecisionUnavailable DecisionResult = "Session is stopping or web server disabled"
+)

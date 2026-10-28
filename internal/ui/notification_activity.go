@@ -119,6 +119,13 @@ func (m Model) notificationActivityView() string {
 		status = m.notificationClient.Status()
 	}
 	summary := fmt.Sprintf("Accepted %d · Failed %d · Suppressed %d", status.Accepted, status.Failed, status.Suppressed)
+	history := fmt.Sprintf("Last %d decisions · this session only · newest first", notifications.ActivityLimit)
+	if status.Capacity.Limit > 0 {
+		history = fmt.Sprintf("Last %d decisions · Live IDs %d/%d", notifications.ActivityLimit, status.Capacity.Entries, status.Capacity.Limit)
+		if status.Capacity.NearLimit() {
+			history = m.styles.warning.Render(history + " !")
+		}
+	}
 	ownership := notifications.OwnershipText(status)
 	ownerStyle := m.styles.secondary
 	if status.Ownership == notifications.OwnershipOwner {
@@ -133,7 +140,7 @@ func (m Model) notificationActivityView() string {
 	if m.notificationClient == nil {
 		ownership = "Desktop delivery unavailable in this session"
 	}
-	lines := []string{m.styles.accent.Bold(true).Render("NOTIFICATION ACTIVITY"), hint, fmt.Sprintf("Last %d decisions · this session only · newest first", notifications.ActivityLimit), summary, ownerStyle.Render(ansi.Truncate(ownership, width, "…"))}
+	lines := []string{m.styles.accent.Bold(true).Render("NOTIFICATION ACTIVITY"), hint, history, summary, ownerStyle.Render(ansi.Truncate(ownership, width, "…"))}
 	visible := max(1, m.height-activityReservedRows)
 	if len(d.entries) == 0 {
 		lines = append(lines, "No live notification decisions yet.")

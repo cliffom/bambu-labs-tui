@@ -1,22 +1,12 @@
 package webserver
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"sort"
-	"strings"
-	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambu-tui/internal/session"
 )
 
 type (
-	Decisions struct {
-		Targets map[string]string
-		State   string
-	}
-
 	snapshot struct {
 		Decisions string    `json:"decisions"`
 		At        string    `json:"at"`
@@ -92,89 +82,35 @@ type (
 	}
 )
 
-func opaque(value string) string {
-	sum := sha256.Sum256([]byte(value))
-	return hex.EncodeToString(sum[:])
+func displaySlots(in []session.DisplaySlot) []slot {
+	out := make([]slot, 0, len(in))
+	for _, s := range in {
+		out = append(out, slot(s))
+	}
+	return out
 }
 
-func timestamp(at time.Time) string {
-	if at.IsZero() {
-		return ""
-	}
-	return at.UTC().Format(time.RFC3339Nano)
-}
-
-func temp(t farm.Temperature) temperature { return temperature{Current: t.Current, Target: t.Target} }
-
-func slots(source []farm.Slot) []slot {
-	result := make([]slot, 0, len(source))
-	for _, s := range source {
-		result = append(result, slot{ID: s.ID, Material: s.Material, Color: s.Color, Present: s.Present, Remaining: s.Remaining})
-	}
-	return result
-}
-
-// SnapshotJSON must run on the reducer, the sole owner of farm state. The DTO
-// explicitly excludes Raw, device serials, protocol job IDs, account/session
-// information, credentials, storage paths, and backend errors. Its JSON contains
-// only finite primitive values; no mutable farm objects leave the reducer.
-func SnapshotJSON(state *farm.State, now time.Time, demo bool, decisions ...Decisions) []byte {
-	result := snapshot{At: timestamp(now), Demo: demo, Connected: state.Connected, Printers: make([]printer, 0, len(state.Printers))}
-	var local Decisions
-	if len(decisions) > 0 {
-		local = decisions[0]
-		result.Decisions = local.State
-	}
-	guidance := map[string]string{}
-	attention := map[string]bool{}
-	for _, a := range state.Attention() {
-		guidance[a.Key] = a.Guidance
-		attention[a.PrinterID] = true
-	}
-	for id, p := range state.Printers {
-		model := p.Model
-		if model == "" {
-			model = p.ModelCode
-		}
-		out := printer{ID: opaque(id), Image: printerImage(model), Name: p.Name, Model: model, State: p.State, Online: p.Online, Connection: p.Connection(now, state.Connected), Fresh: p.TelemetryCurrent(now, state.Connected), LastReport: timestamp(p.LastReport), Job: p.Job, Stage: p.Stage, Progress: p.Progress, Remaining: p.Remaining, RemainingReported: timestamp(p.RemainingReported), ETACurrent: p.ETACurrent(now, state.Connected), Layer: p.Layer, TotalLayers: p.TotalLayers, Bed: temp(p.Bed), Chamber: temp(p.Chamber), Nozzles: []nozzle{}, AMS: []ams{}, External: slots(p.External), Conditions: []condition{}, Attention: attention[id]}
+// The wire DTO is the HTTP allowlist. Session contracts carry neither JSON tags
+// nor backend objects; encoding and artwork selection belong to this adapter.
+func EncodeDisplay(state session.DisplayState) []byte {
+	out := snapshot{At: state.At, Demo: state.Demo, Connected: state.Connected, Decisions: state.Decisions, Summary: summary(state.Summary), Printers: make([]printer, 0, len(state.Printers))}
+	for _, p := range state.Printers {
+		next := printer{ID: p.ID, Image: printerImage(p.Model), Name: p.Name, Model: p.Model, State: p.State, Online: p.Online, Connection: p.Connection, Fresh: p.Fresh, LastReport: p.LastReport, Job: p.Job, Stage: p.Stage, Progress: p.Progress, Remaining: p.Remaining, RemainingReported: p.RemainingReported, ETACurrent: p.ETACurrent, Layer: p.Layer, TotalLayers: p.TotalLayers, Bed: temperature(p.Bed), Chamber: temperature(p.Chamber), Nozzles: []nozzle{}, AMS: []ams{}, External: displaySlots(p.External), Conditions: []condition{}, Attention: p.Attention}
 		for _, n := range p.Nozzles {
-			out.Nozzles = append(out.Nozzles, nozzle{ID: n.ID, Active: n.Active, Temperature: temp(n.Temperature)})
+			next.Nozzles = append(next.Nozzles, nozzle{ID: n.ID, Active: n.Active, Temperature: temperature(n.Temperature)})
 		}
-		for _, unit := range p.AMS {
-			out.AMS = append(out.AMS, ams{ID: unit.ID, Label: farm.AMSLabel(unit.ID), Humidity: unit.Humidity, Temperature: unit.Temperature, Slots: slots(unit.Slots)})
+		for _, a := range p.AMS {
+			next.AMS = append(next.AMS, ams{ID: a.ID, Label: a.Label, Humidity: a.Humidity, Temperature: a.Temperature, Slots: displaySlots(a.Slots)})
 		}
-		for key, c := range state.Active {
-			owner, _, _ := strings.Cut(key, "/")
-			if owner != id {
-				continue
-			}
-			identity := opaque(key + timestamp(c.Since))
-			if local.Targets != nil {
-				identity = local.Targets[key]
-			}
-			out.Conditions = append(out.Conditions, condition{ID: identity, Level: c.Level, Text: c.Text, Code: c.Code, Since: timestamp(c.Since), Reviewed: c.Acknowledged || c.Dismissed, Hidden: c.Dismissed, Guidance: guidance[key]})
+		for _, c := range p.Conditions {
+			next.Conditions = append(next.Conditions, condition(c))
 		}
-		sort.Slice(out.Conditions, func(i, j int) bool { return out.Conditions[i].ID < out.Conditions[j].ID })
-		result.Printers = append(result.Printers, out)
-		result.Summary.Total++
-		if p.State == farm.StateRunning {
-			result.Summary.Printing++
-		}
-		if out.Attention {
-			result.Summary.Attention++
-		}
-		if !out.Fresh {
-			result.Summary.Unavailable++
-		}
+		out.Printers = append(out.Printers, next)
 	}
-	sort.Slice(result.Printers, func(i, j int) bool {
-		a, b := result.Printers[i], result.Printers[j]
-		left, right := strings.ToLower(a.Name), strings.ToLower(b.Name)
-		if left == right {
-			return a.ID < b.ID
-		}
-		return left < right
-	})
-	data, _ := json.Marshal(result) // The allowlist contains only JSON-safe primitives.
+	data, _ := json.Marshal(out)
 	return data
 }
+
+func (s *Server) PublishDisplay(state session.DisplayState) { s.Publish(EncodeDisplay(state)) }
+
+func opaque(value string) string { return session.DisplayID(value) }

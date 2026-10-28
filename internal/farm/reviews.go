@@ -26,7 +26,7 @@ func reviewText(key string, c Condition) string {
 }
 
 func (r Review) matches(key string, c Condition) bool {
-	return r.Level == c.Level && r.Code == c.Code && r.Text == reviewText(key, c)
+	return sameNoticeValues(key, c, r.Level, r.Code, r.Text)
 }
 
 func (s *State) rememberReview(key string, c Condition) {
@@ -165,4 +165,20 @@ func (s *State) ResetReviews() {
 	if changed {
 		s.reviewRevision++
 	}
+}
+
+// SameCondition compares the shared semantic identity of a local notice. Estimates
+// and printer names may change without replacing an ongoing occurrence.
+func SameCondition(key string, a, b Condition) bool {
+	return sameNoticeValues(key, b, a.Level, a.Code, reviewText(key, a))
+}
+
+// SameOccurrence additionally requires the first-observed time. Callers tracking
+// opaque targets must also invalidate them on every clear, even at the same time.
+func SameOccurrence(key string, a, b Condition) bool {
+	return a.Since.Equal(b.Since) && SameCondition(key, a, b)
+}
+
+func sameNoticeValues(key string, c Condition, level, code, text string) bool {
+	return level == c.Level && code == c.Code && text == reviewText(key, c)
 }

@@ -218,3 +218,18 @@ test("disable and re-enable during an in-flight claim discards the old generatio
   await b.run("browserNotifications.poll()");
   assert.equal(JSON.parse(b.requests.at(-1).options.body).baseline, true);
 });
+
+
+test("capacity warning stays visible alongside successful submissions and clears on recovery", async () => {
+ const b=browser({permission:"granted",stored:true});
+ await b.run("browserNotifications.poll()");
+ b.setResponse({cursor:2,events:[event],warning:"Live notification IDs 3500/4096: near limit. Stop hosts and run compact-notifications; unfinished completions will be suppressed."});
+ await b.run("browserNotifications.poll()");
+ assert.equal(b.notices.length,1);
+ assert.match(b.status(),/Submitted to browser/);
+ assert.match(b.status(),/3500\/4096/);
+ assert.match(b.status(),/unfinished completions/);
+ b.setResponse({cursor:3,events:[]});
+ await b.run("browserNotifications.poll()");
+ assert.doesNotMatch(b.status(),/near limit/);
+});

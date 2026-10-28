@@ -45,6 +45,7 @@ type (
 		Last, Error                            string
 		LastKind                               MessageKind
 		Disabled, Pending                      bool
+		Capacity                               notification_state.Capacity
 		History                                []Activity
 		Ownership                              string
 		Recovering                             bool
@@ -243,6 +244,10 @@ func (w *Worker) process(input frame) bool {
 	w.mu.Lock()
 	paused := w.status.Disabled
 	w.status.Recovering = false
+	if w.status.Capacity != observation.Capacity {
+		w.status.Capacity = observation.Capacity
+		w.status.Revision++
+	}
 	w.mu.Unlock()
 	if paused {
 		return false

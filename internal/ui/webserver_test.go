@@ -11,6 +11,7 @@ import (
 	"github.com/cliffom/bambu-tui/internal/config"
 	"github.com/cliffom/bambu-tui/internal/monitor"
 	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambu-tui/internal/session"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
@@ -276,4 +277,8 @@ func TestWebNotificationsObserveWhileDisabledAndStopDuringShutdown(t *testing.T)
 	if !server.notifications[len(server.notifications)-1].Active {
 		t.Fatal("cancelled shutdown did not resume browser observation")
 	}
+}
+
+func (s *fakeWebServer) PublishDisplay(state session.DisplayState) {
+	s.Publish(webserver.EncodeDisplay(state))
 }

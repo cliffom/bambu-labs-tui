@@ -38,11 +38,24 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	// initial report is still arriving.
 	task := str(delta[fieldTaskID])
 	newTask := task != "" && str(p.Raw[fieldTaskID]) != "" && task != str(p.Raw[fieldTaskID])
-	restart := str(delta[fieldGcodeState]) == StateRunning && (previous == StateFinished || previous == StateFailed || previous == StateIdle)
-	if newTask || restart {
+	subtask := str(delta[fieldSubtaskID])
+	newSubtask := subtask != "" && str(p.Raw[fieldSubtaskID]) != "" && subtask != str(p.Raw[fieldSubtaskID])
+	newIdentity := newTask || newSubtask
+	next := str(delta[fieldGcodeState])
+	restart := (next == StateSlicing || next == StatePreparing || next == StateRunning) && (previous == StateFinished || previous == StateFailed || previous == StateIdle)
+	if newIdentity || restart {
 		for _, k := range []string{fieldRemainingMinutes, fieldProgress, fieldLayerNum, fieldTotalLayerNum, fieldSubtaskName, fieldGcodeFile, fieldStage} {
 			delete(raw, k)
 		}
+	}
+	if newIdentity {
+		// The old state belongs to the old identity. Besides showing unknown
+		// until explicitly reported, this prevents a later RUNNING delta from
+		// clearing the new name a second time after an inherited FINISH/IDLE.
+		delete(raw, fieldGcodeState)
+	}
+	if newTask {
+		delete(raw, fieldSubtaskID)
 	}
 	merge(raw, delta)
 	if !telemetryWithinLimits(raw) {
@@ -50,7 +63,7 @@ func (p *Printer) applyReport(payload []byte, now time.Time) (bool, error) {
 	}
 	p.Raw = raw
 	p.versionReport(object(envelope[fieldInfo]), now)
-	if newTask || restart {
+	if newIdentity || restart {
 		p.RemainingReported = time.Time{}
 	}
 	if _, ok := delta[fieldRemainingMinutes]; ok {

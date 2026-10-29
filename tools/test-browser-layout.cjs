@@ -17,6 +17,7 @@ const {chromium} = require("playwright");
   });
   try {
     for (const [width, height, scale] of [
+      [320, 568, 2], [568, 320, 1], [568, 320, 2], [1280, 240, 1],
       [1920, 1080, 1], [1280, 800, 1], [390, 844, 1],
       [320, 568, 1], [780, 844, 2], [390, 844, 2],
     ]) {
@@ -61,6 +62,10 @@ const {chromium} = require("playwright");
               bottom: rect.bottom, top: rect.top, left: rect.left, right: rect.right,
               height: innerHeight, width: innerWidth,
               workspaceBottom: shell.getBoundingClientRect().bottom,
+              headerClipped: document.querySelector("header").scrollHeight > document.querySelector("header").clientHeight + 1,
+              workspaceHeight: shell.clientHeight,
+              minimumWorkspace: Math.min(12 * parseFloat(getComputedStyle(document.documentElement).fontSize), innerHeight / 2),
+              pageHeight: document.documentElement.scrollHeight, pageY: scrollY,
               pageOverflow: document.documentElement.scrollWidth > innerWidth,
               workspaceOverflow: shell.scrollWidth > shell.clientWidth,
               footerOverflow: footer.scrollWidth > footer.clientWidth,
@@ -73,7 +78,16 @@ const {chromium} = require("playwright");
               resultBottom: document.querySelector(".fleet-bottom").getBoundingClientRect().bottom,
             };
           });
-          assert.ok(Math.abs(bounds.bottom - height) <= 1, `${state}: footer at viewport bottom`);
+          assert.ok(bounds.workspaceHeight >= bounds.minimumWorkspace - 1,
+            `${state}: workspace retains a usable scroll area (${bounds.workspaceHeight}px)`);
+          assert.equal(bounds.headerClipped, false, `${state}: header fits without covering workspace`);
+          if (bounds.pageHeight <= height + 1) {
+            assert.ok(Math.abs(bounds.bottom - height) <= 1, `${state}: footer at viewport bottom`);
+            assert.ok(bounds.repoVisible, "GitHub link remains visible");
+          } else {
+            assert.ok(Math.abs(bounds.bottom + bounds.pageY - bounds.pageHeight) <= 1,
+              `${state}: short-height footer remains at the scrollable page bottom`);
+          }
           assert.equal(bounds.left, 0);
           assert.equal(bounds.right, width);
           assert.ok(bounds.workspaceBottom <= bounds.top + 1, `${state}: workspace reserves footer space`);
@@ -82,7 +96,6 @@ const {chromium} = require("playwright");
           assert.equal(bounds.borderWidth, "1px");
           assert.equal(bounds.borderStyle, "solid");
           assert.equal(bounds.borderColor, bounds.sidebarBorder);
-          assert.ok(bounds.repoVisible, "GitHub link remains visible");
           assert.ok(Math.abs(bounds.repoRight - (width - bounds.footerPadding)) <= 1,
             "GitHub link stays aligned to the right");
           return bounds;
@@ -99,6 +112,11 @@ const {chromium} = require("playwright");
 
         if (count) {
           await page.locator(".card").last().focus();
+          assert.ok(await page.locator(".card").last().evaluate(el => {
+            const r = el.getBoundingClientRect();
+            const shell = document.querySelector(".shell").getBoundingClientRect();
+            return Math.min(r.bottom, shell.bottom, innerHeight) > Math.max(r.top, shell.top, 0);
+          }), "focused printer card is reachable within the workspace and viewport");
           await page.keyboard.press("Enter");
           await page.locator("#detail").waitFor({state: "visible"});
           const dialog = await page.locator("#detail").evaluate(el => ({
@@ -107,9 +125,10 @@ const {chromium} = require("playwright");
             focused: el.contains(document.activeElement),
           }));
           assert.ok(dialog.top >= 0 && dialog.bottom <= height && !dialog.overflow && dialog.focused,
-            "printer dialog fits and owns keyboard focus");
+            `printer dialog fits and owns keyboard focus: ${JSON.stringify(dialog)}`);
           await page.keyboard.press("Escape");
           assert.equal(await page.locator(".card").last().evaluate(el => el === document.activeElement), true);
+          await page.locator("#search").click();
           await page.locator("#search").fill("no matching layout printer");
           await page.waitForFunction(() => document.querySelectorAll(".card").length === 0);
           await check("filtered empty");
@@ -124,14 +143,26 @@ const {chromium} = require("playwright");
           assert.equal(await page.locator(`#${button}`).evaluate(el => el === document.activeElement), true);
         }
         await check("after dialogs");
+        await repo.focus();
+        assert.ok(await repo.evaluate(el => {
+          const r = el.getBoundingClientRect();
+          return r.top >= 0 && r.bottom <= innerHeight;
+        }), "footer repository link is reachable by keyboard in short windows");
         if (process.env.SCREENSHOT_DIR) {
           fs.mkdirSync(process.env.SCREENSHOT_DIR, {recursive: true});
           await page.locator(".shell").evaluate(el => { el.scrollTop = el.scrollHeight; });
           await page.evaluate(() => new Promise(resolve =>
             requestAnimationFrame(() => requestAnimationFrame(resolve))));
-          await page.screenshot({path: path.join(process.env.SCREENSHOT_DIR,
+          await page.screenshot({fullPage: true, path: path.join(process.env.SCREENSHOT_DIR,
             `status-${width}-${height}-${scale}x-${count}.png`)});
         }
+        // Returning to a roomy window restores the pinned footer automatically.
+        await page.setViewportSize({width: 1280, height: 800});
+        await page.evaluate(() => { document.documentElement.style.fontSize = "16px"; });
+        assert.ok(await page.evaluate(() =>
+          document.documentElement.scrollHeight <= innerHeight + 1 &&
+          Math.abs(document.querySelector("footer").getBoundingClientRect().bottom - innerHeight) <= 1),
+        "resize restores viewport-pinned footer without page overflow");
         console.log(`PASS ${width}x${height} ${scale * 100}% text: ${count} printers, scroll/poll/filter/dialog/focus`);
         await page.close();
       }

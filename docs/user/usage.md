@@ -60,7 +60,7 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 
 ### Local web dashboard
 
-The browser status bar stays at the bottom of the window, separated by a border. Scroll the farm workspace above it to reach all printer cards and the result count; the branding, monitoring reminder, and GitHub repository link remain visible. The bar wraps to accommodate narrow windows and larger browser text.
+The browser status bar stays at the bottom of the window, separated by a border. Scroll the farm workspace above it to reach all printer cards and the result count; the branding, monitoring reminder, and GitHub repository link remain visible. The bar wraps to accommodate narrow windows and larger browser text. When a short window cannot fit the header, workspace, and wrapped bar together, the page also scrolls to keep the farm and footer accessible.
 
 Press `,`, then use `Tab` / `Shift+Tab` to select **Web Server**. Select **Enable web server** and use `Enter`, Space, or `←` / `→` to toggle it. It is off by default. The default port is **8080**; a successful start shows `http://127.0.0.1:8080` (or your configured port). Open that exact URL on the same computer.
 

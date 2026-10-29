@@ -18,7 +18,8 @@
 body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Let the page scroll when chrome would leave too little farm workspace. */
+  grid-template-rows: max-content minmax(min(12rem, 50dvh), 1fr) max-content;
   height: 100vh;
   height: 100dvh;
   font-family: var(--font-ui);
@@ -710,6 +711,7 @@ footer > span:nth-child(2) {
   color: var(--muted);
 }
 dialog {
+  overflow-wrap: anywhere;
   background: #181d19;
   border: 1px solid #506052;
   border-radius: 12px;

@@ -3,7 +3,7 @@
 ## 0.4.3 — Pinned browser status bar
 
 - Keep the browser status line at the bottom of the viewport while the farm workspace scrolls above it (#132).
-- Add a full-width top border matching the workspace divider, preserve the branding and monitoring message, replace the clock with a GitHub repository icon link, and reserve space so the bar never covers farm content. Reflow the bar at narrow widths and enlarged text sizes.
+- Add a full-width top border matching the workspace divider, preserve the branding and monitoring message, replace the clock with a GitHub repository icon link, and reserve space so the bar never covers farm content. Reflow the bar at narrow widths and enlarged text sizes. In short windows, allow page scrolling while preserving a usable farm workspace instead of collapsing it beneath the header and footer.
 
 See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#pinned-browser-status-bar-132).
 

@@ -88,7 +88,7 @@ Open **Settings** using the gear button beside Help in the dashboard header. Its
 
 In **Settings > Appearance**, **Follow host (configured theme)** uses the host's effective TUI palette, including custom `theme_file` colors and launch-only `--theme` overrides. The selector also offers every bundled TUI theme. A selection applies immediately and is remembered in this browser at the current dashboard origin; other tabs at that origin follow it. Choose Follow host to reset. It leaves the host configuration and TUI appearance unchanged. If browser storage is unavailable, selection still works for the current page with a warning. Unknown saved choices fall back to Follow host.
 
-The browser uses the same semantic RGB colors for text, backgrounds, borders, selection/focus, and status feedback. A `null` terminal background has no browser equivalent, so it uses a dark `#101312` canvas; panels share that canvas. Light themes also switch native form controls to a light color scheme. Custom colors are used as supplied without contrast correction, so inspect their readability. Reported filament swatches and printer artwork retain their original colors. Theme files load at host startup; restart to reload file edits. Host palette updates reach following browsers within 30 seconds while visible, or on opening Settings/returning to the page. Theme-fetch failure preserves the applied appearance and does not interrupt telemetry.
+The browser uses the same semantic RGB colors for text, backgrounds, borders, selection/focus, and status feedback. A `null` terminal background has no browser equivalent, so it uses a dark `#101312` canvas; panels share that canvas. Light themes also switch native form controls to a light color scheme. Custom colors are used as supplied without contrast correction, so inspect their readability. Reported filament swatches retain their original colors; printer artwork does too, except for the inactive treatment on explicitly offline cards. Theme files load at host startup; restart to reload file edits. Host palette updates reach following browsers within 30 seconds while visible, or on opening Settings/returning to the page. Theme-fetch failure preserves the applied appearance and does not interrupt telemetry.
 
 ![Browser Appearance settings using the bundled Hotdog theme](../../assets/screenshots/browser-themes.png)
 
@@ -103,6 +103,28 @@ The browser shows a pending request before the reducer applies it, then an appli
 TUI changes reach visible browser tabs on their next three-second poll; hidden tabs pause polling and refresh on return. Browser decisions reach the TUI through its event loop without waiting for disk I/O. This synchronization is limited to one running session, with no independent process-to-process synchronization. Shutdown rejects further browser decisions and uses the existing pending-save/failure handling. The browser receives normalized, allowlisted display data, including printer/job names; credentials, raw payloads, protocol job IDs, raw device serials, account information, storage paths, and backend error text are excluded.
 
 Access is **localhost only, without authentication**. Other users and programs on this computer can access the dashboard. Other local clients can also hide notices and retry saves. Exact Host/Origin checks, strict JSON POST requests, and a random session CSRF token protect browser writes from foreign sites; they do not authenticate local programs/users who can fetch the dashboard and token. LAN binding, reverse-proxy/remote access, and TLS remain outside scope. Real-printer browsing requires either the TUI or the foreground `serve` process to stay running. The web server is not a background service.
+
+#### Browser screenshots
+
+These captures show the current dashboard using synthetic demo data, with printing, paused, and explicitly offline printers. Click a preview to open it at full size. Choose a theme in **Settings > Appearance**; **Follow host (configured theme)** follows the terminal palette instead of keeping a separate browser choice.
+
+| Default | Gruvbox Dark |
+| --- | --- |
+| [![Default browser dashboard](../../assets/screenshots/browser.png)](../../assets/screenshots/browser.png) | [![Gruvbox Dark browser dashboard](../../assets/screenshots/browser-theme-gruvbox-dark.png)](../../assets/screenshots/browser-theme-gruvbox-dark.png) |
+| **Hotdog** | **C64** |
+| [![Hotdog browser dashboard](../../assets/screenshots/browser-theme-hotdog.png)](../../assets/screenshots/browser-theme-hotdog.png) | [![C64 browser dashboard](../../assets/screenshots/browser-theme-c64.png)](../../assets/screenshots/browser-theme-c64.png) |
+| **IBM 3270** | **DeskMate** |
+| [![IBM 3270 browser dashboard](../../assets/screenshots/browser-theme-ibm3270.png)](../../assets/screenshots/browser-theme-ibm3270.png) | [![DeskMate browser dashboard](../../assets/screenshots/browser-theme-deskmate.png)](../../assets/screenshots/browser-theme-deskmate.png) |
+
+| Printer details and local notice controls | AMS and filament inventory |
+| --- | --- |
+| [![Paused printer inspection with synthetic runout guidance and Hide notice locally](../../assets/screenshots/browser-printer-details.png)](../../assets/screenshots/browser-printer-details.png) | [![Scrolled printer inspector showing AMS slot materials, colors, estimates, and unknown values](../../assets/screenshots/browser-filament.png)](../../assets/screenshots/browser-filament.png) |
+
+The [Appearance and notification settings](../../assets/screenshots/browser-themes.png) capture above shows the theme selector and Enable/Test/Disable controls with automatic browser notifications off. The [Idle / finished filter](../../assets/screenshots/browser-idle-filter.png) capture uses a separate synthetic finished-printer scenario; it does not establish that a printer is physically ready.
+
+| Mobile overview | Mobile offline card after scrolling |
+| --- | --- |
+| [![Browser overview at a 390 by 844 viewport](../../assets/screenshots/browser-mobile.png)](../../assets/screenshots/browser-mobile.png) | [![Focused offline printer card with grayscale artwork in the mobile workspace](../../assets/screenshots/browser-mobile-offline.png)](../../assets/screenshots/browser-mobile-offline.png) |
 
 ### TUI Server Status
 

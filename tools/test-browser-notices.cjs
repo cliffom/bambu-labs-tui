@@ -31,7 +31,7 @@ function inspector() {
     return value;
   }
   for (const id of ["detail", "detail-title", "detail-body", "close-detail",
-    "search", "sort", "nav-farm", "nav-attention", "nav-unavailable",
+    "search", "sort",
     "review", "about", "close-about", "settings", "settings-dialog", "close-settings"]) element("#" + id);
   let html = "";
   Object.defineProperty(elements.get("#detail-body"), "innerHTML", {
@@ -359,3 +359,47 @@ for (const mode of ["name", "attention", "state"]) {
     }
   });
 }
+
+test("idle/finished trusts shared eligibility and requires current online telemetry and feed", () => {
+  const view = inspector();
+  const base = {online: true, fresh: true, idle_finished: true};
+  const printers = [
+    {...base, id: "idle", name: "Alpha", state: "IDLE", attention: true},
+    {...base, id: "done", name: "Beta", state: "FINISH"},
+    {...base, id: "offline", name: "Offline", state: "IDLE", online: false},
+    {...base, id: "stale", name: "Stale", state: "FINISH", fresh: false},
+    ...["RUNNING", "PAUSE", "FAILED", "PREPARE", "SLICING", "UNKNOWN", "FUTURE", ""].map(state =>
+      ({...base, id: state, name: state, state, idle_finished: false, progress: 100, remaining: 0})),
+    {...base, id: "missing", name: "No classification", state: "IDLE", idle_finished: undefined},
+  ];
+  view.run(`snapshot.connected = true; snapshot.printers = ${JSON.stringify(printers)}; filter = "idle"`);
+  const ids = () => JSON.parse(view.run("JSON.stringify(visible().map(p => p.id))"));
+  assert.deepEqual(ids(), ["idle", "done"]);
+  view.run('sort = "attention"; query = "alpha"');
+  assert.deepEqual(ids(), ["idle"]);
+  view.run('query = "no match"');
+  assert.deepEqual(ids(), []);
+  view.run('query = ""; feedError = true');
+  assert.deepEqual(ids(), []);
+  view.run('feedError = false; snapshot.at = new Date(Date.now() - 11000).toISOString()');
+  assert.deepEqual(ids(), []);
+  view.run('snapshot.at = new Date().toISOString(); snapshot.connected = false');
+  assert.deepEqual(ids(), []);
+  view.run('snapshot.connected = true');
+  assert.deepEqual(ids(), ["idle", "done"]);
+  view.run('snapshot.printers[0].state = "RUNNING"; snapshot.printers[0].idle_finished = false');
+  assert.deepEqual(ids(), ["done"]);
+  view.run('snapshot.printers[0].state = "FINISH"; snapshot.printers[0].idle_finished = true');
+  assert.deepEqual(ids(), ["idle", "done"]);
+});
+
+test("cards keep last-known scope and attention explicit without repeated metric prefixes", () => {
+  const view = inspector();
+  view.run('snapshot.printers[0].fresh = false; snapshot.printers[0].attention = true');
+  const html = view.run('card(snapshot.printers[0])');
+  assert.match(html, /Current state unconfirmed · readings are last-known; missing values remain unknown/);
+  assert.match(html, /Attention · unreviewed conditions/);
+  assert.match(html, /Unknown material/);
+  assert.doesNotMatch(html, /Last-known · (Nozzle|Bed|Reported progress|Unknown material)/);
+  assert.doesNotMatch(html, /machine-state|MONITORING/);
+});

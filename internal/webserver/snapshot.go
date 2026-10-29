@@ -30,6 +30,7 @@ type (
 		Online            bool        `json:"online"`
 		Connection        string      `json:"connection"`
 		Fresh             bool        `json:"fresh"`
+		IdleFinished      bool        `json:"idle_finished"`
 		LastReport        string      `json:"last_report"`
 		Job               string      `json:"job"`
 		Stage             string      `json:"stage"`
@@ -95,7 +96,7 @@ func displaySlots(in []session.DisplaySlot) []slot {
 func EncodeDisplay(state session.DisplayState) []byte {
 	out := snapshot{At: state.At, Demo: state.Demo, Connected: state.Connected, Decisions: state.Decisions, Summary: summary(state.Summary), Printers: make([]printer, 0, len(state.Printers))}
 	for _, p := range state.Printers {
-		next := printer{ID: p.ID, Image: printerImage(p.Model), Name: p.Name, Model: p.Model, State: p.State, Online: p.Online, Connection: p.Connection, Fresh: p.Fresh, LastReport: p.LastReport, Job: p.Job, Stage: p.Stage, Progress: p.Progress, Remaining: p.Remaining, RemainingReported: p.RemainingReported, ETACurrent: p.ETACurrent, Layer: p.Layer, TotalLayers: p.TotalLayers, Bed: temperature(p.Bed), Chamber: temperature(p.Chamber), Nozzles: []nozzle{}, AMS: []ams{}, External: displaySlots(p.External), Conditions: []condition{}, Attention: p.Attention}
+		next := printer{ID: p.ID, Image: printerImage(p.Model), Name: p.Name, Model: p.Model, State: p.State, Online: p.Online, Connection: p.Connection, Fresh: p.Fresh, IdleFinished: p.IdleFinished, LastReport: p.LastReport, Job: p.Job, Stage: p.Stage, Progress: p.Progress, Remaining: p.Remaining, RemainingReported: p.RemainingReported, ETACurrent: p.ETACurrent, Layer: p.Layer, TotalLayers: p.TotalLayers, Bed: temperature(p.Bed), Chamber: temperature(p.Chamber), Nozzles: []nozzle{}, AMS: []ams{}, External: displaySlots(p.External), Conditions: []condition{}, Attention: p.Attention}
 		for _, n := range p.Nozzles {
 			next.Nozzles = append(next.Nozzles, nozzle{ID: n.ID, Active: n.Active, Temperature: temperature(n.Temperature)})
 		}

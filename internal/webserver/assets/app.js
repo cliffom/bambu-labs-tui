@@ -36,6 +36,7 @@ const feedDelayed = () =>
   snapshot && Date.now() - Date.parse(snapshot.at) > 10000;
 const feedUnavailable = () => feedError || feedDelayed();
 const current = (p) => p.fresh && !feedUnavailable();
+const idleFinished = (p) => p.idle_finished === true && p.online === true && current(p) && snapshot?.connected === true;
 const prefix = (p) => (current(p) ? "" : "Last-known · ");
 const status = (p) =>
   feedUnavailable()
@@ -84,6 +85,7 @@ function visible() {
       (p) =>
         (filter === "all" ||
           (filter === "printing" && p.state === "RUNNING") ||
+          (filter === "idle" && idleFinished(p)) ||
           (filter === "attention" && p.attention) ||
           (filter === "unavailable" && !p.fresh)) &&
         p.name.toLowerCase().includes(query.toLowerCase()),
@@ -112,12 +114,12 @@ function card(p) {
   const progress = Number.isFinite(p.progress)
     ? Math.max(0, Math.min(100, p.progress))
     : null;
-  return `<button class="card ${p.attention ? "warning" : ""}" data-id="${escapeHTML(p.id)}" aria-label="Inspect ${escapeHTML(p.name)}, ${escapeHTML(status(p))}"><div class="card-head"><div><h3>${escapeHTML(p.name)}</h3><span class="model">${escapeHTML(p.model || "Unknown model")}</span></div><span class="pill ${p.attention || !current(p) ? "warn" : p.state === "IDLE" ? "neutral" : ""}">${escapeHTML(status(p))}</span></div><div class="printer-view">${machine(p)}<span class="machine-state">${p.attention ? "INSPECT CONDITIONS" : !current(p) ? "CURRENT STATE UNCONFIRMED" : "MONITORING"}</span></div><div class="job">${escapeHTML(p.job || "No reported job")}</div><div class="progress-label"><span>${prefix(p)}Reported progress</span><strong>${progress === null ? "Unknown" : progress + "%"}</strong></div><div class="progress-track"><span style="width:${progress || 0}%"></span></div><div class="metrics"><div>Finish estimate<strong>${escapeHTML(remaining(p))}</strong></div><div>${prefix(p)}Nozzle<strong>${temperature(nozzle?.temperature)}</strong></div><div>${prefix(p)}Bed<strong>${temperature(p.bed)}</strong></div></div><div class="card-bottom"><div class="swatches">${slots
+  return `<button class="card ${p.attention ? "warning" : ""}" data-id="${escapeHTML(p.id)}" aria-label="Inspect ${escapeHTML(p.name)}, ${escapeHTML(status(p))}"><div class="card-head"><div><h3>${escapeHTML(p.name)}</h3><span class="model">${escapeHTML(p.model || "Unknown model")}</span></div><span class="pill ${p.attention || !current(p) ? "warn" : p.state === "IDLE" ? "neutral" : ""}">${escapeHTML(status(p))}</span></div><div class="printer-view">${machine(p)}</div>${!current(p) ? '<p class="card-note telemetry-note">Current state unconfirmed · readings are last-known; missing values remain unknown.</p>' : ""}<div class="job">${escapeHTML(p.job || "No reported job")}</div><div class="progress-label"><span>Reported progress</span><strong>${progress === null ? "Unknown" : progress + "%"}</strong></div><div class="progress-track"><span style="width:${progress || 0}%"></span></div><div class="metrics"><div>Finish estimate<strong>${escapeHTML(remaining(p))}</strong></div><div>Nozzle<strong>${temperature(nozzle?.temperature)}</strong></div><div>Bed<strong>${temperature(p.bed)}</strong></div></div><div class="card-bottom"><div class="swatches">${slots
     .slice(0, 4)
     .map((s) => swatch(s.color))
     .join(
       "",
-    )}<span>${prefix(p)}${escapeHTML(slots[0]?.material || "Unknown material")}</span></div><span>${current(p) ? '<i class="green"></i>Fresh' : "◷ Last-known"}</span></div>${p.attention ? '<p class="card-note">◇ Action needed · unreviewed conditions</p>' : !current(p) ? '<p class="card-note">Current state unconfirmed · last-known readings</p>' : ""}</button>`;
+    )}<span>${escapeHTML(slots[0]?.material || "Unknown material")}</span></div><span>${current(p) ? '<i class="green"></i>Fresh' : "◷ Last-known"}</span></div>${p.attention ? '<p class="card-note">◇ Attention · unreviewed conditions</p>' : ""}</button>`;
 }
 // Keep connected card/image elements across polls. Replacing #cards.innerHTML
 // recreates lazy, async-decoded images even when their immutable URL is unchanged.
@@ -172,43 +174,29 @@ function render() {
   const list = visible(),
     focused = document.activeElement?.dataset.id;
   renderCards(list);
-  if (focused)
-    document
-      .querySelector(`[data-id="${CSS.escape(focused)}"]`)
-      ?.focus({ preventScroll: true });
-  $("#visible-count").textContent = list.length;
-  $("#result-count").textContent =
-    `Showing ${list.length} of ${snapshot?.summary.total || 0} printers`;
+  if (focused) {
+    const target = document.querySelector(`[data-id="${CSS.escape(focused)}"]`)
+      || document.querySelector(`.filters [data-filter="${filter}"]`);
+    target?.focus({ preventScroll: true });
+  }
+
+  const total = snapshot?.summary.total || 0;
+  const noun = total === 1 ? "printer" : "printers";
+  $("#result-count").textContent = list.length === total
+    ? `${total} ${noun}`
+    : `${list.length} of ${total} ${noun}`;
   document.querySelectorAll(".filters button").forEach((b) => {
     b.classList.toggle("selected", b.dataset.filter === filter);
     b.setAttribute("aria-pressed", String(b.dataset.filter === filter));
   });
-  document
-    .querySelectorAll(".nav")
-    .forEach((b) =>
-      b.classList.toggle(
-        "active",
-        b.id ===
-          (filter === "attention"
-            ? "nav-attention"
-            : filter === "unavailable"
-              ? "nav-unavailable"
-              : "nav-farm"),
-      ),
-    );
   if (!snapshot) return;
   for (const key of ["total", "printing", "attention", "unavailable"])
     $("#" + key).textContent = String(snapshot.summary[key] || 0).padStart(
       2,
       "0",
     );
-  $("#farm-count").textContent = `${snapshot.summary.total} printers`;
-  $("#nav-total").textContent = snapshot.summary.total;
-  $("#nav-attention-count").textContent = snapshot.summary.attention;
-  $("#nav-unavailable-count").textContent = snapshot.summary.unavailable;
-  $("#farm-mode").textContent = snapshot.demo
-    ? "Synthetic demo farm"
-    : "Cloud monitoring";
+  $("#idle-count").textContent = snapshot.printers.filter(idleFinished).length;
+  $("#idle-filter-help").hidden = filter !== "idle";
   $(".attention-banner").hidden = !snapshot.summary.attention;
   $("#attention-text").textContent =
     `${snapshot.summary.attention} printer(s) have unreviewed actionable conditions. Physical resolution is unconfirmed.`;
@@ -374,15 +362,6 @@ $("#sort").addEventListener("change", (event) => {
   sort = event.target.value;
   render();
 });
-for (const [id, value] of [
-  ["nav-farm", "all"],
-  ["nav-attention", "attention"],
-  ["nav-unavailable", "unavailable"],
-])
-  $("#" + id).onclick = () => {
-    filter = value;
-    render();
-  };
 $("#review").onclick = () => {
   const p = snapshot?.printers.find((p) => p.attention);
   if (p) inspect(p.id);

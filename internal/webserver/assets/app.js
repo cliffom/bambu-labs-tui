@@ -395,10 +395,4 @@ $("#close-about").onclick = () => $("#about-dialog").close();
 document.addEventListener("visibilitychange", () => {
   if (!controller) poll();
 });
-setInterval(() => {
-  $("#clock").textContent = new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}, 1000);
 poll();

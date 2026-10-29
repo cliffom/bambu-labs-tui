@@ -114,6 +114,10 @@ const {chromium} = require("playwright");
         await check("initial");
         assert.equal(await page.locator("aside, .summary button").count(), 0,
           "toolbar is the only filter control; summary is static");
+        assert.equal(await page.locator("footer > #feed-state[role=status]").count(), 1,
+          "connection/demo status lives on the left of the footer");
+        assert.equal(await page.locator("header #feed-state, .readonly").count(), 0);
+        assert.match(await page.locator("#feed-state").textContent(), /Demo/);
         assert.ok(await page.locator(".sort-control").evaluate(el => {
           const select = el.querySelector("select"), icon = el.querySelector("svg");
           const box = select.getBoundingClientRect(), arrow = icon.getBoundingClientRect();

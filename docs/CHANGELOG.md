@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Simplify the browser dashboard with one filter toolbar, static whole-farm summary totals, and more room for printer cards. Remove the duplicate sidebar, repeated counts, decorative headings, and normal monitoring stamps (#134).
+- Simplify the browser dashboard with one filter toolbar, static whole-farm summary totals, and more room for printer cards. Remove the duplicate sidebar, repeated counts, decorative headings, and normal monitoring stamps; move connection/demo status to the footer’s left side (#134).
 - Add an online **Idle / finished** filter and count using shared current-telemetry interpretation. Exclude unavailable or unknown printers and suppress current availability during browser-feed outages; idle/finished never establishes physical readiness.
 - Keep offline card readings explicitly last-known without repeating the prefix on every metric, wrap material labels, and return focus to the active filter when a live update removes the focused printer.
 

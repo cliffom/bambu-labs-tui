@@ -20,13 +20,13 @@ func TestInvalidThemeFailsBeforeAuthenticationOrTerminalStartup(t *testing.T) {
 	if err := os.WriteFile(path, []byte("theme_file='missing.json'\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{{"--config", path}, {"--demo", "--config", path}, {"login", "--session", "--config", path}} {
+	for _, args := range [][]string{{"serve", "--demo", "--config", path}, {"serve", "--config", path}, {"--config", path}, {"--demo", "--config", path}, {"login", "--session", "--config", path}} {
 		err := run(args)
 		if err == nil || !strings.Contains(err.Error(), "read theme") || !strings.Contains(err.Error(), "missing.json") {
 			t.Fatal(args, err)
 		}
 	}
-	for _, args := range [][]string{{"--theme", "override-missing.json", "--config", path}, {"--demo", "--theme", "override-missing.json", "--config", path}, {"login", "--theme", "override-missing.json", "--config", path}} {
+	for _, args := range [][]string{{"serve", "--demo", "--theme", "override-missing.json", "--config", path}, {"--theme", "override-missing.json", "--config", path}, {"--demo", "--theme", "override-missing.json", "--config", path}, {"login", "--theme", "override-missing.json", "--config", path}} {
 		err := run(args)
 		if err == nil || !strings.Contains(err.Error(), "override-missing.json") {
 			t.Fatal("override did not take precedence before startup", args, err)
@@ -40,8 +40,8 @@ func TestThemeFlagValidation(t *testing.T) {
 		message string
 	}{
 		{[]string{"--theme="}, "--theme requires"},
-		{[]string{"doctor", "--theme", "gruvbox-dark"}, "dashboard or login"},
-		{[]string{"logout", "--theme", "default"}, "dashboard or login"},
+		{[]string{"doctor", "--theme", "gruvbox-dark"}, "dashboard, login, or serve"},
+		{[]string{"logout", "--theme", "default"}, "dashboard, login, or serve"},
 	} {
 		if err := run(tc.args); err == nil || !strings.Contains(err.Error(), tc.message) {
 			t.Fatal(tc.args, err)

@@ -34,6 +34,13 @@ func TestReadOnlyRoutesAndBrowserBoundary(t *testing.T) {
 	}{
 		{"GET", "/", u.Host, "", "", 200},
 		{"GET", "/app.js", u.Host, "", "", 200},
+		{"GET", "/themes.js", u.Host, "", "", 200},
+		{"GET", "/api/themes", u.Host, "", "", 200},
+		{"HEAD", "/api/themes", u.Host, "", "", 200},
+		{"POST", "/api/themes", u.Host, "", "", 405},
+		{"GET", "/api/themes", "attacker.example", "", "", 403},
+		{"GET", "/api/themes", u.Host, "https://attacker.example", "", 403},
+		{"GET", "/api/themes", u.Host, "", "cross-site", 403},
 		{"GET", "/style.css", u.Host, "", "", 200},
 		{"GET", "/icon.png", u.Host, "", "", 200},
 		{"GET", "/api/snapshot", u.Host, "http://" + u.Host, "same-origin", 200},

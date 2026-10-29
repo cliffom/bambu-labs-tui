@@ -67,7 +67,7 @@ function swatch(color) {
   const match = /^(?:#)?([a-f\d]{6})(?:[a-f\d]{2})?$/i.exec(color || "");
   return match
     ? `<span class="swatch" style="background:#${match[1]}" title="#${match[1]}"></span>`
-    : '<span class="swatch" title="Unknown color" style="border:1px solid #a0aaa2"></span>';
+    : '<span class="swatch" title="Unknown color" style="border:1px solid var(--muted)"></span>';
 }
 function allSlots(p) {
   return [...p.ams.flatMap((unit) => unit.slots), ...p.external];

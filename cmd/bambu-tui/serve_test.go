@@ -27,6 +27,7 @@ import (
 	"github.com/cliffom/bambu-tui/internal/farm"
 	"github.com/cliffom/bambu-tui/internal/monitor"
 	"github.com/cliffom/bambu-tui/internal/session"
+	"github.com/cliffom/bambu-tui/internal/ui"
 	"github.com/cliffom/bambu-tui/internal/webserver"
 )
 
@@ -54,7 +55,11 @@ func TestServeHelperProcess(t *testing.T) {
 		runner := &monitor.Runner{API: serveAPI{}, Token: "synthetic-token", Dial: func(context.Context) (monitor.Transport, error) {
 			return &serveTransport{closed: make(chan struct{})}, nil
 		}}
-		err = serveMonitor(ctx, cfg, &state, os.Stdout, os.Stderr, func(ctx context.Context, events chan<- monitor.Event) { runner.Run(ctx, events, nil) })
+		theme, themeErr := ui.LoadTheme(os.Getenv("BAMBU_TUI_SERVE_CONFIG"), cfg.ThemeFile)
+		if themeErr != nil {
+			t.Fatal(themeErr)
+		}
+		err = serveMonitor(ctx, cfg, &state, os.Stdout, os.Stderr, func(ctx context.Context, events chan<- monitor.Event) { runner.Run(ctx, events, nil) }, serveOptions{theme: theme})
 	case "close":
 		cfg, loadErr := config.Load(os.Getenv("BAMBU_TUI_SERVE_CONFIG"))
 		if loadErr != nil {
@@ -70,7 +75,11 @@ func TestServeHelperProcess(t *testing.T) {
 		fmt.Println("Listening on", status.URL)
 		err = serveSession(context.Background(), &state, web, nil, io.Discard, time.Second)
 	default:
-		err = run([]string{"serve", "--demo", "--config", os.Getenv("BAMBU_TUI_SERVE_CONFIG")})
+		args := []string{"serve", "--demo", "--config", os.Getenv("BAMBU_TUI_SERVE_CONFIG")}
+		if override := os.Getenv("BAMBU_TUI_SERVE_THEME"); override != "" {
+			args = append(args, "--theme", override)
+		}
+		err = run(args)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -155,11 +164,19 @@ func TestServeWithoutTerminal(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					original = append([]byte("theme_file='missing-theme.json'\n"), original...)
+					original = append([]byte("theme_file='custom-theme.json'\n"), original...)
+					if err := os.WriteFile(filepath.Join(filepath.Dir(path), "custom-theme.json"), []byte(`{"version":1,"colors":{"background":"#123456","accent":"#FEDCBA"}}`), 0o600); err != nil {
+						t.Fatal(err)
+					}
 					if err := os.WriteFile(path, original, 0o600); err != nil {
 						t.Fatal(err)
 					}
 					child := startServeChild(t, path, mode)
+					var themes webserver.ThemeCatalog
+					serveGet(t, child.url+"/api/themes", &themes)
+					if len(themes.Themes) < 2 || themes.Themes[0].Colors["background"] != "#123456" || themes.Themes[0].Colors["accent"] != "#FEDCBA" {
+						t.Fatal(themes)
+					}
 					var snapshot struct {
 						Demo      bool   `json:"demo"`
 						Decisions string `json:"decisions"`
@@ -287,7 +304,7 @@ func TestServeBindFailureAndArgumentErrors(t *testing.T) {
 	if err == nil || !bytes.Contains(output, []byte("already in use")) || bytes.Contains(output, []byte("Listening")) {
 		t.Fatalf("%v: %s", err, output)
 	}
-	for _, args := range [][]string{{"serve", "--demo", "--theme=default"}, {"serve", "--demo", "--session"}, {"serve", "--demo", "--notify"}} {
+	for _, args := range [][]string{{"serve", "--demo", "--session"}, {"serve", "--demo", "--notify"}} {
 		if err := run(args); err == nil {
 			t.Fatal("accepted", args)
 		}
@@ -450,5 +467,38 @@ func TestServeShutdownDrainsLatestCoalescedNoticeSnapshot(t *testing.T) {
 	first, latest := <-writes, <-writes
 	if first[keys[1]].Dismissed || !latest[keys[0]].Dismissed || !latest[keys[1]].Dismissed {
 		t.Fatal("wrong immutable/coalesced snapshots")
+	}
+}
+
+func TestServeThemeOverrideDoesNotLoadOrRewriteConfiguredFile(t *testing.T) {
+	path := ptyWebConfig(t, false)
+	original, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	original = append([]byte("theme_file='missing.json'\n"), original...)
+	if err := os.WriteFile(path, original, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("BAMBU_TUI_SERVE_THEME", "hotdog")
+	child := startServeChild(t, path, "demo")
+	var themes webserver.ThemeCatalog
+	serveGet(t, child.url+"/api/themes", &themes)
+	theme, err := ui.LoadThemeOverride("hotdog")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if themes.Themes[0].Colors["background"] != string(theme.Palette.Background) {
+		t.Fatal(themes)
+	}
+	if err := child.cmd.Process.Signal(os.Interrupt); err != nil {
+		t.Fatal(err)
+	}
+	if err := child.cmd.Wait(); err != nil {
+		t.Fatal(err, child.stderr.String())
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(after, original) {
+		t.Fatal("override changed configuration", err)
 	}
 }

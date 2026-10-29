@@ -92,8 +92,8 @@ func run(args []string) error {
 	if command != commandLogin && (*token || *code || *sessionOnly) {
 		return errors.New("--token, --email-code, and --session are login options")
 	}
-	if themeProvided && command != commandMonitor && command != commandLogin {
-		return errors.New("--theme is a dashboard or login option")
+	if themeProvided && command != commandMonitor && command != commandLogin && command != commandServe {
+		return errors.New("--theme is a dashboard, login, or serve option")
 	}
 	if themeProvided && *themeChoice == "" {
 		return errors.New("--theme requires a bundled theme name or a JSON file path")
@@ -128,14 +128,8 @@ func run(args []string) error {
 	if command == commandCompact {
 		return compactNotifications(ctx, cfg, os.Stdout)
 	}
-	if command == commandServe {
-		if *demo {
-			return serveDemo(ctx, cfg, os.Stdout)
-		}
-		return serveCloud(ctx, cfg, os.Stdout, os.Stderr)
-	}
 	var theme ui.Theme
-	if command == commandMonitor || command == commandLogin {
+	if command == commandMonitor || command == commandLogin || command == commandServe {
 		if themeProvided {
 			theme, err = ui.LoadThemeOverride(*themeChoice)
 		} else {
@@ -144,6 +138,12 @@ func run(args []string) error {
 		if err != nil {
 			return err
 		}
+	}
+	if command == commandServe {
+		if *demo {
+			return serveDemo(ctx, cfg, os.Stdout, theme)
+		}
+		return serveCloud(ctx, cfg, os.Stdout, os.Stderr, theme)
 	}
 	store := credentials.Store{Region: cfg.Region}
 	api := cloud.New(cfg.Region)

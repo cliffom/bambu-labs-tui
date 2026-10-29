@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.5 — Browser theme parity
+
+- Apply the host’s effective TUI theme to the browser dashboard, including custom configured colors and launch overrides (#141). Add Settings > Appearance with Follow host and every bundled TUI theme; browser selections persist locally without changing the TUI configuration.
+- Honor configured theme files and `--theme` in both foreground `serve` modes, validating them before startup. Keep custom file paths and metadata out of browser responses.
+- Use semantic colors throughout cards, controls, dialogs, focus/selection, and the status bar, including light-theme native controls. Preserve monitoring and applied colors if theme loading fails.
+- Remove the redundant MONITORING header badge and show consistent counts on every filter tab before search, preserving availability and last-reported-state distinctions.
+
+See [browser appearance](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#browser-theme-parity-141).
+
 ## 0.4.4 — Clearer browser dashboard
 
 - Simplify the browser dashboard with one filter toolbar, static whole-farm summary totals, and more room for printer cards. Remove the duplicate sidebar, repeated counts, decorative headings, and normal monitoring stamps; move connection/demo status to the footer’s left side (#134).

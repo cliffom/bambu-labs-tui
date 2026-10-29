@@ -3,14 +3,29 @@
   --font-ui:
     ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "DejaVu Sans Mono",
     monospace;
+  /* Null terminal backgrounds use this browser canvas. Theme RGBs stay exact. */
   --bg: #101312;
-  --panel: #181c1a;
-  --border: #303730;
-  --muted: #a0aaa2;
-  --text: #e8ede8;
-  --green: #a3e4bb;
-  --amber: #f4ba72;
-  --red: #ff9aa1;
+  --panel: var(--bg);
+  --border: #A3E4BB;
+  --muted: #929BA8;
+  --secondary: #929BA8;
+  --text: #E4E9F0;
+  --info: #E4E9F0;
+  --green: #A3E4BB;
+  --success: #A3E4BB;
+  --focus: #A3E4BB;
+  --amber: #F4BA72;
+  --red: #FF8087;
+  --selected-text: #D9F5E4;
+  --selected-background: #263B36;
+  --footer-background: #3A4652;
+  --footer-text: #B8C2CE;
+  --footer-info: #E4E9F0;
+  --footer-success: #A3E4BB;
+  --footer-warning: #F4BA72;
+  --footer-error: #FF9AA1;
+  --footer-hotkey: #E4E9F0;
+  --footer-separator: #B8C2CE;
 }
 * {
   box-sizing: border-box;
@@ -48,7 +63,7 @@ button:focus-visible,
 a:focus-visible,
 select:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--green);
+  outline: 2px solid var(--focus);
   outline-offset: 4px;
 }
 button {
@@ -86,14 +101,6 @@ header {
 .brand > span {
   color: var(--green);
   font-weight: 450;
-}
-.brand small {
-  font-size: 0.875rem;
-  color: var(--muted);
-  letter-spacing: 1px;
-  border: 1px solid var(--border);
-  padding: 5px 6px;
-  margin: 3px 0 0 12px;
 }
 .header-right {
   display: flex;
@@ -182,7 +189,7 @@ h1 {
 }
 .timestamp {
   text-align: right;
-  color: #d2dbd3;
+  color: var(--text);
   font-size: 0.875rem;
   line-height: 1.9;
 }
@@ -196,7 +203,7 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 8px;
   margin: 30px 0 22px;
-  background: #151916;
+  background: var(--panel);
 }
 .summary-item {
   display: flex;
@@ -233,11 +240,11 @@ h1 {
   color: var(--amber) !important;
 }
 .gray {
-  color: #a0aaa2;
+  color: var(--muted);
 }
 .attention-banner {
-  background: #29241b;
-  border: 1px solid #54442b;
+  background: var(--panel);
+  border: 1px solid var(--amber);
   border-radius: 7px;
   padding: 16px 18px;
   display: flex;
@@ -245,7 +252,7 @@ h1 {
   gap: 14px;
 }
 .attention-icon {
-  border: 1px solid #826644;
+  border: 1px solid var(--amber);
   color: var(--amber);
   width: 26px;
   height: 26px;
@@ -257,12 +264,12 @@ h1 {
 .attention-banner strong {
   font-size: 0.9375rem;
   font-weight: 550;
-  color: #f5d9b4;
+  color: var(--amber);
 }
 .attention-banner p {
   margin: 5px 0 0;
   font-size: 0.875rem;
-  color: #c7b79f;
+  color: var(--secondary);
 }
 .attention-banner button {
   margin-left: auto;
@@ -270,7 +277,7 @@ h1 {
   border: 0;
   white-space: normal;
   overflow-wrap: anywhere;
-  color: #f5d9b4;
+  color: var(--amber);
   font-size: 0.875rem;
 }
 .attention-banner button span {
@@ -307,7 +314,7 @@ h2 > span {
   padding: 4px;
   border: 1px solid var(--border);
   border-radius: 7px;
-  background: #151916;
+  background: var(--panel);
 }
 .filters button {
   min-height: 2.5rem;
@@ -321,8 +328,8 @@ h2 > span {
   overflow-wrap: anywhere;
 }
 .filters .selected {
-  background: #2e3e32;
-  color: var(--green);
+  background: var(--selected-background);
+  color: var(--selected-text);
   box-shadow: 0 1px 3px #0004;
 }
 .filters button > span {
@@ -347,7 +354,7 @@ h2 > span {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #151916;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 6px 10px;
@@ -368,10 +375,10 @@ h2 > span {
 select {
   min-height: 2.75rem;
   max-width: 100%;
-  background: #181e19;
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 5px;
-  color: #c4cec6;
+  color: var(--text);
   padding: 8px;
   font-size: 0.875rem;
 }
@@ -379,7 +386,7 @@ select {
   position: relative;
   display: flex;
   max-width: 100%;
-  color: #c4cec6;
+  color: var(--text);
 }
 .sort-control select {
   appearance: none;
@@ -414,11 +421,11 @@ select {
     transform 0.15s;
 }
 .card:hover {
-  border-color: #70957a;
+  border-color: var(--focus);
   transform: translateY(-2px);
 }
 .card.warning {
-  border-color: #655137;
+  border-color: var(--amber);
 }
 .card-head {
   display: flex;
@@ -437,7 +444,7 @@ select {
 }
 .pill {
   font-size: 0.875rem;
-  border: 1px solid #3a5744;
+  border: 1px solid var(--success);
   border-radius: 4px;
   padding: 4px 6px;
   color: var(--green);
@@ -448,11 +455,11 @@ select {
 }
 .pill.warn {
   color: var(--amber);
-  border-color: #675235;
+  border-color: var(--amber);
 }
 .pill.neutral {
-  color: #b8c2ba;
-  border-color: #444e46;
+  color: var(--secondary);
+  border-color: var(--border);
 }
 .printer-view {
   height: 122px;
@@ -461,7 +468,7 @@ select {
   justify-content: center;
   position: relative;
   margin: 10px -5px 8px;
-  background: radial-gradient(ellipse at 50% 100%, #36493a42, transparent 65%);
+  background: none;
 }
 .printer-view svg {
   height: 111px;
@@ -492,7 +499,7 @@ select {
 }
 .progress-track {
   height: 4px;
-  background: #323b34;
+  background: var(--secondary);
   border-radius: 3px;
   margin: 8px 0 12px;
   overflow: hidden;
@@ -517,7 +524,7 @@ select {
 .metrics strong {
   line-height: 1.5;
   display: block;
-  color: #d5ded6;
+  color: var(--info);
   font-size: 0.875rem;
   margin-top: 5px;
   font-weight: 400;
@@ -565,7 +572,7 @@ select {
   justify-content: space-between;
   gap: 15px;
   align-items: center;
-  border: 1px dashed #3a443c;
+  border: 1px dashed var(--border);
   padding: 17px 19px;
   border-radius: 7px;
 }
@@ -573,7 +580,7 @@ select {
   font-size: 0.875rem;
   letter-spacing: 1px;
   color: var(--green);
-  background: #23372b;
+  background: var(--selected-background);
   padding: 4px 6px;
   margin-right: 8px;
 }
@@ -593,13 +600,14 @@ select {
 }
 .demo-panel button {
   border: 1px solid var(--border);
-  background: #202821;
+  background: var(--panel);
   border-radius: 4px;
   font-size: 0.875rem;
   padding: 8px 10px;
   margin-left: 7px;
 }
 footer {
+  background: var(--footer-background);
   border-top: 1px solid var(--border);
   display: flex;
   flex-wrap: wrap;
@@ -636,8 +644,8 @@ footer > span:nth-child(2) {
 }
 dialog {
   overflow-wrap: anywhere;
-  background: #181d19;
-  border: 1px solid #506052;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
   padding: 26px;
@@ -664,7 +672,7 @@ dialog::backdrop {
 }
 dialog p {
   font-size: 1rem;
-  color: #b5c2b8;
+  color: var(--text);
   line-height: 1.7;
 }
 .dialog-footer {
@@ -681,7 +689,7 @@ dialog p {
   margin: 24px 0;
 }
 .detail-grid div {
-  background: #222b24;
+  background: var(--panel);
   padding: 14px;
   border-radius: 5px;
   font-size: 0.875rem;
@@ -694,8 +702,8 @@ dialog p {
   font-size: 1rem;
 }
 .condition {
-  border: 1px solid #655137;
-  background: #29241b;
+  border: 1px solid var(--amber);
+  background: var(--panel);
   border-radius: 6px;
   padding: 16px;
 }
@@ -741,8 +749,8 @@ dialog p {
 .empty button {
   display: block;
   margin: 16px auto 0;
-  background: #273c2e;
-  border: 1px solid #49634e;
+  background: var(--selected-background);
+  border: 1px solid var(--focus);
   padding: 8px 15px;
   border-radius: 5px;
 }
@@ -784,9 +792,6 @@ dialog p {
   }
   .brand {
     font-size: 1.375rem;
-  }
-  .brand small {
-    display: none;
   }
   .header-right {
     gap: 15px;
@@ -936,10 +941,10 @@ dialog p {
 
 .feed-warning {
   padding: 12px 18px;
-  background: #30251d;
-  border: 1px solid #7b5a35;
+  background: var(--panel);
+  border: 1px solid var(--amber);
   border-radius: 6px;
-  color: #f4ba72;
+  color: var(--amber);
   margin-bottom: 20px;
   line-height: 1.6;
 }
@@ -1106,3 +1111,19 @@ samp {
 }
 .notification-controls button:hover:not(:disabled) { border-color: var(--green); }
 .notification-controls button:disabled { opacity: 0.55; cursor: default; }
+
+/* Theme roles remain distinct even where the default RGB happens to match. */
+.summary span, .summary small, .model, .metrics, .timestamp { color: var(--secondary); }
+.live, .pill { color: var(--success); }
+footer { color: var(--footer-text); }
+footer .live { color: var(--footer-success); }
+footer .amber { color: var(--footer-warning) !important; }
+footer .footer-repo { color: var(--footer-hotkey); }
+footer .footer-repo:hover { color: var(--footer-info); }
+.empty button, .demo-tag { color: var(--selected-text); }
+footer :focus-visible { outline-color: var(--footer-hotkey); }
+.theme-panel { margin-bottom: 1.5rem; min-width: 0; }
+.theme-panel label { display: block; margin: 0.75rem 0 0.5rem; }
+.theme-panel select { width: 100%; min-width: 0; }
+.theme-panel p { margin: 0.5rem 0; }
+::selection { color: var(--selected-text); background: var(--selected-background); }

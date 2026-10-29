@@ -403,3 +403,24 @@ test("cards keep last-known scope and attention explicit without repeated metric
   assert.doesNotMatch(html, /Last-known · (Nozzle|Bed|Reported progress|Unknown material)/);
   assert.doesNotMatch(html, /machine-state|MONITORING/);
 });
+
+
+test("every filter count matches its membership before search, including overlapping and last-reported states", () => {
+  const view = inspector();
+  view.run(`snapshot.connected = true; snapshot.printers = [
+    {id:"a",name:"Alpha",state:"IDLE",idle_finished:true,online:true,fresh:true,attention:true},
+    {id:"b",name:"Beta",state:"RUNNING",online:true,fresh:true},
+    {id:"c",name:"Offline",state:"RUNNING",online:false,fresh:false,attention:true},
+    {id:"d",name:"Unknown",state:"UNKNOWN",online:true,fresh:true}
+  ]; query = "no matches";`);
+  const counts = () => JSON.parse(view.run('JSON.stringify(["all","printing","idle","attention","unavailable"].map(filterCount))'));
+  assert.deepEqual(counts(), [4,2,1,2,1]);
+  assert.equal(view.run('visible().length'), 0);
+  view.run('query = ""');
+  for (const choice of ["all","printing","idle","attention","unavailable"])
+    assert.equal(view.run(`filter = "${choice}"; visible().length`), view.run(`filterCount("${choice}")`));
+  view.run('feedError = true');
+  assert.deepEqual(counts(), [4,2,0,2,1]);
+  view.run('snapshot.printers = []');
+  assert.deepEqual(counts(), [0,0,0,0,0]);
+});

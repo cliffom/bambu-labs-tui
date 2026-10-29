@@ -25,6 +25,7 @@ type (
 // HTTP clients receive only allowlisted display values, never live farm state.
 func (m Model) WithWebServer(server webServerClient) Model {
 	m.webServer = server
+	m.publishBrowserThemes()
 	return m
 }
 

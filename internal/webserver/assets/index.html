@@ -12,7 +12,7 @@
     <header>
       <a class="brand" href="./"
         ><img src="icon.png" alt="" />bambu<span>farm</span
-        ><small>MONITORING</small></a
+        ></a
       >
       <div class="header-right">
         <button
@@ -76,11 +76,11 @@
         <section class="fleet" aria-label="Printers">
           <div class="toolbar">
             <div class="filters" role="group" aria-label="Filter printers">
-              <button class="selected" data-filter="all" aria-pressed="true">All printers</button
-              ><button data-filter="printing" aria-pressed="false">Printing</button
+              <button class="selected" data-filter="all" aria-pressed="true">All printers <span id="all-count">0</span></button
+              ><button data-filter="printing" aria-pressed="false">Printing <span id="printing-count">0</span></button
               ><button data-filter="idle" aria-pressed="false" aria-describedby="idle-filter-help">Idle / finished <span id="idle-count">0</span></button
-              ><button data-filter="attention" aria-pressed="false">Attention</button
-              ><button data-filter="unavailable" aria-pressed="false">Unavailable</button>
+              ><button data-filter="attention" aria-pressed="false">Attention <span id="attention-count">0</span></button
+              ><button data-filter="unavailable" aria-pressed="false">Unavailable <span id="unavailable-count">0</span></button>
             </div>
             <div class="tools">
               <label class="search"
@@ -151,6 +151,18 @@
           autofocus
         ></button>
       </div>
+      <section class="theme-panel" aria-labelledby="theme-heading">
+        <h2 id="theme-heading">Appearance</h2>
+        <label for="theme-select">Theme</label>
+        <div class="sort-control">
+        <select id="theme-select" aria-describedby="theme-help theme-status" disabled>
+          <option value="host">Follow host (configured theme)</option>
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" /></svg>
+        </div>
+        <p id="theme-help">Follow the TUI configuration, or choose a bundled theme for this browser. This leaves the host configuration unchanged.</p>
+        <p id="theme-status" role="status" aria-live="polite">Loading themes…</p>
+      </section>
       <section class="notification-panel" aria-labelledby="notification-heading">
         <div>
           <h2 id="notification-heading">Browser notifications</h2>
@@ -212,6 +224,7 @@
       </p>
       <div class="dialog-footer">Bambu TUI · Read-only farm monitoring</div>
     </dialog>
+    <script src="themes.js"></script>
     <script src="notifications.js"></script>
     <script src="app.js"></script>
   </body>

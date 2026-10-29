@@ -16,6 +16,7 @@ import (
 )
 
 type fakeWebServer struct {
+	themes        webserver.ThemeCatalog
 	status        webserver.Status
 	clients       webserver.ClientStatus
 	calls         []bool
@@ -34,6 +35,8 @@ func (s *fakeWebServer) Clients() webserver.ClientStatus {
 	result.Events = append([]webserver.ClientEvent(nil), result.Events...)
 	return result
 }
+
+func (s *fakeWebServer) PublishThemes(c webserver.ThemeCatalog) { s.themes = c }
 
 func (s *fakeWebServer) Publish(data []byte)      { s.snapshot = data }
 func (s *fakeWebServer) Status() webserver.Status { return s.status }

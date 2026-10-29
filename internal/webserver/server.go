@@ -39,6 +39,7 @@ type (
 		server   *http.Server
 		listener net.Listener
 		done     <-chan struct{}
+		themes   atomic.Value
 		snapshot atomic.Value
 		status   atomic.Value
 		closed   bool
@@ -58,6 +59,7 @@ func New(ctx context.Context, ledgers ...BrowserLedger) *Server {
 	}
 	s.browser = newBrowserWorker(ctx, ledger)
 	s.snapshot.Store([]byte(`{"printers":[],"connected":false,"summary":{},"demo":false}`))
+	s.themes.Store([]byte(`{"themes":[]}`))
 	s.status.Store(Status{})
 	context.AfterFunc(ctx, s.Close)
 	return s
@@ -168,12 +170,17 @@ func (s *Server) handler(host string, files http.Handler) http.Handler {
 			if r.Method == http.MethodGet {
 				_ = json.NewEncoder(w).Encode(map[string]string{"token": s.token})
 			}
+		case "/api/themes":
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			if r.Method == http.MethodGet {
+				_, _ = w.Write(s.themes.Load().([]byte))
+			}
 		case "/api/snapshot":
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			if r.Method == http.MethodGet {
 				_, _ = w.Write(s.snapshot.Load().([]byte))
 			}
-		case "/", "/app.js", "/notifications.js", "/style.css", "/icon.png":
+		case "/", "/app.js", "/notifications.js", "/themes.js", "/style.css", "/icon.png":
 			files.ServeHTTP(w, r)
 		default:
 			if isPrinterImage(r.URL.Path) {

@@ -72,6 +72,7 @@ func newStyles(p Palette) *styles {
 // running commands, changing feedback lifetimes, or opening automatic dialogs.
 func (m Model) WithPalette(p Palette) Model {
 	m.styles = newStyles(p)
+	m.publishBrowserThemes()
 	// Dialogs own cached styled viewports through pointers. Do not recolor an
 	// earlier model value's cache while constructing a differently styled value.
 	m.attention = cloneDialog(m.attention)

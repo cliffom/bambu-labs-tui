@@ -20,9 +20,17 @@ A keyboard-driven workspace for your farm: move between printers, inspect job de
 
 ### Web browser dashboard
 
-A visual farm overview with searchable, filterable printer cards, model illustrations, progress, temperatures, and filament. Spot printers needing attention or showing unavailable data, then inspect their reported conditions. Unknown readings stay unknown, and stale or offline readings are marked last-known.
+A visual farm overview with searchable, filterable printer cards, model illustrations, progress, temperatures, and filament. Spot printers needing attention or showing unavailable data, then inspect their reported conditions. Unknown readings stay unknown. Stale readings are labeled last-known; offline cards show just printer identity and inactive artwork, with full details available through inspection.
 
-![Bambu TUI browser dashboard showing a three-printer farm overview, summary counts, search and filters, and printer cards with progress, temperatures, and availability.](assets/screenshots/browser.png)
+![Current browser dashboard with one filter toolbar, printing and paused printers, a simplified offline card, and the bottom status bar.](assets/screenshots/browser.png)
+
+Choose **Settings > Appearance** to follow the terminal theme or select a bundled theme for this browser. Settings also contains the separate, opt-in browser notification controls.
+
+| Gruvbox Dark dashboard | Hotdog Settings |
+| --- | --- |
+| [![Browser dashboard in Gruvbox Dark](assets/screenshots/browser-theme-gruvbox-dark.png)](assets/screenshots/browser-theme-gruvbox-dark.png) | [![Appearance and browser notification options in Hotdog Settings](assets/screenshots/browser-themes.png)](assets/screenshots/browser-themes.png) |
+
+See the [browser screenshot gallery](docs/user/usage.md#browser-screenshots) for all six themes, filtering, printer details, filament, and mobile views. All browser captures use synthetic demo data.
 
 The optional browser dashboard runs on the **same computer** and shares the TUI's monitoring connection. For real printers, keep the TUI running or use the [terminal-free cloud server](docs/user/usage.md#terminal-free-cloud-server) after saving a login. [Enable the browser dashboard](#open-the-browser-dashboard) after starting either the demo or your own farm.
 

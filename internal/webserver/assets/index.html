@@ -91,11 +91,16 @@
                   id="search"
                   placeholder="Find a printer…"
                   aria-label="Find a printer" /></label
-              ><select id="sort" aria-label="Sort printers">
-                <option value="name">Name ↑</option>
-                <option value="attention">Attention first</option>
-                <option value="state">State</option>
-              </select>
+              ><div class="sort-control">
+                <select id="sort" aria-label="Sort printers">
+                  <option value="name">Name ↑</option>
+                  <option value="attention">Attention first</option>
+                  <option value="state">State</option>
+                </select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
             </div>
           </div>
           <p id="idle-filter-help" class="filter-help" hidden>Online printers reporting Idle or Finished with current telemetry. This does not confirm the build plate is clear or the printer is ready for another job.</p>

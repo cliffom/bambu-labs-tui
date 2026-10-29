@@ -114,6 +114,14 @@ const {chromium} = require("playwright");
         await check("initial");
         assert.equal(await page.locator("aside, .summary button").count(), 0,
           "toolbar is the only filter control; summary is static");
+        assert.ok(await page.locator(".sort-control").evaluate(el => {
+          const select = el.querySelector("select"), icon = el.querySelector("svg");
+          const box = select.getBoundingClientRect(), arrow = icon.getBoundingClientRect();
+          return arrow.left > box.left && arrow.right < box.right - arrow.width / 2 &&
+            Math.abs((arrow.top + arrow.bottom) / 2 - (box.top + box.bottom) / 2) < 1 &&
+            parseFloat(getComputedStyle(select).paddingInlineEnd) >= arrow.width * 2 &&
+            getComputedStyle(icon).pointerEvents === "none";
+        }), "sort chevron is centered and inset with reserved text space");
         const idle = page.locator('[data-filter="idle"]');
         const idleCount = printers.filter(p => p.idle_finished).length;
         assert.equal(await page.locator("#idle-count").textContent(), String(idleCount));

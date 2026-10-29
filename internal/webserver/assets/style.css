@@ -383,6 +383,25 @@ select {
   padding: 8px;
   font-size: 0.875rem;
 }
+.sort-control {
+  position: relative;
+  display: flex;
+  max-width: 100%;
+  color: #c4cec6;
+}
+.sort-control select {
+  appearance: none;
+  padding-inline: 0.875rem 2.75rem;
+}
+.sort-control svg {
+  position: absolute;
+  inset-inline-end: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  pointer-events: none;
+}
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));

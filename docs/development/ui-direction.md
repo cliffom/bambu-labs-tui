@@ -91,6 +91,8 @@ Notification activity reports live identity use as `IDs used/4096`; append a tex
 
 ## Verification for a UI change
 
+Treat documentation and current screenshots as part of the UI acceptance criteria. Follow [documentation and screenshot maintenance](documentation-direction.md#ui-behavior-and-screenshot-maintenance): review the README, affected guides/help, and all captures depicting the changed layout, theme, state, controls, or behavior; update them in the same PR. This applies when a domain/session change alters visible interpretation without editing a renderer. Keep current screenshots aligned with the resulting application and preserve historical evidence separately. Report updated captures, actual visual inspection, or specific unchanged-image rationale alongside the tests.
+
 Extend the relevant behavioral tests when changing an interaction contract. Prefer semantic assertions, ANSI-aware bounds, synthetic telemetry, and explicit synchronization over full-frame snapshots or sleeps. Existing examples include `internal/ui/dialogs_test.go`, `modal_keys_test.go`, `resize_input_test.go`, `overview_test.go`, `offline_test.go`, and the [PTY suite](terminal-tests.md). `make test` runs these with the race detector in Linux/macOS CI.
 
 For layout or styling changes, inspect the affected states in `make demo` at 60 × 18, below minimum size, and a wide size such as 120 × 32. Check selected/unselected rows, empty/unavailable data, dialogs, text without color, clipping, and focus/scroll after updates as applicable. Automated tests cannot establish visual quality in every terminal. Report which states/sizes were actually inspected and which remain unverified; do not claim a demo or synthetic fixture establishes real-printer behavior.

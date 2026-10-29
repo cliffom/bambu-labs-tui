@@ -18,6 +18,10 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 2. **Measure large-farm behavior ([#39](https://github.com/cliffom/bambu-tui/issues/39)).** Benchmark report/tick updates, navigation, dialogs, and rendering with representative synthetic farm sizes and notice/history loads. Record time and allocations, then profile material costs before proposing optimization. No performance defect is assumed, and fragile wall-clock CI thresholds are outside scope.
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 
+## Browser dashboard cleanup — unreleased
+
+[#134](https://github.com/cliffom/bambu-tui/issues/134) consolidates browser filtering into one toolbar, removes duplicate sidebar/status/heading content, and adds a current online Idle / finished view. Static whole-farm totals retain last-reported state semantics; cards preserve attention and unknown/last-known distinctions. See [controls](user/usage.md#local-web-dashboard) and [validation evidence](development/validation.md#browser-dashboard-cleanup-134).
+
 ## v0.4.3 — Pinned browser status bar
 
 [#132](https://github.com/cliffom/bambu-tui/issues/132) keeps the browser status line at the viewport bottom with a full-width divider matching the sidebar. The farm workspace scrolls above it without covering the result count or cards, and the bar reflows with narrow screens and enlarged text. See [dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#pinned-browser-status-bar-132).

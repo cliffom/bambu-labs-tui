@@ -39,66 +39,30 @@
       </div>
     </header>
     <div class="shell">
-      <aside>
-        <div>
-          <div class="nav-label">WORKSPACE</div>
-          <button class="nav active" id="nav-farm">
-            <span>▦</span> Farm overview <b id="nav-total">0</b></button
-          ><button class="nav" id="nav-attention">
-            <span>◇</span> Action needed
-            <b class="amber" id="nav-attention-count">0</b></button
-          ><button class="nav" id="nav-unavailable">
-            <span>⊘</span> Unavailable <b id="nav-unavailable-count">0</b>
-          </button>
-        </div>
-        <div class="sidebar-bottom">
-          <span class="tiny-dot"></span>
-          <span id="farm-mode">Cloud monitoring</span>
-          <p>Shared monitoring session</p>
-          <a
-            href="https://github.com/cliffom/bambu-tui"
-            target="_blank"
-            rel="noreferrer"
-            >Bambu TUI ↗</a
-          >
-        </div>
-      </aside>
       <main>
-        <div class="page-heading">
-          <div class="eyebrow">YOUR WORKSPACE / MONITORING</div>
-          <div class="title-row">
-            <div>
-              <h1>
-                Farm overview<span class="count" id="farm-count"
-                  >0 printers</span
-                >
-              </h1>
-              <p>A little more perspective on every print.</p>
-            </div>
-            <div class="timestamp">
-              Snapshot <span id="updated">waiting for data</span><br /><span
-                >All times shown locally</span
-              >
-            </div>
+        <div class="title-row">
+          <h1>Farm overview</h1>
+          <div class="timestamp">
+            Snapshot <span id="updated">waiting for data</span><br /><span>All times shown locally</span>
           </div>
         </div>
         <section class="summary" aria-label="Whole farm summary">
-          <button data-filter="all">
+          <div class="summary-item">
             <span>Total printers</span><strong id="total">00</strong
-            ><small>Across your farm</small></button
-          ><button data-filter="printing">
+            ><small>Across your farm</small></div
+          ><div class="summary-item">
             <span><i class="green"></i> Printing</span
             ><strong id="printing">00</strong
-            ><small>Last reported running</small></button
-          ><button data-filter="attention">
-            <span><i class="orange"></i> Needs attention</span
+            ><small>Last reported running</small></div
+          ><div class="summary-item">
+            <span><i class="orange"></i> Attention</span
             ><strong class="amber" id="attention">00</strong
-            ><small>Unreviewed conditions</small></button
-          ><button data-filter="unavailable">
+            ><small>Unreviewed conditions</small></div
+          ><div class="summary-item">
             <span><i class="gray"></i> Unavailable</span
             ><strong id="unavailable">00</strong
             ><small>Missing, stale, or disconnected</small>
-          </button>
+          </div>
         </section>
         <div id="feed-warning" class="feed-warning" role="status" hidden></div>
         <div class="attention-banner" hidden>
@@ -111,19 +75,14 @@
           </div>
           <button id="review">Inspect conditions <span>↗</span></button>
         </div>
-        <section class="fleet">
-          <div class="section-title">
-            <h2>Printers <span id="visible-count">0</span></h2>
-            <span class="subtle"
-              >Selection stays with your printer as updates arrive.</span
-            >
-          </div>
+        <section class="fleet" aria-label="Printers">
           <div class="toolbar">
             <div class="filters" role="group" aria-label="Filter printers">
-              <button class="selected" data-filter="all">All printers</button
-              ><button data-filter="printing">Printing</button
-              ><button data-filter="attention">Attention</button
-              ><button data-filter="unavailable">Unavailable</button>
+              <button class="selected" data-filter="all" aria-pressed="true">All printers</button
+              ><button data-filter="printing" aria-pressed="false">Printing</button
+              ><button data-filter="idle" aria-pressed="false" aria-describedby="idle-filter-help">Idle / finished <span id="idle-count">0</span></button
+              ><button data-filter="attention" aria-pressed="false">Attention</button
+              ><button data-filter="unavailable" aria-pressed="false">Unavailable</button>
             </div>
             <div class="tools">
               <label class="search"
@@ -139,6 +98,7 @@
               </select>
             </div>
           </div>
+          <p id="idle-filter-help" class="filter-help" hidden>Online printers reporting Idle or Finished with current telemetry. This does not confirm the build plate is clear or the printer is ready for another job.</p>
           <div id="cards" class="cards">
             <div class="empty">Waiting for a monitoring snapshot…</div>
           </div>
@@ -230,6 +190,9 @@
         programs and users on this computer can read display data and hide notices locally. Keep it local; remote
         access is not supported. For a terminal-free synthetic demo, run
         bambu-tui serve --demo; use bambu-tui serve for cloud-backed monitoring after saving a login.
+      </p>
+      <p>
+        Filters and sorting preserve your printer selection as updates arrive. The Idle / finished filter includes only currently available online printers explicitly reporting Idle or Finished. Offline, stale, missing, and unknown states are excluded; a finished job does not establish that the build plate is clear. Search narrows the selected filter.
       </p>
       <p>
         Sorting always places online non-idle printers first, reported idle or

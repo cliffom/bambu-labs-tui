@@ -5,6 +5,18 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Browser dashboard cleanup (#134)
+
+Checked on 2026-10-28 (PDT), macOS 27.0.1 (26A434) arm64 with Go 1.27.3 and headless Chrome 156.0.8078.73. The sidebar and duplicate filter paths are removed; summary totals are static and the toolbar adds a current online Idle / finished view. Last-reported Printing totals remain unchanged. Connection/demo mode stays in the header and the GitHub link in the footer. Normal monitoring artwork stamps and repeated heading counts are removed; unavailable readings have one explicit warning and material names wrap.
+
+Synthetic session regressions cover reported IDLE/FINISH versus running/preparing/slicing/paused/failed/unknown states, 100% progress and zero estimates that cannot establish idle, the exact ten-minute idle freshness boundary, stale/missing reports, offline/cloud loss, and independent attention conditions. Wire tests verify that the shared eligibility reaches the browser. All 31 dependency-free browser interaction tests passed, including feed errors/delay, eligibility/membership changes, search/sort, and last-known/attention text.
+
+All 30 real-browser layout combinations passed: empty/single/24-printer farms at 1920 × 1080, 1280 × 800, 390 × 844, 320 × 568, 568 × 320, and 1280 × 240 with default text, plus 780 × 844, 390 × 844, 320 × 568, and 568 × 320 at 200% root text. Each checks the new filter/count, static summary, pressed state, empty matches, modal focus, bounds, short-height fallback, and resize recovery. The 1280 × 800 large-farm case additionally verifies idle-filter image/focus continuity, focus fallback when membership changes, browser/cloud outage recovery, search, and sorting. Screenshots were inspected for desktop, narrow, and enlarged-text states, including readable unknown material and independent attention/last-known warnings. Browser code uses synthetic snapshots and no account data.
+
+Before/after layouts use the same synthetic three-printer fixture: [desktop before](../../assets/screenshots/browser-before-134.png), [desktop after](../../assets/screenshots/browser.png), [mobile before](../../assets/screenshots/browser-mobile-before-134.png), and [mobile after](../../assets/screenshots/browser-mobile.png). These capture actual browser viewports at 1280 × 1200 and 390 × 844; content beyond the workspace remains scrollable. The README dashboard image is refreshed from this fixture.
+
+`make docs-check fmt-check lint test check build` passed, including the full Go race/PTY suites and shared session/webserver tests. No terminal layout was changed or newly visually inspected. Safari/Firefox, actual mobile browser chrome/keyboards, live accounts/printers, physical terminals, Linux runtime, and clean-Mac distribution/notification behavior were not newly validated. These synthetic checks do not establish live hardware behavior. Version/release preparation is outside this implementation PR.
+
 ## Pinned browser status bar (#132)
 
 The v0.4.3 candidate was checked on 2026-10-28 (PDT), macOS 27.0.1 (26A434) arm64 with Go 1.27.3. The browser status bar occupies a separate viewport row with a full-width border matching the sidebar; the farm workspace scrolls above it without an estimated or fixed footer height.

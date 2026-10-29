@@ -247,6 +247,23 @@ func TestSnapshotReusesFreshnessETAAndAttention(t *testing.T) {
 	}
 }
 
+func TestSnapshotTransmitsAvailableIdleFinishedClassification(t *testing.T) {
+	s, now := syntheticState(t)
+	for _, state := range []string{"IDLE", "FINISH", "RUNNING"} {
+		if err := s.Report("PRIVATE-SERIAL", []byte(fmt.Sprintf(`{"print":{"gcode_state":%q}}`, state)), now); err != nil {
+			t.Fatal(err)
+		}
+		for _, online := range []bool{true, false} {
+			s.Printers["PRIVATE-SERIAL"].Online = online
+			data := snapshotJSON(s, now, false)
+			want := online && state != "RUNNING"
+			if got := decodeSnapshot(t, data).Printers[0].IdleFinished; got != want {
+				t.Fatalf("%s online=%v: idle_finished=%v, want %v", state, online, got, want)
+			}
+		}
+	}
+}
+
 func TestSnapshotProgressAndETADoNotConfirmCompletion(t *testing.T) {
 	state, now := syntheticState(t)
 	if err := state.Report("PRIVATE-SERIAL", []byte(`{"print":{"mc_percent":100,"mc_remaining_time":0}}`), now); err != nil {

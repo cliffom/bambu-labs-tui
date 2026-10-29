@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Simplify the browser dashboard with one filter toolbar, static whole-farm summary totals, and more room for printer cards. Remove the duplicate sidebar, repeated counts, decorative headings, and normal monitoring stamps (#134).
+- Add an online **Idle / finished** filter and count using shared current-telemetry interpretation. Exclude unavailable or unknown printers and suppress current availability during browser-feed outages; idle/finished never establishes physical readiness.
+- Keep offline card readings explicitly last-known without repeating the prefix on every metric, wrap material labels, and return focus to the active filter when a live update removes the focused printer.
+
+See [dashboard controls](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#browser-dashboard-cleanup-134).
+
 ## 0.4.3 — Pinned browser status bar
 
 - Keep the browser status line at the bottom of the viewport while the farm workspace scrolls above it (#132).

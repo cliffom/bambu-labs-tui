@@ -38,6 +38,7 @@ type (
 		Online            bool
 		Connection        string
 		Fresh             bool
+		IdleFinished      bool
 		LastReport        string
 		Job               string
 		Stage             string
@@ -137,6 +138,9 @@ func BuildDisplay(state *farm.State, now time.Time, demo bool, decisions ...Deci
 			model = p.ModelCode
 		}
 		out := DisplayPrinter{ID: DisplayID(id), Name: p.Name, Model: model, State: p.State, Online: p.Online, Connection: p.Connection(now, state.Connected), Fresh: p.TelemetryCurrent(now, state.Connected), LastReport: timestamp(p.LastReport), Job: p.Job, Stage: p.Stage, Progress: copyValue(p.Progress), Remaining: copyValue(p.Remaining), RemainingReported: timestamp(p.RemainingReported), ETACurrent: p.ETACurrent(now, state.Connected), Layer: copyValue(p.Layer), TotalLayers: copyValue(p.TotalLayers), Bed: temp(p.Bed), Chamber: temp(p.Chamber), Nozzles: []DisplayNozzle{}, AMS: []DisplayAMS{}, External: slots(p.External), Conditions: []DisplayCondition{}, Attention: attention[id]}
+		// State and availability are independent: only current online idle/done
+		// telemetry qualifies for the browser's available idle/finished view.
+		out.IdleFinished = out.Fresh && (p.State == farm.StateIdle || p.State == farm.StateFinished)
 		for _, n := range p.Nozzles {
 			out.Nozzles = append(out.Nozzles, DisplayNozzle{ID: n.ID, Active: n.Active, Temperature: temp(n.Temperature)})
 		}

@@ -24,12 +24,23 @@ const {chromium} = require("playwright");
       for (const count of [0, 1, 24]) {
         const page = await browser.newPage({viewport: {width, height}});
         page.setDefaultTimeout(10000);
-        const printers = Array.from({length: count}, (_, i) => ({
-          ...seed.printers[i % seed.printers.length],
-          id: `layout-${i}`, name: `Layout printer ${i + 1}`,
-        }));
-        await page.route("**/api/snapshot", route => route.fulfill({json: {
-          ...seed, at: new Date().toISOString(), printers,
+        const printers = Array.from({length: count}, (_, i) => {
+          const state = ["IDLE", "FINISH", "RUNNING", "PAUSE", "UNKNOWN", "IDLE", "FINISH", "FAILED"][i % 8];
+          const online = i % 8 !== 5, fresh = online && i % 8 !== 6;
+          const attention = i % 8 === 1 || i % 8 === 7;
+          return {...seed.printers[i % seed.printers.length],
+            id: `layout-${i}`, name: `Layout printer ${i + 1}`, state, online, fresh,
+            connection: !online ? "Offline" : !fresh ? "Stale" : "Live",
+            idle_finished: fresh && (state === "IDLE" || state === "FINISH"), attention,
+            progress: state === "FINISH" ? 100 : state === "IDLE" ? 0 : 42,
+            ams: [], external: [], // Exercise readable, untruncated unknown material.
+            conditions: attention ? [{id: `condition-${i}`, level: "warning", text: "Synthetic intervention",
+              guidance: "Inspect the printer", since: new Date().toISOString()}] : [],
+          };
+        });
+        let outage = false, connected = true;
+        await page.route("**/api/snapshot", route => outage ? route.abort("failed") : route.fulfill({json: {
+          ...seed, at: new Date().toISOString(), printers, connected,
           summary: {
             total: count, printing: printers.filter(p => p.state === "RUNNING").length,
             attention: printers.filter(p => p.attention).length,
@@ -71,7 +82,7 @@ const {chromium} = require("playwright");
               footerOverflow: footer.scrollWidth > footer.clientWidth,
               borderWidth: border.borderTopWidth, borderStyle: border.borderTopStyle,
               borderColor: border.borderTopColor,
-              sidebarBorder: getComputedStyle(document.querySelector("aside")).borderRightColor,
+              headerBorder: getComputedStyle(document.querySelector("header")).borderBottomColor,
               repoVisible: document.querySelector(".footer-repo").getBoundingClientRect().bottom <= innerHeight,
               repoRight: document.querySelector(".footer-repo").getBoundingClientRect().right,
               footerPadding: parseFloat(border.paddingRight),
@@ -95,12 +106,62 @@ const {chromium} = require("playwright");
             `${state}: no horizontal overflow`);
           assert.equal(bounds.borderWidth, "1px");
           assert.equal(bounds.borderStyle, "solid");
-          assert.equal(bounds.borderColor, bounds.sidebarBorder);
+          assert.equal(bounds.borderColor, bounds.headerBorder);
           assert.ok(Math.abs(bounds.repoRight - (width - bounds.footerPadding)) <= 1,
             "GitHub link stays aligned to the right");
           return bounds;
         }
         await check("initial");
+        assert.equal(await page.locator("aside, .summary button").count(), 0,
+          "toolbar is the only filter control; summary is static");
+        const idle = page.locator('[data-filter="idle"]');
+        const idleCount = printers.filter(p => p.idle_finished).length;
+        assert.equal(await page.locator("#idle-count").textContent(), String(idleCount));
+        await idle.click();
+        assert.equal(await idle.getAttribute("aria-pressed"), "true");
+        assert.equal(await page.locator(".card").count(), idleCount);
+        assert.equal(await page.locator("#idle-filter-help").isVisible(), true);
+        await check("idle filter");
+        if (count === 24 && width === 1280 && height === 800) {
+          const card = page.locator('[data-id="layout-0"]');
+          const image = await card.locator("img").elementHandle();
+          await card.focus();
+          await page.evaluate(() => poll());
+          assert.equal(await card.evaluate(el => el === document.activeElement), true);
+          assert.ok(await image.evaluate(el => el.isConnected), "unchanged sprite stays connected");
+          printers[0].state = "RUNNING";
+          printers[0].idle_finished = false;
+          await page.evaluate(() => poll());
+          assert.equal(await page.locator(".card").count(), idleCount - 1);
+          assert.equal(await idle.evaluate(el => el === document.activeElement), true,
+            "membership removal returns focus to active filter");
+          printers[0].state = "IDLE";
+          printers[0].idle_finished = true;
+          await page.evaluate(() => poll());
+          for (const failure of ["network", "cloud"]) {
+            outage = failure === "network";
+            connected = false;
+            await page.evaluate(() => poll());
+            assert.equal(await page.locator(".card").count(), 0);
+            assert.equal(await page.locator("#idle-count").textContent(), "0");
+            outage = false;
+            connected = true;
+            await page.evaluate(() => poll());
+            assert.equal(await page.locator(".card").count(), idleCount);
+          }
+          await page.locator("#search").fill("Layout printer 1");
+          assert.ok(await page.locator(".card").count() < idleCount);
+          await page.locator("#sort").selectOption("attention");
+          await page.locator("#search").fill("");
+          assert.equal(await page.locator(".card").count(), idleCount);
+        }
+        if (process.env.SCREENSHOT_DIR) {
+          fs.mkdirSync(process.env.SCREENSHOT_DIR, {recursive: true});
+          await page.screenshot({fullPage: true, path: path.join(process.env.SCREENSHOT_DIR,
+            `idle-${width}-${height}-${scale}x-${count}.png`)});
+        }
+        await page.locator('[data-filter="all"]').click();
+        assert.equal(await page.locator(".card").count(), count);
         // Scroll the actual browser container to its end without smooth-scroll timing.
         await page.locator(".shell").evaluate(el => { el.scrollTop = el.scrollHeight; });
         const bottom = await check("scrolled");

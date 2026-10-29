@@ -555,11 +555,7 @@ select {
   margin: 9px 0 0;
   line-height: 1.5;
 }
-.fleet-bottom {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: space-between;
+.result-count {
   margin: 15px 0 30px;
   color: var(--muted);
   font-size: 0.875rem;
@@ -890,14 +886,6 @@ dialog p {
   }
   .search input {
     width: 100%;
-  }
-  .fleet-bottom {
-    gap: 20px;
-    line-height: 1.6;
-  }
-  .fleet-bottom > span:last-child {
-    text-align: right;
-    max-width: 180px;
   }
   .demo-panel > div:last-child {
     display: flex;

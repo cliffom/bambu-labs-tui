@@ -105,13 +105,7 @@
           <div id="cards" class="cards">
             <div class="empty">Waiting for a monitoring snapshot…</div>
           </div>
-          <div class="fleet-bottom">
-            <span id="result-count">Waiting for data</span
-            ><span
-              >Availability and attention may overlap reported print
-              states.</span
-            >
-          </div>
+          <p class="result-count" id="result-count">Waiting for data</p>
         </section>
       </main>
     </div>
@@ -200,6 +194,11 @@
         finished printers next, and offline devices last. Name, Attention, or
         State ordering applies within each group. Unknown states stay outside
         idle for ordering only; stale readings remain last-known.
+      </p>
+      <p>
+        Summary totals cover the whole farm. Printing describes the last reported
+        state; availability and attention may overlap reported print states.
+        These counts are not intended to add up.
       </p>
       <p>
         Printer names, job names, and normalized telemetry appear here.

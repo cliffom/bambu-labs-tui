@@ -180,8 +180,11 @@ function render() {
     target?.focus({ preventScroll: true });
   }
 
-  $("#result-count").textContent =
-    `Showing ${list.length} of ${snapshot?.summary.total || 0} printers`;
+  const total = snapshot?.summary.total || 0;
+  const noun = total === 1 ? "printer" : "printers";
+  $("#result-count").textContent = list.length === total
+    ? `${total} ${noun}`
+    : `${list.length} of ${total} ${noun}`;
   document.querySelectorAll(".filters button").forEach((b) => {
     b.classList.toggle("selected", b.dataset.filter === filter);
     b.setAttribute("aria-pressed", String(b.dataset.filter === filter));

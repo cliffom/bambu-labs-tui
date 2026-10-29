@@ -55,7 +55,7 @@ const {chromium} = require("playwright");
           `${16 * scale}px`);
         await page.waitForFunction(count =>
           document.querySelectorAll(".card").length === count &&
-          document.querySelector("#result-count").textContent.includes(`of ${count}`), count,
+          document.querySelector("#result-count").textContent === `${count} ${count === 1 ? "printer" : "printers"}`, count,
           {timeout: 10000});
         const repo = page.getByRole("link", {name: "Bambu TUI on GitHub (opens in a new tab)", exact: true});
         assert.equal(await repo.getAttribute("href"), "https://github.com/cliffom/bambu-tui");
@@ -86,7 +86,7 @@ const {chromium} = require("playwright");
               repoVisible: document.querySelector(".footer-repo").getBoundingClientRect().bottom <= innerHeight,
               repoRight: document.querySelector(".footer-repo").getBoundingClientRect().right,
               footerPadding: parseFloat(border.paddingRight),
-              resultBottom: document.querySelector(".fleet-bottom").getBoundingClientRect().bottom,
+              resultBottom: document.querySelector("#result-count").getBoundingClientRect().bottom,
             };
           });
           assert.ok(bounds.workspaceHeight >= bounds.minimumWorkspace - 1,
@@ -132,6 +132,8 @@ const {chromium} = require("playwright");
         await idle.click();
         assert.equal(await idle.getAttribute("aria-pressed"), "true");
         assert.equal(await page.locator(".card").count(), idleCount);
+        assert.equal(await page.locator("#result-count").textContent(),
+          idleCount === count ? `${count} ${count === 1 ? "printer" : "printers"}` : `${idleCount} of ${count} printers`);
         assert.equal(await page.locator("#idle-filter-help").isVisible(), true);
         await check("idle filter");
         if (count === 24 && width === 1280 && height === 800) {
@@ -204,6 +206,7 @@ const {chromium} = require("playwright");
           await page.locator("#search").click();
           await page.locator("#search").fill("no matching layout printer");
           await page.waitForFunction(() => document.querySelectorAll(".card").length === 0);
+          assert.equal(await page.locator("#result-count").textContent(), `0 of ${count} ${count === 1 ? "printer" : "printers"}`);
           await check("filtered empty");
           await page.locator("#search").fill("");
           await page.waitForFunction(count => document.querySelectorAll(".card").length === count, count);

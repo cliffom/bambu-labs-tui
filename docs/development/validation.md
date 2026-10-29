@@ -7,7 +7,7 @@ This is the ongoing record of observed hardware behavior and remaining operation
 
 ## Browser theme parity (#141)
 
-The development candidate based on v0.4.4 was checked on 2026-10-28 (PDT), macOS 27.0.1 arm64, Go 1.27.3, and headless Chrome 156.0.8078.73. Browser Settings > Appearance offers Follow host plus the same six bundled TUI themes. The host publishes only resolved role RGBs and fixed labels/IDs; custom file names, paths, and metadata remain private. Both foreground serve modes now load configured themes and accept launch overrides; their terminal status palette remains unchanged.
+The v0.4.5 candidate was checked on 2026-10-28 (PDT), macOS 27.0.1 arm64, Go 1.27.3, and headless Chrome 156.0.8078.73. Browser Settings > Appearance offers Follow host plus the same six bundled TUI themes. The host publishes only resolved role RGBs and fixed labels/IDs; custom file names, paths, and metadata remain private. Both foreground serve modes now load configured themes and accept launch overrides; their terminal status palette remains unchanged.
 
 Synthetic Go coverage checks complete bundled role parity, custom-file inheritance, host recoloring/attachment order, metadata omission, early rejection of invalid configured/override files, HTTP method/origin boundaries, and foreground theme/config preservation. All 36 dependency-free browser tests passed, including all bundled choices, custom host colors, inherited-background fallback, reload/unknown-choice behavior, storage failure, tab synchronization, host updates, focus continuity, and malformed/unavailable catalog recovery.
 
@@ -18,6 +18,8 @@ Documentation/formatting checks, pinned Go and workflow lint, the full Go race/P
 Every filter tab now shows its matching printer count before search, using the same membership predicate as the results. Coverage includes overlapping attention, last-reported Printing, unavailable devices, feed interruption, and empty farms. All 37 browser interaction tests and 30 Chromium dashboard layout combinations passed after the count update; desktop and narrow demo captures were inspected.
 
 Custom colors are used without contrast correction; null/inherited backgrounds use the documented dark browser canvas. Safari, Firefox, actual mobile devices, physical terminal/font appearance, and live account/printer/OS notification behavior were not newly validated. These runs use synthetic demo data and do not close #23 or #38.
+
+Release preparation on 2026-10-28 (PDT) set VERSION and the direct-build fallback to 0.4.5 and finalized the changelog. Documentation/formatting checks, pinned Go/workflow/Make lint, upstream fault-catalogue audit, vulnerability scanning (no findings), the full race/PTY suite, vet, and macOS-hosted four-target release packaging all passed. Archive inventory/docs and helper checks passed for local ad-hoc candidates; the tag workflow will build final Developer ID-signed/notarized packages. Browser and hardware limitations above remain unchanged.
 
 ## Browser dashboard cleanup (#134)
 

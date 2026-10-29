@@ -18,7 +18,7 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 2. **Measure large-farm behavior ([#39](https://github.com/cliffom/bambu-tui/issues/39)).** Benchmark report/tick updates, navigation, dialogs, and rendering with representative synthetic farm sizes and notice/history loads. Record time and allocations, then profile material costs before proposing optimization. No performance defect is assumed, and fragile wall-clock CI thresholds are outside scope.
 3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambu-tui/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
 
-## Browser theme parity
+## v0.4.5 — Browser theme parity
 
 [#141](https://github.com/cliffom/bambu-tui/issues/141) adds the host's effective TUI theme to both browser hosts, plus an independent Settings selector using the same bundled themes. Custom-file colors and launch overrides are available through Follow host, while browser choices leave TUI configuration unchanged. See [browser appearance](user/usage.md#local-web-dashboard) and [verification](development/validation.md#browser-theme-parity-141).
 

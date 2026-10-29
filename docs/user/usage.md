@@ -60,6 +60,8 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 
 ### Local web dashboard
 
+The browser status bar stays at the bottom of the window, separated by a border. Scroll the farm workspace above it to reach all printer cards and the result count; the branding, monitoring reminder, and clock remain visible. The bar wraps to accommodate narrow windows and larger browser text.
+
 Press `,`, then use `Tab` / `Shift+Tab` to select **Web Server**. Select **Enable web server** and use `Enter`, Space, or `←` / `→` to toggle it. It is off by default. The default port is **8080**; a successful start shows `http://127.0.0.1:8080` (or your configured port). Open that exact URL on the same computer.
 
 Select **Port** to configure it: `←` / `→` adjusts by one, or `Enter` lets you type a whole number from **1 to 65535**. Typing replaces the current value; `Ctrl+U` clears, `Enter` applies, and `Esc` cancels the edit. Invalid values stay in the editor with an error. Applying a new port while enabled stops the previous listener and starts on the new port immediately. While disabled, it only saves the next startup port. Port 0 and automatic port selection are not supported.

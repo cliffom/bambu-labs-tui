@@ -5,6 +5,18 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Pinned browser status bar (#132)
+
+The v0.4.3 candidate was checked on 2026-10-28 (PDT), macOS 27.0.1 (26A434) arm64 with Go 1.27.3. The browser status bar occupies a separate viewport row with a full-width border matching the sidebar; the farm workspace scrolls above it without an estimated or fixed footer height.
+
+The reproducible `tools/test-browser-layout.cjs` real-browser check uses synthetic demo snapshots for empty, single-printer, and 24-printer farms. It checks viewport-bottom positioning, the divider, horizontal bounds, last-content reachability, scroll retention after polling, empty search results, printer-dialog bounds and keyboard focus, and Escape/focus restoration for printer, Settings, and Help dialogs. It is separate from the dependency-free browser interaction CI suite.
+
+Headless Chrome 156.0.8078.73 passed all 18 farm/viewport combinations: 1920 × 1080, 1280 × 800, 390 × 844, and 320 × 568 at default text size, plus 780 × 844 and 390 × 844 at 200% root text size. Screenshot inspection covered desktop, narrow, and enlarged-text layouts with the bar visible below the final farm metadata. At 390 pixels with enlarged text, header controls also wrap to avoid horizontal overflow. Enlarged text uses more vertical space but leaves the workspace scrollable. These are synthetic headless-browser checks; terminal rendering was not changed or newly visually inspected.
+
+`make docs-check fmt-check lint test check build`, all 29 dependency-free browser interaction tests, `make vuln-check lint-actions lint-make audit-faults`, and `make release` passed with pinned tools, including full race/PTY suites. No known vulnerabilities were found. Packaging checked all four v0.4.3 macOS/Linux archives, checksums, documentation/inventory, and the universal ad-hoc signed helper; the native CLI reported 0.4.3. Distribution signing/notarization remains the release workflow's responsibility.
+
+Live accounts/printers, physical terminals, Linux runtime, Safari/Firefox, actual mobile browser chrome/virtual keyboards, OS notification delivery, distribution signing/notarization, and clean-Mac installation have not been newly validated. Synthetic browser fixtures do not establish live hardware behavior.
+
 ## Live print job names (#129)
 
 The v0.4.2 fix was checked on 2026-10-28 (PDT), macOS 27.0.1 (26A434) arm64 with Go 1.27.3. Synthetic regressions reproduce name loss when task/name reports precede running, when IDs arrive after slicing/preparing/running, and when numeric/string zero IDs are replaced by confirmed identities. Tests cover both identity arrival orders, null/empty/whitespace-zero placeholders, preserved names/estimates/stages/state, and subsequent known job boundaries that still clear old metadata. Notification evidence retains separate explicit-state tracking with shared ID normalization.

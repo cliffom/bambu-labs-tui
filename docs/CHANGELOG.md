@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3 — Pinned browser status bar
+
+- Keep the browser status line at the bottom of the viewport while the farm workspace scrolls above it (#132).
+- Add a full-width top border matching the workspace divider, preserve the branding, monitoring message, and clock, and reserve space so the bar never covers farm content. Reflow the bar at narrow widths and enlarged text sizes.
+
+See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#pinned-browser-status-bar-132).
+
 ## 0.4.2 — Preserve live print job names
 
 - Preserve newly reported job names across partial print-start reports instead of clearing them again when the running state or delayed task/subtask IDs arrive (#129, #130).

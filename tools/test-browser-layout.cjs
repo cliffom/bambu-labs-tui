@@ -126,6 +126,45 @@ const {chromium} = require("playwright");
             parseFloat(getComputedStyle(select).paddingInlineEnd) >= arrow.width * 2 &&
             getComputedStyle(icon).pointerEvents === "none";
         }), "sort chevron is centered and inset with reserved text space");
+        for (const printer of printers.filter(p => !p.online)) {
+          const card = page.locator(`[data-id="${printer.id}"]`);
+          assert.equal(await card.locator(".job, .progress-label, .progress-track, .metrics, .card-bottom, .telemetry-note").count(), 0);
+          assert.equal(await card.locator(".pill").textContent(), "Offline");
+          assert.equal(await card.evaluate(el => getComputedStyle(el).borderTopStyle), "dashed");
+          assert.equal(await card.locator(".printer-view").evaluate(el => getComputedStyle(el).filter), "grayscale(1)");
+        }
+        if (count === 24 && width === 1280 && height === 800) {
+          const printer = printers[5];
+          const card = page.locator(`[data-id="${printer.id}"]`);
+          const cardNode = await card.elementHandle();
+          const image = await card.locator("img").elementHandle();
+          await card.focus();
+          for (const online of [true, false, true, false]) {
+            Object.assign(printer, {online, fresh: online, connection: online ? "Live" : "Offline"});
+            await page.evaluate(() => poll());
+            assert.equal(await cardNode.evaluate(el => el.isConnected && el === document.activeElement), true,
+              "online/offline transitions preserve card identity and focus through reordering");
+            assert.equal(await image.evaluate(el => el.isConnected), true,
+              "online/offline transitions preserve the connected sprite");
+            assert.equal(await card.locator(".metrics").count(), online ? 1 : 0);
+          }
+          await page.keyboard.press("Enter");
+          await page.locator("#detail").waitFor({state: "visible"});
+          assert.match(await page.locator("#detail-body").textContent(), /Last-known/);
+          await page.keyboard.press("Escape");
+          // Feed and cloud outages retain explicitly offline cards while online
+          // devices keep the full last-known layout.
+          for (const failure of ["network", "cloud"]) {
+            outage = failure === "network";
+            connected = false;
+            await page.evaluate(() => poll());
+            assert.equal(await card.locator(".pill").textContent(), "Offline");
+            assert.equal(await page.locator('[data-id="layout-0"] .metrics').count(), 1);
+            outage = false;
+            connected = true;
+            await page.evaluate(() => poll());
+          }
+        }
         const expectedCounts = {all: count, printing: printers.filter(p => p.state === "RUNNING").length,
           idle: printers.filter(p => p.idle_finished).length, attention: printers.filter(p => p.attention).length,
           unavailable: printers.filter(p => !p.fresh).length};

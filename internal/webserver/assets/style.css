@@ -427,6 +427,15 @@ select {
 .card.warning {
   border-color: var(--amber);
 }
+/* Explicit device-offline state; retain readable text and normal focus controls. */
+.card.offline {
+  align-self: start;
+  border-style: dashed;
+}
+.card.offline .printer-view {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
 .card-head {
   display: flex;
   align-items: center;

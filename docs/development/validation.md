@@ -5,6 +5,18 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambu-tui/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Offline browser cards (#145)
+
+The v0.4.6 candidate simplifies explicitly offline browser cards to name, model, artwork/fallback, Offline status, and any attention warning. A dashed border and dimmed grayscale artwork distinguish these cards; last-known telemetry remains accessible through inspection. Stale/missing data and cloud/browser-feed outages do not independently select the offline layout.
+
+All 39 dependency-free browser interaction tests passed, including populated last-known telemetry, offline attention and unknown-model fallback, and online/unknown connectivity during staleness and feed loss. On 2026-10-29 (PDT), macOS 27.0.1 arm64, Go 1.27.3, and headless Chrome 156.0.8078.73, all 30 empty/single/24-printer layout cases passed: 1920 × 1080, 1280 × 800, 1280 × 240, 390 × 844, 320 × 568, and 568 × 320 at default text; 320 × 568, 568 × 320, 780 × 844, and 390 × 844 at 200% root text. Mixed farms retain offline layout and image treatment, while online/offline transitions preserve connected card/image nodes and focus through reordering. Keyboard inspection opens last-known details; cloud/feed outages keep other cards' full last-known layout.
+
+All 28 theme/layout combinations passed: Follow host and all six bundled themes at 1280 × 800 and 390 × 844 with default text, plus 320 × 568 and 568 × 320 with 200% root text. Checks cover offline styling and retained attention, existing theme contrast, modal/workspace overflow, focus return, and sprite continuity. Default/Hotdog desktop, DeskMate mobile, C64 narrow enlarged, and IBM 3270 short enlarged captures were visually inspected. Small/short views require scrolling to see the full card; they do not fit all content simultaneously. Representative [desktop](../../assets/screenshots/browser-offline.png) and [mobile](../../assets/screenshots/browser-offline-mobile.png) synthetic captures show the focused offline card.
+
+Documentation/format checks, pinned Go/workflow/Make lint, all Go race/PTY tests, vet, native build/version output, vulnerability scanning (no findings), upstream fault-catalogue audit, and macOS-hosted four-platform release packaging passed. Archive inventory/docs, universal helper architecture/signature checks, and checksums passed for local ad-hoc candidates. VERSION and the direct-build fallback prepare 0.4.6; no tag or release was published.
+
+These synthetic checks establish Chromium behavior only. Safari, Firefox, actual mobile devices, live printer transitions, and clean-Mac downloaded-package/signing/notarization behavior remain unverified. TUI presentation was unchanged; no new manual terminal inspection was performed.
+
 ## Browser theme parity (#141)
 
 The v0.4.5 candidate was checked on 2026-10-28 (PDT), macOS 27.0.1 arm64, Go 1.27.3, and headless Chrome 156.0.8078.73. Browser Settings > Appearance offers Follow host plus the same six bundled TUI themes. The host publishes only resolved role RGBs and fixed labels/IDs; custom file names, paths, and metadata remain private. Both foreground serve modes now load configured themes and accept launch overrides; their terminal status palette remains unchanged.

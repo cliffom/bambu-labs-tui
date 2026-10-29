@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.6 — Simplified offline printer cards
+
+- Show offline browser cards with only printer name, model, image, an explicit Offline label, and any attention warning (#145). Omit job, progress, time, temperature, and material readings from these cards while retaining inspection details.
+- Use a dashed card border and desaturated, dimmed artwork to convey inactivity. Preserve focus and image identity through online/offline updates; stale telemetry and feed outages do not independently trigger the offline layout.
+
+See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#offline-browser-cards-145).
+
 ## 0.4.5 — Browser theme parity
 
 - Apply the host’s effective TUI theme to the browser dashboard, including custom configured colors and launch overrides (#141). Add Settings > Appearance with Follow host and every bundled TUI theme; browser selections persist locally without changing the TUI configuration.

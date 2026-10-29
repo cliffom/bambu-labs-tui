@@ -15,6 +15,8 @@ All 28 theme/layout combinations passed: Follow host plus default, Gruvbox Dark,
 
 Documentation/formatting checks, pinned Go and workflow lint, the full Go race/PTY suite, vet, native build, and all 36 browser interaction tests passed. The redundant MONITORING header badge was removed, leaving branding, Settings, and Help. The Appearance screenshot was refreshed with synthetic demo data; all 36 interaction tests and all 30 dashboard layout cases passed again, including the badge-absence assertion. The sort-chevron layout check now explicitly targets the toolbar control because Appearance reuses its select styling.
 
+Every filter tab now shows its matching printer count before search, using the same membership predicate as the results. Coverage includes overlapping attention, last-reported Printing, unavailable devices, feed interruption, and empty farms. All 37 browser interaction tests and 30 Chromium dashboard layout combinations passed after the count update; desktop and narrow demo captures were inspected.
+
 Custom colors are used without contrast correction; null/inherited backgrounds use the documented dark browser canvas. Safari, Firefox, actual mobile devices, physical terminal/font appearance, and live account/printer/OS notification behavior were not newly validated. These runs use synthetic demo data and do not close #23 or #38.
 
 ## Browser dashboard cleanup (#134)

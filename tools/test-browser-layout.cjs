@@ -126,6 +126,11 @@ const {chromium} = require("playwright");
             parseFloat(getComputedStyle(select).paddingInlineEnd) >= arrow.width * 2 &&
             getComputedStyle(icon).pointerEvents === "none";
         }), "sort chevron is centered and inset with reserved text space");
+        const expectedCounts = {all: count, printing: printers.filter(p => p.state === "RUNNING").length,
+          idle: printers.filter(p => p.idle_finished).length, attention: printers.filter(p => p.attention).length,
+          unavailable: printers.filter(p => !p.fresh).length};
+        for (const [choice, expected] of Object.entries(expectedCounts))
+          assert.equal(await page.locator(`#${choice}-count`).textContent(), String(expected));
         const idle = page.locator('[data-filter="idle"]');
         const idleCount = printers.filter(p => p.idle_finished).length;
         assert.equal(await page.locator("#idle-count").textContent(), String(idleCount));

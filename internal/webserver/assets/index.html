@@ -76,11 +76,11 @@
         <section class="fleet" aria-label="Printers">
           <div class="toolbar">
             <div class="filters" role="group" aria-label="Filter printers">
-              <button class="selected" data-filter="all" aria-pressed="true">All printers</button
-              ><button data-filter="printing" aria-pressed="false">Printing</button
+              <button class="selected" data-filter="all" aria-pressed="true">All printers <span id="all-count">0</span></button
+              ><button data-filter="printing" aria-pressed="false">Printing <span id="printing-count">0</span></button
               ><button data-filter="idle" aria-pressed="false" aria-describedby="idle-filter-help">Idle / finished <span id="idle-count">0</span></button
-              ><button data-filter="attention" aria-pressed="false">Attention</button
-              ><button data-filter="unavailable" aria-pressed="false">Unavailable</button>
+              ><button data-filter="attention" aria-pressed="false">Attention <span id="attention-count">0</span></button
+              ><button data-filter="unavailable" aria-pressed="false">Unavailable <span id="unavailable-count">0</span></button>
             </div>
             <div class="tools">
               <label class="search"

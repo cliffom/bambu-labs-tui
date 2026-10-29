@@ -79,15 +79,21 @@ function printerGroup(p) {
   return p.state === "IDLE" || p.state === "FINISH" ? 1 : 0;
 }
 const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+function matchesFilter(p, choice) {
+  return choice === "all" ||
+    (choice === "printing" && p.state === "RUNNING") ||
+    (choice === "idle" && idleFinished(p)) ||
+    (choice === "attention" && p.attention) ||
+    (choice === "unavailable" && !p.fresh);
+}
+function filterCount(choice) {
+  return (snapshot?.printers || []).filter(p => matchesFilter(p, choice)).length;
+}
 function visible() {
   return (snapshot?.printers || [])
     .filter(
       (p) =>
-        (filter === "all" ||
-          (filter === "printing" && p.state === "RUNNING") ||
-          (filter === "idle" && idleFinished(p)) ||
-          (filter === "attention" && p.attention) ||
-          (filter === "unavailable" && !p.fresh)) &&
+        matchesFilter(p, filter) &&
         p.name.toLowerCase().includes(query.toLowerCase()),
     )
     .sort((a, b) => {
@@ -195,7 +201,8 @@ function render() {
       2,
       "0",
     );
-  $("#idle-count").textContent = snapshot.printers.filter(idleFinished).length;
+  for (const choice of ["all", "printing", "idle", "attention", "unavailable"])
+    $("#" + choice + "-count").textContent = filterCount(choice);
   $("#idle-filter-help").hidden = filter !== "idle";
   $(".attention-banner").hidden = !snapshot.summary.attention;
   $("#attention-text").textContent =

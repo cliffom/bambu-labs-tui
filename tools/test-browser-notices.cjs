@@ -424,3 +424,46 @@ test("every filter count matches its membership before search, including overlap
   view.run('snapshot.printers = []');
   assert.deepEqual(counts(), [0,0,0,0,0]);
 });
+
+
+test("offline cards show identity and attention without last-known telemetry", () => {
+  const view = inspector();
+  view.run(`Object.assign(snapshot.printers[0], {
+    online: false, fresh: false, connection: "Offline", model: "H2D",
+    image: "/assets/printers/h2d.png", job: "Old job", progress: 42,
+    remaining: 60, nozzles: [{temperature: {current: 220}}],
+    bed: {current: 60}, external: [{material: "PLA", color: "FF0000"}], attention: true
+  })`);
+  for (const setup of ["", "feedError = true", "feedError = false; snapshot.connected = false"]) {
+    view.run(setup);
+    const html = view.run('card(snapshot.printers[0])');
+    assert.match(html, /class="card warning offline"/);
+    assert.match(html, /Synthetic printer/);
+    assert.match(html, /H2D/);
+    assert.match(html, /printer-sprite/);
+    assert.match(html, /Inspect Synthetic printer, Offline/);
+    assert.match(html, />Offline</);
+    assert.match(html, /Attention · unreviewed conditions/);
+    assert.doesNotMatch(html, /Old job|progress|metrics|Nozzle|Bed|Finish estimate|swatches|PLA|telemetry-note|Last-known/);
+  }
+  view.run('snapshot.printers[0].image = null; snapshot.printers[0].model = null');
+  assert.match(view.run('card(snapshot.printers[0])'), /Unknown model.*<svg/s);
+  view.run('renderDetail()');
+  assert.match(view.html(), /Old job/);
+});
+
+test("staleness and feed loss do not simplify online or unknown-connectivity cards", () => {
+  const view = inspector();
+  for (const online of [true, null, undefined]) {
+    view.run(`Object.assign(snapshot.printers[0], {online: ${online}, fresh: false, connection: "Stale"})`);
+    for (const feedError of [false, true]) {
+      view.run(`feedError = ${feedError}; snapshot.connected = false`);
+      const html = view.run('card(snapshot.printers[0])');
+      assert.doesNotMatch(html, /class="card[^"<>]* offline/);
+      assert.match(html, /Current state unconfirmed/);
+      assert.match(html, /Reported progress/);
+      assert.match(html, /Nozzle/);
+      assert.match(html, /Unknown material/);
+    }
+  }
+});

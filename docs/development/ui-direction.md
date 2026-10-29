@@ -67,7 +67,7 @@ Render at most once per second during monitoring. Keep at most three recent diag
 
 ## Browser dashboard readability
 
-Keep the browser status bar in its own row at the viewport bottom, with a full-width top border matching the sidebar divider. Let the farm workspace scroll above it and reserve the bar's actual reflowed height so cards and result metadata remain reachable. Preserve branding, the read-only monitoring message, and the clock at narrow widths and enlarged text sizes; dialogs retain their normal modal focus and scrolling.
+Keep the browser status bar in its own row at the viewport bottom, with a full-width top border matching the sidebar divider. Let the farm workspace scroll above it and reserve the bar's actual reflowed height so cards and result metadata remain reachable. Preserve branding, the read-only monitoring message, and an accessible GitHub repository icon link at narrow widths and enlarged text sizes; dialogs retain their normal modal focus and scrolling.
 
 Keep browser cards at the width established by the available grid columns when filters leave only one or two results; reserve empty columns instead of stretching the remaining cards. Reflow to fewer columns on narrower screens, and let empty-result messaging span the grid. Keep browser cards keyed by printer identity through monitoring updates. Patch changing telemetry and accessible labels in place; preserve connected image elements and unchanged source attributes so lazy/async-decoded sprites do not restart on each poll. Filtering, ordering, discovery/removal, and model-image/fallback changes must still reconcile correctly while retaining keyboard focus where the printer remains visible.
 

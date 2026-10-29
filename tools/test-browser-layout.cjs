@@ -45,8 +45,11 @@ const {chromium} = require("playwright");
           document.querySelectorAll(".card").length === count &&
           document.querySelector("#result-count").textContent.includes(`of ${count}`), count,
           {timeout: 10000});
-        await page.waitForFunction(() => document.querySelector("#clock").textContent,
-          null, {timeout: 10000});
+        const repo = page.getByRole("link", {name: "Bambu TUI on GitHub (opens in a new tab)", exact: true});
+        assert.equal(await repo.getAttribute("href"), "https://github.com/cliffom/bambu-tui");
+        assert.equal(await page.locator("#clock").count(), 0);
+        await repo.focus();
+        assert.equal(await repo.evaluate(el => el === document.activeElement), true);
 
         async function check(state) {
           const bounds = await page.evaluate(() => {
@@ -64,7 +67,9 @@ const {chromium} = require("playwright");
               borderWidth: border.borderTopWidth, borderStyle: border.borderTopStyle,
               borderColor: border.borderTopColor,
               sidebarBorder: getComputedStyle(document.querySelector("aside")).borderRightColor,
-              clock: document.querySelector("#clock").textContent,
+              repoVisible: document.querySelector(".footer-repo").getBoundingClientRect().bottom <= innerHeight,
+              repoRight: document.querySelector(".footer-repo").getBoundingClientRect().right,
+              footerPadding: parseFloat(border.paddingRight),
               resultBottom: document.querySelector(".fleet-bottom").getBoundingClientRect().bottom,
             };
           });
@@ -77,7 +82,9 @@ const {chromium} = require("playwright");
           assert.equal(bounds.borderWidth, "1px");
           assert.equal(bounds.borderStyle, "solid");
           assert.equal(bounds.borderColor, bounds.sidebarBorder);
-          assert.ok(bounds.clock, "clock remains visible");
+          assert.ok(bounds.repoVisible, "GitHub link remains visible");
+          assert.ok(Math.abs(bounds.repoRight - (width - bounds.footerPadding)) <= 1,
+            "GitHub link stays aligned to the right");
           return bounds;
         }
         await check("initial");

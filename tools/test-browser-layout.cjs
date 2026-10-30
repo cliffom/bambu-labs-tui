@@ -120,6 +120,28 @@ const {chromium} = require("playwright");
           await page.evaluate(() => { scrollTo(0, 0); document.querySelector(".shell").scrollTop = 0; });
           await settleLayout();
           const expanded = await page.locator("header").evaluate(el => el.getBoundingClientRect().height);
+          for (const distanceFromBottom of [0, 1, 12]) {
+            const beforeCollapse = await page.locator(".shell").evaluate((el, distance) => {
+              el.scrollTop = el.scrollHeight - el.clientHeight - distance;
+              return {
+                scroll: el.scrollTop,
+                resultTop: document.querySelector("#result-count").getBoundingClientRect().top,
+                pageFits: document.documentElement.scrollHeight <= innerHeight + 1,
+              };
+            }, distanceFromBottom);
+            await settleLayout();
+            assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), beforeCollapse.scroll,
+              `first scroll ${distanceFromBottom}px from bottom survives intermediate header measurement`);
+            assert.ok(Math.abs(await page.locator("#result-count").evaluate(el => el.getBoundingClientRect().top) -
+              beforeCollapse.resultTop) < 1, "collapse near the bottom keeps visible content steady");
+            if (beforeCollapse.pageFits) {
+              assert.ok(Math.abs(await page.locator(".shell").evaluate(el => el.scrollHeight - el.clientHeight - el.scrollTop) -
+                distanceFromBottom) <= 1, "collapse retains the distance from the bottom");
+            }
+            await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
+            await settleLayout();
+            assert.equal(await page.locator("header").evaluate(el => el.getBoundingClientRect().height), expanded);
+          }
           // Crossing the collapse threshold must preserve the introduction's
           // viewport position and the combined page/workspace scroll range.
           const before = await page.locator(".title-row").evaluate(el => el.getBoundingClientRect().top);

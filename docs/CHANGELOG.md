@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2 — Notification helper upgrade guidance
+
+- Clarify that macOS source upgrades from Bambu TUI require `make notify-helper` to create the renamed `Bambu Stand Notify.app`; rebuilding the CLI alone leaves the old helper in place.
+- Record successful synthetic notification delivery after rebuilding the helper. Notification implementation and packaged helper lookup are unchanged.
+
 ## 0.5.1 — Dependency maintenance
 
 - Update terminal support dependencies: colorprofile to 0.4.3 (#123), go-isatty to 0.0.24 (#124), x/sys to 0.49.0 (#125), terminfo to 1.2.0 (#126), and go-runewidth to 0.0.31 (#127).

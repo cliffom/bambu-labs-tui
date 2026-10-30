@@ -5,6 +5,14 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambustand/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Source notification helper after rename
+
+On 2026-10-30, the local macOS source installation of `bambustand 0.5.1` (commit `8e066ca580c9`, built `2026-10-30T15:51:28Z`) still contained only the generated `bin/Bambu TUI Notify.app`. The renamed CLI correctly required the adjacent `bin/Bambu Stand Notify.app`; building the CLI alone had not rebuilt the helper. `make notify-helper` built the renamed universal arm64/x86_64 bundle and passed metadata and ad-hoc signature verification. After running outside the sandbox for Launch Services access, `./bin/bambustand doctor --notify` reported macOS request acceptance, and the user confirmed that the notification appeared. Sound was not requested; automatic delivery, Focus suppression, clean-Mac installation, and live printer behavior were not tested.
+
+README source-build guidance and the usage guide's rename instructions now explicitly require rebuilding the helper after upgrading from Bambu TUI. Reviewed the alert setup and contributor helper instructions: their build commands and adjacent-bundle contract remain accurate. In-app help and current terminal/browser screenshots depict unchanged controls and layouts; this repair replaces a local generated helper and requires no capture refresh.
+
+For the requested v0.5.2 release, `make docs-check fmt-check lint lint-actions lint-make audit-faults vuln-check test check release` passed on macOS 27.0.1 with the pinned linters. The vulnerability scan found no findings; race/PTY tests, vet, all four platform packages, archive documentation/inventory checks, and local universal helper ad-hoc signature checks passed. Signed/notarized distribution artifacts are built and verified separately by the tag workflow.
+
 ## Dependency maintenance (0.5.1)
 
 On 2026-10-30, the v0.5.1 candidate on `release/0.5.1` combines Dependabot updates #123–#127 for colorprofile, go-isatty, x/sys, terminfo, and go-runewidth. Application source changes only the default build version. Monitoring, telemetry interpretation, local notice decisions, controls, and layout contracts remain unchanged.

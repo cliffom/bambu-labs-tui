@@ -151,7 +151,7 @@ make notify-helper  # creates bin/Bambu Stand Notify.app
 make run
 ```
 
-The locally built helper is ad-hoc signed and needs no signing certificate or Apple Developer membership. `make run` and `make demo` use the helper beside the executable; they do not build or download it. Rebuild with `make notify-helper` after updating its source, then follow the [notification setup](#desktop-notifications) above.
+The locally built helper is ad-hoc signed and needs no signing certificate or Apple Developer membership. `make run` and `make demo` use the helper beside the executable; they do not build or download it. Rebuild with `make notify-helper` after updating its source or upgrading from Bambu TUI, then follow the [notification setup](#desktop-notifications) above. See the [rename upgrade instructions](docs/user/usage.md#upgrading-from-bambu-tui) if only the old helper is present.
 
 See [contributing](docs/development/contributing.md) for development setup, tests, formatting, and linting.
 

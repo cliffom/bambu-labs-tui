@@ -5,6 +5,14 @@
 This is the ongoing record of observed hardware behavior and remaining operational checks. Follow-up work is tracked in [#38](https://github.com/cliffom/bambustand/issues/38). Record application version, host OS/terminal, printer model/firmware, date, and actual results for each new check.
 
 
+## Dependency maintenance (0.5.1)
+
+On 2026-10-30, the v0.5.1 candidate on `release/0.5.1` combines Dependabot updates #123–#127 for colorprofile, go-isatty, x/sys, terminfo, and go-runewidth. Application source changes only the default build version. Monitoring, telemetry interpretation, local notice decisions, controls, and layout contracts remain unchanged.
+
+On macOS, `make docs-check fmt-check lint lint-actions lint-make audit-faults vuln-check test check release` passed using the pinned tool binaries. The vulnerability scan found no known reachable vulnerabilities. Race tests include the synthetic UI and real demo PTY suites, covering minimum-size Help at 60 × 18, below-minimum restoration, terminal lifecycle, and Server Status at 120 × 32, 60 × 18, and 59 × 17 across TrueColor, ANSI256, and no-color profiles. Four-platform local packaging passed archive inventories, documentation checks, and macOS ad-hoc signature/helper checks; public artifacts use the separate signed/notarized tag workflow.
+
+Reviewed README installation/controls, usage and farm-view guides, terminal Help, and current screenshot descriptions against the dependency-only diff. No documented screen, control, telemetry state, or bundled filename changes; current captures remain representative and were not regenerated. No new visual demo inspection, physical-terminal, clean-Mac Gatekeeper/notification, live-printer, or real-account validation was performed for this maintenance release. Existing hardware and clean-machine limitations remain open.
+
 ## Bambu Stand rename (#153)
 
 On 2026-10-29 (PDT), the v0.5.0 candidate on `issue-153-bambu-stand`, based on `e4e4e10`, renames the project to Bambu Stand. CLI/module/archive names use `bambustand`; TUI/browser headings, About/help, notification display text, and repository links use the new identity. Read-only monitoring, telemetry interpretation, local decisions, and delivery policy remain unchanged. The longer browser wordmark wraps between words at narrow enlarged-text sizes.

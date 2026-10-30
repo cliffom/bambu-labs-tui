@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 — Dependency maintenance
+
+- Update terminal support dependencies: colorprofile to 0.4.3 (#123), go-isatty to 0.0.24 (#124), x/sys to 0.49.0 (#125), terminfo to 1.2.0 (#126), and go-runewidth to 0.0.31 (#127).
+- Include upstream terminal detection, color writer, and Unicode width fixes. Monitoring, telemetry interpretation, and local notice decisions retain their existing contracts.
+
 ## 0.5.0 — Bambu Stand
 
 - Rename the project, terminal/browser branding, notification helper display name, and hero artwork to Bambu Stand (#153). The repository/module is `github.com/cliffom/bambustand`; CLI and archive names now use `bambustand`. Update scripts and service commands when upgrading.

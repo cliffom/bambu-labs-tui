@@ -473,9 +473,9 @@ func (m Model) view() string {
 	route := routeFor(m.dialog.active)
 	if !m.terminalFits() && !route.compact {
 		if m.hasOpenDialog() {
-			return fit(m.versionedTitle("BAMBU STAND / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
+			return fit(m.versionedTitle("BambuStand / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
 		}
-		return fit(m.versionedTitle("BAMBU STAND / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
+		return fit(m.versionedTitle("BambuStand / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
 	}
 	if m.hasOpenDialog() {
 		return route.view(m)

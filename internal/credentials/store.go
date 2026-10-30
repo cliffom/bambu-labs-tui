@@ -156,7 +156,7 @@ func (s Store) Save(session cloud.Session) error {
 		}
 		_, err = s.run(input, "/usr/bin/security", "-i")
 	case "linux":
-		_, err = s.run(string(b), "secret-tool", "store", "--label=Bambu Stand", "service", s.service(), "account", "session")
+		_, err = s.run(string(b), "secret-tool", "store", "--label=BambuStand", "service", s.service(), "account", "session")
 	default:
 		return ErrUnavailable
 	}

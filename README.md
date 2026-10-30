@@ -1,6 +1,6 @@
-# Bambu Stand
+# BambuStand
 
-![Bambu Stand — your farm, two views.](assets/branding/hero.png)
+![BambuStand — your farm, two views.](assets/branding/hero.png)
 
 [![CI](https://github.com/cliffom/bambustand/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cliffom/bambustand/actions/workflows/ci.yml)
 [![Formatting and lint](https://github.com/cliffom/bambustand/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/cliffom/bambustand/actions/workflows/lint.yml)
@@ -8,7 +8,7 @@
 
 Monitor your Bambu Lab print farm **in your terminal or a local web browser**. See printer status, print progress, time estimates, temperatures, filament, and faults at a glance.
 
-Bambu Stand connects through **Bambu Cloud**, with displayed telemetry validated on **H2D and X2D**. Both interfaces monitor printer telemetry and support local notice decisions, including browser hiding synchronized with the TUI. Printer control and LAN connections are outside the project's scope. Try a simulated farm without an account or printer.
+BambuStand connects through **Bambu Cloud**, with displayed telemetry validated on **H2D and X2D**. Both interfaces monitor printer telemetry and support local notice decisions, including browser hiding synchronized with the TUI. Printer control and LAN connections are outside the project's scope. Try a simulated farm without an account or printer.
 
 ## Your farm, two ways
 
@@ -16,7 +16,7 @@ Bambu Stand connects through **Bambu Cloud**, with displayed telemetry validated
 
 A keyboard-driven workspace for your farm: move between printers, inspect job details and AMS filament, review action-needed notices, and set alert preferences. Built-in and custom themes let you make it your own.
 
-![Bambu Stand terminal dashboard showing two synthetic printers, selected printer details, filament inventory, notices, and recent events.](assets/screenshots/farm.png)
+![BambuStand terminal dashboard showing two synthetic printers, selected printer details, filament inventory, notices, and recent events.](assets/screenshots/farm.png)
 
 ### Web browser dashboard
 
@@ -66,7 +66,7 @@ tar -xzf "$archive"
 
 On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executable here or move it to a directory on your `PATH`.
 
-For optional macOS desktop notifications, keep the included `Bambu Stand Notify.app` beside the executable when moving it. See [desktop notification setup](#desktop-notifications).
+For optional macOS desktop notifications, keep the included `BambuStand Notify.app` beside the executable when moving it. See [desktop notification setup](#desktop-notifications).
 
 Upgrading from Bambu TUI? The executable is now `bambustand`; keep the new helper beside it. Existing settings and saved logins are reused. See [upgrade compatibility](docs/user/usage.md#upgrading-from-bambu-tui).
 
@@ -126,7 +126,7 @@ The web server is **off by default**, and its enabled setting and port are saved
 
 ## Desktop notifications
 
-Optional desktop notifications are available on **macOS** and are **off by default**. Signed release archives include a Developer ID-signed and notarized `Bambu Stand Notify.app`; keep it beside `bambustand`. No Swift, Xcode, or Apple Developer membership is needed to run a prebuilt release.
+Optional desktop notifications are available on **macOS** and are **off by default**. Signed release archives include a Developer ID-signed and notarized `BambuStand Notify.app`; keep it beside `bambustand`. No Swift, Xcode, or Apple Developer membership is needed to run a prebuilt release.
 
 In the TUI, press `,` to open Config, use `Tab` to select **Alerts**, and select **Test Notification**. Allow macOS permission when prompted, then enable **Desktop notifications** and optionally sound. Delivery requires a running TUI session on a local Mac. Linux desktop notifications are not supported. See [notification setup and troubleshooting](docs/user/alerts.md#live-desktop-notifications).
 
@@ -147,7 +147,7 @@ The executable is built at `bin/bambustand`. Farm monitoring and the browser das
 For desktop notifications from a source build on macOS, install Xcode Command Line Tools (for Swift) and **Python 3.10+**, then build the helper:
 
 ```sh
-make notify-helper  # creates bin/Bambu Stand Notify.app
+make notify-helper  # creates bin/BambuStand Notify.app
 make run
 ```
 

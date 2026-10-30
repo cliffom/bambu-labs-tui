@@ -8,7 +8,7 @@ import re
 import struct
 import tarfile
 
-BUNDLE = 'Bambu Stand Notify.app'
+BUNDLE = 'BambuStand Notify.app'
 CONTENTS = BUNDLE + '/Contents/'
 EXECUTABLE = CONTENTS + 'MacOS/bambu-notify'
 BUNDLE_ID = 'com.github.cliffom.bambu-tui.notify-poc'
@@ -72,7 +72,7 @@ def archive_errors(path, version):
         if plist and plist.isfile():
             try:
                 metadata = plistlib.loads(archive.extractfile(plist).read())
-                expected = {'CFBundleName': 'Bambu Stand', 'CFBundleDisplayName': 'Bambu Stand', 'CFBundleIdentifier': BUNDLE_ID, 'CFBundleExecutable': 'bambu-notify', 'CFBundleIconFile': 'BambuStand.icns', 'CFBundleShortVersionString': version.split('-')[0], 'CFBundleVersion': version.split('-')[0], 'BambuStandReleaseVersion': version}
+                expected = {'CFBundleName': 'BambuStand', 'CFBundleDisplayName': 'BambuStand', 'CFBundleIdentifier': BUNDLE_ID, 'CFBundleExecutable': 'bambu-notify', 'CFBundleIconFile': 'BambuStand.icns', 'CFBundleShortVersionString': version.split('-')[0], 'CFBundleVersion': version.split('-')[0], 'BambuStandReleaseVersion': version}
                 if not isinstance(metadata, dict) or any(metadata.get(k) != v for k, v in expected.items()) or metadata.get('LSUIElement') is not True:
                     errors.append('notification helper identity/version/icon metadata mismatch')
             except (plistlib.InvalidFileException, ValueError, TypeError):

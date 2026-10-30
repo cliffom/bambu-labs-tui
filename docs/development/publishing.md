@@ -22,11 +22,11 @@ Commit and push the release preparation on a branch, open a pull request targeti
 
 ```sh
 release_tag="v$(cat VERSION)"
-git tag -a "$release_tag" -m "Bambu Stand $release_tag"
+git tag -a "$release_tag" -m "BambuStand $release_tag"
 git push origin "$release_tag"
 ```
 
-Binary release archives contain `bambustand`, a concise installation README copied from `docs/user/release-installation.md`, `LICENSE`, `config.example.toml`, and `THIRD_PARTY_NOTICES.txt`. The consolidated notices file preserves complete Go and dependency notice bytes, with module/file headings and stable ordering. It covers the union of modules linked into all four targets; no `third_party/` directory is included. Missing or empty notices fail packaging. macOS archives also include the universal `Bambu Stand Notify.app` beside the CLI; Linux archives omit it. Keep the CLI and helper together after extraction. Doctor registers that adjacent bundle on first use. The full docs tree, contributor guidance, and screenshots stay in the repository and are linked from the installation README. Archive checks reject unexpected files and verify the README against its source. The draft release reads its initial notes from repository `docs/CHANGELOG.md`, uploaded separately from the binary archives.
+Binary release archives contain `bambustand`, a concise installation README copied from `docs/user/release-installation.md`, `LICENSE`, `config.example.toml`, and `THIRD_PARTY_NOTICES.txt`. The consolidated notices file preserves complete Go and dependency notice bytes, with module/file headings and stable ordering. It covers the union of modules linked into all four targets; no `third_party/` directory is included. Missing or empty notices fail packaging. macOS archives also include the universal `BambuStand Notify.app` beside the CLI; Linux archives omit it. Keep the CLI and helper together after extraction. Doctor registers that adjacent bundle on first use. The full docs tree, contributor guidance, and screenshots stay in the repository and are linked from the installation README. Archive checks reject unexpected files and verify the README against its source. The draft release reads its initial notes from repository `docs/CHANGELOG.md`, uploaded separately from the binary archives.
 
 From v0.5.0, asset names use `bambustand_v<VERSION>_macos_<arm64|amd64>.tar.gz` or `bambustand_v<VERSION>_linux_<arm64|amd64>.tar.gz`. Earlier releases use the `bambu-tui` prefix. From v0.2.1 the download OS label is `macos`. Go build targets and intermediate macOS binaries still use `darwin`; v0.2.0 and earlier download names also used `darwin`. Checksums cover the four consumer-facing archive names.
 

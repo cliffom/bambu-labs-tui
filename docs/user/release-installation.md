@@ -1,4 +1,4 @@
-# Bambu Stand
+# BambuStand
 
 Read-only Bambu Cloud monitoring for your terminal. This guide is included as `README.md` in binary release archives.
 
@@ -19,7 +19,7 @@ The demo needs no account or printer. For login, enter the email bound to your B
 
 For a browser demo without a terminal UI, run `./bambustand serve --demo` (optionally `--config ./config.toml`) and open the printed localhost URL. Stop with `Ctrl+C`. It uses synthetic data and session-only notice decisions; native notifications are disabled. For real printers, save a login and run `./bambustand serve` or keep the TUI running. See [demo server guidance](https://github.com/cliffom/bambustand/blob/main/docs/user/usage.md#terminal-free-demo-server).
 
-On macOS, keep `Bambu Stand Notify.app` beside `bambustand`, including when moving the executable to a directory on your `PATH`. Signed releases include a Developer ID-signed, notarized CLI and helper; no Go, Swift, or Apple Developer account is needed to run them. Linux archives contain the CLI without the helper.
+On macOS, keep `BambuStand Notify.app` beside `bambustand`, including when moving the executable to a directory on your `PATH`. Signed releases include a Developer ID-signed, notarized CLI and helper; no Go, Swift, or Apple Developer account is needed to run them. Linux archives contain the CLI without the helper.
 
 ## Configure notifications
 

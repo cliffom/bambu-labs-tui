@@ -104,7 +104,7 @@ func TestNativeRunnerPropagatesFailure(t *testing.T) {
 func fixtureSender(t *testing.T) (sender, string) {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "CLI with spaces")
-	helper := filepath.Join(dir, "Bambu Stand Notify.app", "Contents", "MacOS", "bambu-notify")
+	helper := filepath.Join(dir, "BambuStand Notify.app", "Contents", "MacOS", "bambu-notify")
 	if err := os.MkdirAll(filepath.Dir(helper), 0o700); err != nil {
 		t.Fatal(err)
 	}

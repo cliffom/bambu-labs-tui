@@ -2,7 +2,7 @@
 
 [Back to the README](../../README.md)
 
-Bambu Stand separates **what the printer reports** from **when automatic modals or opt-in desktop notifications interrupt you**. Preferences and snoozes change only interruptions. Printer state, faults, notice counts, and event history remain visible. No printer controls are sent.
+BambuStand separates **what the printer reports** from **when automatic modals or opt-in desktop notifications interrupt you**. Preferences and snoozes change only interruptions. Printer state, faults, notice counts, and event history remain visible. No printer controls are sent.
 
 ## Browser system notifications
 
@@ -222,9 +222,9 @@ Doctor remains an explicit, repeatable test independent of the ledger. On macOS,
 ./bambustand doctor --notify --sound
 ```
 
-The first command requests a notification without sound; the second requests the default macOS notification sound. Both invoke the branded Bambu Stand helper to submit a fixed synthetic message. They skip the credential-store probe and configuration loading, and do not read account or printer data or change alert preferences. `--sound` requires `doctor --notify`.
+The first command requests a notification without sound; the second requests the default macOS notification sound. Both invoke the branded BambuStand helper to submit a fixed synthetic message. They skip the credential-store probe and configuration loading, and do not read account or printer data or change alert preferences. `--sound` requires `doctor --notify`.
 
-macOS archives include `Bambu Stand Notify.app` beside the `bambustand` executable. Keep them together when extracting or moving the installation. From a source checkout on macOS, build both:
+macOS archives include `BambuStand Notify.app` beside the `bambustand` executable. Keep them together when extracting or moving the installation. From a source checkout on macOS, build both:
 
 ```sh
 make build
@@ -232,13 +232,13 @@ make notify-helper
 ./bin/bambustand doctor --notify
 ```
 
-The app must be named `Bambu Stand Notify.app` and contain `Contents/MacOS/bambu-notify`. Doctor locates it beside the resolved CLI executable, including when the CLI is launched through a symlink; the current directory is not searched. A missing or invalid helper reports build guidance. There is no AppleScript fallback. Doctor registers the adjacent bundle with macOS before requesting the test notification. See [helper build, test, and cleanup instructions](../development/contributing.md#macos-notification-helper) for prerequisites and local registration details.
+The app must be named `BambuStand Notify.app` and contain `Contents/MacOS/bambu-notify`. Doctor locates it beside the resolved CLI executable, including when the CLI is launched through a symlink; the current directory is not searched. A missing or invalid helper reports build guidance. There is no AppleScript fallback. Doctor registers the adjacent bundle with macOS before requesting the test notification. See [helper build, test, and cleanup instructions](../development/contributing.md#macos-notification-helper) for prerequisites and local registration details.
 
-The helper uses the Bambu Stand logo and requests its own notification permission. Allow Bambu Stand notifications if macOS prompts. Success means the native service accepted the request; it does not confirm that a banner appeared or sound played. Check the desktop and Notification Center. If nothing appears, check Bambu Stand in System Settings → Notifications and the active Focus. Focus can delay or suppress a banner even when app notifications are enabled.
+The helper uses the BambuStand logo and requests its own notification permission. Allow BambuStand notifications if macOS prompts. Success means the native service accepted the request; it does not confirm that a banner appeared or sound played. Check the desktop and Notification Center. If nothing appears, check BambuStand in System Settings → Notifications and the active Focus. Focus can delay or suppress a banner even when app notifications are enabled.
 
-If a delivered notification shows only “Notification,” open System Settings → Notifications → Bambu Stand → Show previews and choose When Unlocked or Always. Default inherits the system setting and can effectively hide all preview text, including the printer title. The helper’s `--status` command reports the effective preview setting.
+If a delivered notification shows only “Notification,” open System Settings → Notifications → BambuStand → Show previews and choose When Unlocked or Always. Default inherits the system setting and can effectively hide all preview text, including the printer title. The helper’s `--status` command reports the effective preview setting.
 
-Banner lifetime is controlled by macOS. For notifications that stay until dismissed, open System Settings → Notifications → Bambu Stand and set Alert Style to Persistent instead of Temporary. The helper does not remove the notification when it exits. See [Apple’s notification settings guide](https://support.apple.com/guide/mac-help/mh40583/mac).
+Banner lifetime is controlled by macOS. For notifications that stay until dismissed, open System Settings → Notifications → BambuStand and set Alert Style to Persistent instead of Temporary. The helper does not remove the notification when it exits. See [Apple’s notification settings guide](https://support.apple.com/guide/mac-help/mh40583/mac).
 
 Test both commands with the terminal focused, then unfocused. To allow time to switch applications, use `sleep 3; ./bin/bambustand doctor --notify` (append `--sound` for audio). Record whether the banner appeared and whether audio played separately from command acceptance. The helper allows up to 60 seconds for permission/service access, and doctor bounds its execution to 65 seconds and cancels it on interruption. SSH sessions are explicitly unsupported, Linux delivery is not implemented, and headless delivery is unverified.
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3 — BambuStand
+
+- Use BambuStand as one word with mixed capitalization throughout the terminal/browser interfaces, About/Help, notifications, and current documentation.
+- Refresh the layered hero artwork, terminal overview, and browser screenshots with the new name.
+- Rename the macOS notification helper to `BambuStand Notify.app`. Source upgrades must run `make notify-helper`; keep the rebuilt helper beside the CLI. Existing settings, saved login, notice decisions, notification history, browser preferences, and the macOS bundle ID are preserved.
+
 ## 0.5.2 — Notification helper upgrade guidance
 
 - Clarify that macOS source upgrades from Bambu TUI require `make notify-helper` to create the renamed `Bambu Stand Notify.app`; rebuilding the CLI alone leaves the old helper in place.

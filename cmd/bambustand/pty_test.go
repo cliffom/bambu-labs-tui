@@ -313,7 +313,7 @@ func startPTYChildWithTheme(t *testing.T, mode, configPath, theme string) *ptyCh
 	}()
 	if strings.HasPrefix(mode, "serve-") {
 		if mode != "serve-occupied" {
-			child.expect(t, 0, "Bambu Stand / serve")
+			child.expect(t, 0, "BambuStand / serve")
 		}
 		state, err := term.GetState(slave.Fd())
 		if err != nil || !reflect.DeepEqual(child.before, state) {

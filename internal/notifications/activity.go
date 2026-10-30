@@ -93,7 +93,7 @@ func ReasonText(reason string) string {
 	case ReasonHelper:
 		return "Notification helper missing or unavailable; run doctor --notify."
 	case ReasonPermission:
-		return "macOS denied permission; enable Bambu Stand notifications."
+		return "macOS denied permission; enable BambuStand notifications."
 	case ReasonTimeout:
 		return "The notification helper timed out. No automatic retry."
 	case ReasonBackend:

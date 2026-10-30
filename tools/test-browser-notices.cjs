@@ -211,6 +211,7 @@ function cards() {
     hidden: true, activeElement: null, addEventListener() {},
     querySelector(selector) {
       if (selector === "#cards") return container;
+      if (selector === ".shell") return null; // Card-only fixture; layout uses a real browser.
       if (!elements.has(selector)) elements.set(selector, {addEventListener() {}});
       return elements.get(selector);
     },

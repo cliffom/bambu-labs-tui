@@ -158,6 +158,18 @@ i {
 .shell {
   min-height: 0;
   overflow: auto;
+  overflow-anchor: none;
+  scroll-padding-top: var(--toolbar-clearance, 0px);
+}
+/* Reclaim header space without moving the content currently being read. */
+header.compact {
+  min-height: 56px;
+  padding-block: 4px;
+}
+main::before {
+  content: "";
+  display: block;
+  height: var(--header-reclaimed, 0px);
 }
 .eyebrow {
   font-size: 0.875rem;
@@ -300,12 +312,20 @@ h2 > span {
   margin-left: 7px;
 }
 .toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg);
+  padding-block: 8px;
   flex-wrap: wrap;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 17px;
+}
+.shell.toolbar-scrolls .toolbar {
+  position: static;
 }
 .filters {
   display: flex;

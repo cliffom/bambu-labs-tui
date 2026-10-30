@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.7 — Compact scrolling dashboard
+
+- Compact the browser header while scrolling the farm, restoring it at the top (#149). Keep visible content steady as header space is reclaimed.
+- Pin the filter, search, and sort toolbar beneath the compact header once reached. In small workspaces, let the toolbar scroll normally so cards remain reachable; preserve keyboard access, polling, and dialog behavior.
+
+See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#compact-browser-header-and-pinned-toolbar-149).
+
 ## 0.4.6 — Simplified offline printer cards
 
 - Show offline browser cards with only printer name, model, image, an explicit Offline label, and any attention warning (#145). Omit job, progress, time, temperature, and material readings from these cards while retaining inspection details.

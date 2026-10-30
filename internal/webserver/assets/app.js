@@ -384,6 +384,48 @@ $("#settings").onclick = () => $("#settings-dialog").showModal();
 $("#close-settings").onclick = () => $("#settings-dialog").close();
 $("#about").onclick = () => $("#about-dialog").showModal();
 $("#close-about").onclick = () => $("#about-dialog").close();
+// The header sits outside the scrolling workspace. Keep the height it releases
+// in the already-scrolled introduction, so collapse never shifts visible cards
+// or changes the scroll range. No animation: geometry and focus stay in sync.
+function setupWorkspaceLayout() {
+  const shell = $(".shell");
+  if (!shell) return;
+  const header = $("header"), toolbar = $(".toolbar");
+  let compact = false;
+  function measure() {
+    header.classList.remove("compact");
+    const expandedHeight = header.getBoundingClientRect().height;
+    header.classList.toggle("compact", compact);
+    const reclaimed = expandedHeight - header.getBoundingClientRect().height;
+    shell.style.setProperty("--header-reclaimed", `${reclaimed}px`);
+    const toolbarHeight = toolbar.getBoundingClientRect().height;
+    const minimum = Math.min(12 * parseFloat(getComputedStyle(document.documentElement).fontSize), innerHeight / 2);
+    const pin = shell.clientHeight >= toolbarHeight + minimum;
+    shell.classList.toggle("toolbar-scrolls", !pin);
+    shell.style.setProperty("--toolbar-clearance", pin ? `${toolbarHeight + 8}px` : "0px");
+  }
+  shell.addEventListener("scroll", () => {
+    const next = shell.scrollTop > 24;
+    if (next === compact) return;
+    compact = next;
+    measure();
+  }, {passive: true});
+  // Reflow can change header, toolbar, and footer heights (including 200% text).
+  const observer = new ResizeObserver(measure);
+  for (const element of [shell, header, toolbar]) observer.observe(element);
+  shell.addEventListener("focusin", event => {
+    const card = event.target.closest(".card");
+    if (!card) return;
+    requestAnimationFrame(() => {
+      if (document.activeElement !== card || shell.classList.contains("toolbar-scrolls")) return;
+      const top = shell.getBoundingClientRect().top + toolbar.getBoundingClientRect().height + 8;
+      const cardTop = card.getBoundingClientRect().top;
+      if (cardTop < top) shell.scrollTop += cardTop - top;
+    });
+  });
+  measure();
+}
+setupWorkspaceLayout();
 document.addEventListener("visibilitychange", () => {
   if (!controller) poll();
 });

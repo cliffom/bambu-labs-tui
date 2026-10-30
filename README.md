@@ -8,6 +8,8 @@
 
 Monitor your Bambu Lab print farm **in your terminal or a local web browser**. See printer status, print progress, time estimates, temperatures, filament, and faults at a glance.
 
+Visit [bambustand.com](https://bambustand.com/) for an overview and downloads.
+
 BambuStand connects through **Bambu Cloud**, with displayed telemetry validated on **H2D and X2D**. Both interfaces monitor printer telemetry and support local notice decisions, including browser hiding synchronized with the TUI. Printer control and LAN connections are outside the project's scope. Try a simulated farm without an account or printer.
 
 ## Your farm, two ways

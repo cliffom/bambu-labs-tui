@@ -23,6 +23,7 @@ const labels = {
 const stateLabel = (state) => labels[state] || state || "Unknown";
 let commandPending = null, commandMessage = "";
 let showHiddenMessages = false;
+let restoringCardFocus = false;
 let csrfToken = null;
 let snapshot = null,
   filter = "all",
@@ -189,7 +190,14 @@ function render() {
   if (focused) {
     const target = document.querySelector(`[data-id="${CSS.escape(focused)}"]`)
       || document.querySelector(`.filters [data-filter="${filter}"]`);
-    target?.focus({ preventScroll: true });
+    // Moving a card can drop DOM focus. Restoring it is not navigation and
+    // must not invoke the workspace's focused-card scroll clearance.
+    restoringCardFocus = true;
+    try {
+      target?.focus({ preventScroll: true });
+    } finally {
+      restoringCardFocus = false;
+    }
   }
 
   const total = snapshot?.summary.total || 0;
@@ -384,6 +392,63 @@ $("#settings").onclick = () => $("#settings-dialog").showModal();
 $("#close-settings").onclick = () => $("#settings-dialog").close();
 $("#about").onclick = () => $("#about-dialog").showModal();
 $("#close-about").onclick = () => $("#about-dialog").close();
+// The header sits outside the scrolling workspace. Keep the height it releases
+// in the already-scrolled introduction, so collapse never shifts visible cards
+// or changes the scroll range. No animation: geometry and focus stay in sync.
+function setupWorkspaceLayout() {
+  const shell = $(".shell");
+  if (!shell) return;
+  const header = $("header"), toolbar = $(".toolbar");
+  let compact = false;
+  let restoreAnchorFrame = 0;
+  function measure() {
+    const scrollTop = shell.scrollTop;
+    const pageTop = window.scrollY;
+    // Header resizing already compensates in the introduction. Suppress browser
+    // anchoring through the compensated frame, not later telemetry reflow.
+    cancelAnimationFrame(restoreAnchorFrame);
+    shell.style.overflowAnchor = "none";
+    header.classList.remove("compact");
+    const expandedHeight = header.getBoundingClientRect().height;
+    header.classList.toggle("compact", compact);
+    const reclaimed = expandedHeight - header.getBoundingClientRect().height;
+    shell.style.setProperty("--header-reclaimed", `${reclaimed}px`);
+    const toolbarHeight = toolbar.getBoundingClientRect().height;
+    const minimum = Math.min(12 * parseFloat(getComputedStyle(document.documentElement).fontSize), innerHeight / 2);
+    const pin = shell.clientHeight >= toolbarHeight + minimum;
+    shell.classList.toggle("toolbar-scrolls", !pin);
+    // Header measurement can clamp either scroll container. Restore the page
+    // where possible, transferring any lost page offset into the workspace.
+    window.scrollTo(window.scrollX, pageTop);
+    shell.scrollTop = scrollTop + pageTop - window.scrollY;
+    restoreAnchorFrame = requestAnimationFrame(() => {
+      restoreAnchorFrame = requestAnimationFrame(() => {
+        shell.style.removeProperty("overflow-anchor");
+      });
+    });
+  }
+  shell.addEventListener("scroll", () => {
+    const next = shell.scrollTop > 24;
+    if (next === compact) return;
+    compact = next;
+    measure();
+  }, {passive: true});
+  // Reflow can change header, toolbar, and footer heights (including 200% text).
+  const observer = new ResizeObserver(measure);
+  for (const element of [shell, header, toolbar]) observer.observe(element);
+  shell.addEventListener("focusin", event => {
+    const card = event.target.closest(".card");
+    if (!card || restoringCardFocus) return;
+    requestAnimationFrame(() => {
+      if (document.activeElement !== card || shell.classList.contains("toolbar-scrolls")) return;
+      const top = shell.getBoundingClientRect().top + toolbar.getBoundingClientRect().height + 8;
+      const cardTop = card.getBoundingClientRect().top;
+      if (cardTop < top) shell.scrollTop += cardTop - top;
+    });
+  });
+  measure();
+}
+setupWorkspaceLayout();
 document.addEventListener("visibilitychange", () => {
   if (!controller) poll();
 });

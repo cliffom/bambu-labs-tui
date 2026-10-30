@@ -20,9 +20,12 @@ const {chromium} = require("playwright");
       [320, 568, 2], [568, 320, 1], [568, 320, 2], [1280, 240, 1],
       [1920, 1080, 1], [1280, 800, 1], [390, 844, 1],
       [320, 568, 1], [780, 844, 2], [390, 844, 2],
+      [1280, 240, 2],
     ]) {
       for (const count of [0, 1, 24]) {
         const page = await browser.newPage({viewport: {width, height}});
+        const pageErrors = [];
+        page.on("pageerror", error => pageErrors.push(error.message));
         page.setDefaultTimeout(10000);
         const printers = Array.from({length: count}, (_, i) => {
           const state = ["IDLE", "FINISH", "RUNNING", "PAUSE", "UNKNOWN", "IDLE", "FINISH", "FAILED"][i % 8];
@@ -112,6 +115,235 @@ const {chromium} = require("playwright");
           return bounds;
         }
         await check("initial");
+        const settleLayout = () => page.evaluate(() => new Promise(resolve =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        if (count === 24) {
+          await page.evaluate(() => { scrollTo(0, 0); document.querySelector(".shell").scrollTop = 0; });
+          await settleLayout();
+          const expanded = await page.locator("header").evaluate(el => el.getBoundingClientRect().height);
+          for (const distanceFromBottom of [0, 1, 12]) {
+            const beforeCollapse = await page.locator(".shell").evaluate((el, distance) => {
+              el.scrollTop = el.scrollHeight - el.clientHeight - distance;
+              return {
+                scroll: el.scrollTop,
+                resultTop: document.querySelector("#result-count").getBoundingClientRect().top,
+                pageFits: document.documentElement.scrollHeight <= innerHeight + 1,
+              };
+            }, distanceFromBottom);
+            await settleLayout();
+            assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), beforeCollapse.scroll,
+              `first scroll ${distanceFromBottom}px from bottom survives intermediate header measurement`);
+            assert.ok(Math.abs(await page.locator("#result-count").evaluate(el => el.getBoundingClientRect().top) -
+              beforeCollapse.resultTop) < 1, "collapse near the bottom keeps visible content steady");
+            if (beforeCollapse.pageFits) {
+              assert.ok(Math.abs(await page.locator(".shell").evaluate(el => el.scrollHeight - el.clientHeight - el.scrollTop) -
+                distanceFromBottom) <= 1, "collapse retains the distance from the bottom");
+            }
+            await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
+            await settleLayout();
+            assert.equal(await page.locator("header").evaluate(el => el.getBoundingClientRect().height), expanded);
+          }
+          const pageRange = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+          if (pageRange > 1) {
+            for (const pageFraction of [0.5, 1]) {
+              for (const workspaceEnd of [false, true]) {
+                await page.evaluate(() => { document.querySelector(".shell").scrollTop = 0; scrollTo(0, 0); });
+                await settleLayout();
+                await page.evaluate(fraction => scrollTo(0,
+                  (document.documentElement.scrollHeight - innerHeight) * fraction), pageFraction);
+                await settleLayout();
+                const beforeCollapse = await page.locator(".shell").evaluate((el, end) => {
+                  el.scrollTop = end ? el.scrollHeight - el.clientHeight : 48;
+                  return {
+                    page: scrollY, combined: scrollY + el.scrollTop,
+                    resultTop: document.querySelector("#result-count").getBoundingClientRect().top,
+                  };
+                }, workspaceEnd);
+                assert.ok(beforeCollapse.page > 0, "outer page is scrolled before the header collapses");
+                await settleLayout();
+                const afterCollapse = await page.locator(".shell").evaluate(el => ({
+                  combined: scrollY + el.scrollTop,
+                  resultTop: document.querySelector("#result-count").getBoundingClientRect().top,
+                }));
+                assert.ok(Math.abs(afterCollapse.combined - beforeCollapse.combined) <= 1,
+                  `collapse with page ${pageFraction * 100}% scrolled preserves the combined page/workspace offset`);
+                assert.ok(Math.abs(afterCollapse.resultTop - beforeCollapse.resultTop) <= 1,
+                  "collapse with a scrolled outer page keeps workspace content steady");
+                const beforeExpand = await page.locator(".shell").evaluate(el => {
+                  el.scrollTop = 12;
+                  return {
+                    combined: scrollY + el.scrollTop,
+                    resultTop: document.querySelector("#result-count").getBoundingClientRect().top,
+                  };
+                });
+                await settleLayout();
+                assert.equal(await page.locator("header.compact").count(), 0);
+                assert.ok(await page.locator(".shell").evaluate((el, before) =>
+                  Math.abs(scrollY + el.scrollTop - before.combined) <= 1 &&
+                  Math.abs(document.querySelector("#result-count").getBoundingClientRect().top - before.resultTop) <= 1,
+                beforeExpand), "expanding the header preserves combined offset and content position");
+              }
+            }
+            await page.evaluate(() => { document.querySelector(".shell").scrollTop = 0; scrollTo(0, 0); });
+            await settleLayout();
+          }
+          // Crossing the collapse threshold must preserve the introduction's
+          // viewport position and the combined page/workspace scroll range.
+          const before = await page.locator(".title-row").evaluate(el => el.getBoundingClientRect().top);
+          const range = await page.locator(".shell").evaluate(el => el.scrollHeight - el.clientHeight + document.documentElement.scrollHeight - innerHeight);
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 48; });
+          await settleLayout();
+          assert.ok(await page.locator("header").evaluate(el => el.getBoundingClientRect().height) < expanded,
+            "scroll compacts the header");
+          assert.ok(Math.abs(await page.locator(".title-row").evaluate(el => el.getBoundingClientRect().top) - (before - 48)) < 1,
+            "collapse preserves the visible content position");
+          assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), 48);
+          assert.ok(Math.abs(await page.locator(".shell").evaluate(el => el.scrollHeight - el.clientHeight + document.documentElement.scrollHeight - innerHeight) - range) < 1,
+            "collapse preserves scroll range");
+          assert.ok(await page.locator(".toolbar").evaluate(el =>
+            el.getBoundingClientRect().top > document.querySelector(".shell").getBoundingClientRect().top),
+            "toolbar remains in flow before reaching the header");
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 900; });
+          await settleLayout();
+          const pinned = await page.locator(".shell").evaluate(el => !el.classList.contains("toolbar-scrolls"));
+          if (height >= 800 && scale === 1) assert.equal(pinned, true, "roomy workspaces pin the toolbar");
+          if (height <= 320) assert.equal(pinned, false, "short windows let the toolbar scroll");
+          if (pinned) {
+            assert.ok(await page.locator(".toolbar").evaluate(el => Math.abs(
+              el.getBoundingClientRect().top - document.querySelector("header").getBoundingClientRect().bottom) < 1),
+              "toolbar pins immediately beneath the compact header");
+            await page.locator("#search").focus();
+            await page.keyboard.type("Layout printer");
+            await page.locator("#sort").selectOption("state");
+            const scroll = await page.locator(".shell").evaluate(el => el.scrollTop);
+            await page.evaluate(() => poll());
+            await settleLayout();
+            assert.equal(await page.locator("#search").inputValue(), "Layout printer");
+            assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), scroll,
+              "pinned search/sort and polling retain scroll");
+            await page.locator(".card").first().focus();
+            await settleLayout();
+            assert.ok(await page.locator(".card").first().evaluate(el => el.getBoundingClientRect().top >=
+              document.querySelector(".toolbar").getBoundingClientRect().bottom),
+              "keyboard-focused card heading is not covered by the toolbar");
+            await page.locator("#search").fill("");
+            await page.locator("#sort").selectOption("name");
+          } else {
+            assert.equal(await page.locator(".toolbar").evaluate(el => getComputedStyle(el).position), "static",
+              "small workspace lets the toolbar scroll to leave cards reachable");
+          }
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
+          await settleLayout();
+          assert.equal(await page.locator("header").evaluate(el => el.getBoundingClientRect().height), expanded,
+            "return to top restores expanded header");
+          assert.equal(await page.locator("header.compact").count(), 0);
+          // Resize while collapsed; the measured offset must follow wrapping.
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 400; });
+          await settleLayout();
+          const beforeResize = await page.locator(".title-row").evaluate(el => el.getBoundingClientRect().top);
+          await page.setViewportSize({width: width >= 760 ? 390 : 1280, height});
+          await settleLayout();
+          await page.setViewportSize({width, height});
+          await settleLayout();
+          await check("resized while compact");
+          assert.ok(Math.abs(await page.locator(".title-row").evaluate(el => el.getBoundingClientRect().top) - beforeResize) < 1,
+            "resize across toolbar/header wrapping restores content position");
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
+          await settleLayout();
+        }
+        if (count === 24 && width === 1280 && height === 800) {
+          await page.evaluate(() => {
+            document.activeElement?.blur();
+            document.querySelector(".shell").scrollTop = 1800;
+          });
+          await settleLayout();
+          const scroll = await page.locator(".shell").evaluate(el => el.scrollTop);
+          for (const selector of ["#search", "#sort", '[data-filter="all"]']) {
+            await page.locator(selector).click();
+            if (selector === "#sort") await page.keyboard.press("Escape");
+            await settleLayout();
+            assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), scroll,
+              `${selector}: clicking a visible pinned control preserves card position`);
+          }
+          await page.locator("#search").focus();
+          await settleLayout();
+          assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), scroll,
+            "keyboard focus on pinned search preserves card position");
+          await page.locator("#search").blur();
+          const anchor = await page.locator(".card").evaluateAll(cards => {
+            const toolbarBottom = document.querySelector(".toolbar").getBoundingClientRect().bottom;
+            const shellBottom = document.querySelector(".shell").getBoundingClientRect().bottom;
+            const card = cards.find(el => {
+              const r = el.getBoundingClientRect();
+              return r.top >= toolbarBottom && r.top < shellBottom;
+            });
+            return {id: card.dataset.id, top: card.getBoundingClientRect().top};
+          });
+          const earlierIDs = await page.locator(".card").evaluateAll(cards => cards.slice(0, 3).map(el => {
+            if (el.getBoundingClientRect().bottom >= document.querySelector(".shell").getBoundingClientRect().top)
+              throw new Error("telemetry reflow fixture must change a row entirely above the viewport");
+            return el.dataset.id;
+          }));
+          const earlier = printers.filter(p => earlierIDs.includes(p.id)).map(p => ({...p}));
+          for (const p of printers.filter(p => earlierIDs.includes(p.id)))
+            Object.assign(p, {fresh: false, connection: "Stale"});
+          await page.evaluate(() => poll());
+          await settleLayout();
+          assert.ok(await page.locator(`[data-id="${earlier[0].id}"] .telemetry-note`).count(),
+            "earlier cards grow to display last-known warnings");
+          assert.ok(Math.abs(await page.locator(`[data-id="${anchor.id}"]`).evaluate(el =>
+            el.getBoundingClientRect().top) - anchor.top) < 1,
+            "telemetry reflow above the viewport preserves visible card position");
+          for (const p of earlier) Object.assign(printers.find(printer => printer.id === p.id), p);
+          await page.evaluate(() => poll());
+          await settleLayout();
+          assert.ok(Math.abs(await page.locator(`[data-id="${anchor.id}"]`).evaluate(el =>
+            el.getBoundingClientRect().top) - anchor.top) < 1,
+            "removing earlier last-known warnings preserves visible card position");
+          // Equal-height active cards isolate focus restoration from normal
+          // scroll anchoring when a telemetry update changes row heights.
+          const mixedPrinters = printers.map(p => ({...p}));
+          const uniform = {...printers[2], state: "RUNNING", attention: false, conditions: []};
+          for (const p of printers) Object.assign(p, uniform, {id: p.id, name: p.name});
+          await page.evaluate(() => poll());
+          await page.locator("#sort").selectOption("state");
+          const movingPrinter = printers[10];
+          const movingCard = page.locator(`[data-id="${movingPrinter.id}"]`);
+          const movingNode = await movingCard.elementHandle();
+          await movingCard.focus();
+          await settleLayout();
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 2200; });
+          await settleLayout();
+          assert.ok(await movingCard.evaluate(el => el.getBoundingClientRect().bottom <
+            document.querySelector(".shell").getBoundingClientRect().top),
+            "focused printer has been scrolled above the viewport before telemetry reorders it");
+          const beforeReorder = await page.locator(".shell").evaluate(el => el.scrollTop);
+          const oldIndex = await movingCard.evaluate(el => [...el.parentElement.children].indexOf(el));
+          movingPrinter.state = "FAILED";
+          await page.evaluate(() => poll());
+          await settleLayout();
+          assert.ok(await movingCard.evaluate(el => [...el.parentElement.children].indexOf(el)) < oldIndex,
+            "telemetry moves the focused printer earlier in State sorting");
+          assert.equal(await movingNode.evaluate(el => el.isConnected && el === document.activeElement), true,
+            "telemetry restores focus to the same card after moving its DOM node");
+          assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), beforeReorder,
+            "telemetry focus restoration preserves the scrolled viewport");
+          movingPrinter.state = "RUNNING";
+          await page.evaluate(() => poll());
+          await settleLayout();
+          assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), beforeReorder,
+            "restoring the printer state also preserves the scrolled viewport");
+          await page.keyboard.press("Tab");
+          await settleLayout();
+          assert.ok(await page.evaluate(() => document.activeElement.classList.contains("card") &&
+            document.activeElement.getBoundingClientRect().top >= document.querySelector(".toolbar").getBoundingClientRect().bottom),
+            "subsequent keyboard navigation still brings the card clear of the pinned toolbar");
+          for (let i = 0; i < printers.length; i++) Object.assign(printers[i], mixedPrinters[i]);
+          await page.evaluate(() => poll());
+          await page.locator("#sort").selectOption("name");
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
+          await settleLayout();
+        }
         assert.equal(await page.locator("aside, .summary button").count(), 0,
           "toolbar is the only filter control; summary is static");
         assert.equal(await page.locator("footer > #feed-state[role=status]").count(), 1,
@@ -222,6 +454,7 @@ const {chromium} = require("playwright");
         assert.equal(await page.locator(".card").count(), count);
         // Scroll the actual browser container to its end without smooth-scroll timing.
         await page.locator(".shell").evaluate(el => { el.scrollTop = el.scrollHeight; });
+        await settleLayout();
         const bottom = await check("scrolled");
         assert.ok(bottom.resultBottom <= bottom.top + 1, "last content remains above footer");
         const scroll = await page.locator(".shell").evaluate(el => el.scrollTop);
@@ -284,6 +517,7 @@ const {chromium} = require("playwright");
           Math.abs(document.querySelector("footer").getBoundingClientRect().bottom - innerHeight) <= 1),
         "resize restores viewport-pinned footer without page overflow");
         console.log(`PASS ${width}x${height} ${scale * 100}% text: ${count} printers, scroll/poll/filter/dialog/focus`);
+        assert.deepEqual(pageErrors, [], "layout produces no browser script errors");
         await page.close();
       }
     }

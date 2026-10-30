@@ -104,6 +104,18 @@ const {chromium} = require("playwright");
     assert.equal(await idle.locator(".card").count(), 1);
     await shot(idle, "browser-idle-filter.png");
     await idle.close();
+    const scrolled = await open({width: 1280, height: 640});
+    await scrolled.locator(".shell").evaluate(el => {
+      el.scrollTop = document.querySelector(".fleet").getBoundingClientRect().top - el.getBoundingClientRect().top;
+    });
+    await scrolled.waitForFunction(() => document.querySelector("header").classList.contains("compact"));
+    await scrolled.locator(".shell").evaluate(el => {
+      el.scrollTop += document.querySelector(".fleet").getBoundingClientRect().top - el.getBoundingClientRect().top;
+    });
+    await scrolled.waitForFunction(() => Math.abs(document.querySelector(".toolbar").getBoundingClientRect().top -
+      document.querySelector("header").getBoundingClientRect().bottom) < 1);
+    await shot(scrolled, "browser-scrolled.png");
+    await scrolled.close();
     const mobile = await open({width: 390, height: 844});
     await shot(mobile, "browser-mobile.png");
     await mobile.locator('.card.offline').focus();

@@ -24,6 +24,8 @@ A visual farm overview with searchable, filterable printer cards, model illustra
 
 ![Current browser dashboard with one filter toolbar, printing and paused printers, a simplified offline card, and the bottom status bar.](assets/screenshots/browser.png)
 
+Scroll the farm to [compact the header and keep the filter/search toolbar beneath it](assets/screenshots/browser-scrolled.png). Small workspaces let the toolbar scroll so cards remain reachable.
+
 Choose **Settings > Appearance** to follow the terminal theme or select a bundled theme for this browser. Settings also contains the separate, opt-in browser notification controls.
 
 | Gruvbox Dark dashboard | Hotdog Settings |

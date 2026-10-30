@@ -158,8 +158,6 @@ i {
 .shell {
   min-height: 0;
   overflow: auto;
-  overflow-anchor: none;
-  scroll-padding-top: var(--toolbar-clearance, 0px);
 }
 /* Reclaim header space without moving the content currently being read. */
 header.compact {
@@ -312,6 +310,8 @@ h2 > span {
   margin-left: 7px;
 }
 .toolbar {
+  /* Pinned controls must not become the anchor for scrolling card content. */
+  overflow-anchor: none;
   position: sticky;
   top: 0;
   z-index: 1;

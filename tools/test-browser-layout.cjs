@@ -184,6 +184,58 @@ const {chromium} = require("playwright");
           await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
           await settleLayout();
         }
+        if (count === 24 && width === 1280 && height === 800) {
+          await page.evaluate(() => {
+            document.activeElement?.blur();
+            document.querySelector(".shell").scrollTop = 1800;
+          });
+          await settleLayout();
+          const scroll = await page.locator(".shell").evaluate(el => el.scrollTop);
+          for (const selector of ["#search", "#sort", '[data-filter="all"]']) {
+            await page.locator(selector).click();
+            if (selector === "#sort") await page.keyboard.press("Escape");
+            await settleLayout();
+            assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), scroll,
+              `${selector}: clicking a visible pinned control preserves card position`);
+          }
+          await page.locator("#search").focus();
+          await settleLayout();
+          assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), scroll,
+            "keyboard focus on pinned search preserves card position");
+          await page.locator("#search").blur();
+          const anchor = await page.locator(".card").evaluateAll(cards => {
+            const toolbarBottom = document.querySelector(".toolbar").getBoundingClientRect().bottom;
+            const shellBottom = document.querySelector(".shell").getBoundingClientRect().bottom;
+            const card = cards.find(el => {
+              const r = el.getBoundingClientRect();
+              return r.top >= toolbarBottom && r.top < shellBottom;
+            });
+            return {id: card.dataset.id, top: card.getBoundingClientRect().top};
+          });
+          const earlierIDs = await page.locator(".card").evaluateAll(cards => cards.slice(0, 3).map(el => {
+            if (el.getBoundingClientRect().bottom >= document.querySelector(".shell").getBoundingClientRect().top)
+              throw new Error("telemetry reflow fixture must change a row entirely above the viewport");
+            return el.dataset.id;
+          }));
+          const earlier = printers.filter(p => earlierIDs.includes(p.id)).map(p => ({...p}));
+          for (const p of printers.filter(p => earlierIDs.includes(p.id)))
+            Object.assign(p, {fresh: false, connection: "Stale"});
+          await page.evaluate(() => poll());
+          await settleLayout();
+          assert.ok(await page.locator(`[data-id="${earlier[0].id}"] .telemetry-note`).count(),
+            "earlier cards grow to display last-known warnings");
+          assert.ok(Math.abs(await page.locator(`[data-id="${anchor.id}"]`).evaluate(el =>
+            el.getBoundingClientRect().top) - anchor.top) < 1,
+            "telemetry reflow above the viewport preserves visible card position");
+          for (const p of earlier) Object.assign(printers.find(printer => printer.id === p.id), p);
+          await page.evaluate(() => poll());
+          await settleLayout();
+          assert.ok(Math.abs(await page.locator(`[data-id="${anchor.id}"]`).evaluate(el =>
+            el.getBoundingClientRect().top) - anchor.top) < 1,
+            "removing earlier last-known warnings preserves visible card position");
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
+          await settleLayout();
+        }
         assert.equal(await page.locator("aside, .summary button").count(), 0,
           "toolbar is the only filter control; summary is static");
         assert.equal(await page.locator("footer > #feed-state[role=status]").count(), 1,

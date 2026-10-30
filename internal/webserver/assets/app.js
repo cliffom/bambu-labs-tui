@@ -392,7 +392,12 @@ function setupWorkspaceLayout() {
   if (!shell) return;
   const header = $("header"), toolbar = $(".toolbar");
   let compact = false;
+  let restoreAnchorFrame = 0;
   function measure() {
+    // Header resizing already compensates in the introduction. Suppress browser
+    // anchoring through the compensated frame, not later telemetry reflow.
+    cancelAnimationFrame(restoreAnchorFrame);
+    shell.style.overflowAnchor = "none";
     header.classList.remove("compact");
     const expandedHeight = header.getBoundingClientRect().height;
     header.classList.toggle("compact", compact);
@@ -402,7 +407,11 @@ function setupWorkspaceLayout() {
     const minimum = Math.min(12 * parseFloat(getComputedStyle(document.documentElement).fontSize), innerHeight / 2);
     const pin = shell.clientHeight >= toolbarHeight + minimum;
     shell.classList.toggle("toolbar-scrolls", !pin);
-    shell.style.setProperty("--toolbar-clearance", pin ? `${toolbarHeight + 8}px` : "0px");
+    restoreAnchorFrame = requestAnimationFrame(() => {
+      restoreAnchorFrame = requestAnimationFrame(() => {
+        shell.style.removeProperty("overflow-anchor");
+      });
+    });
   }
   shell.addEventListener("scroll", () => {
     const next = shell.scrollTop > 24;

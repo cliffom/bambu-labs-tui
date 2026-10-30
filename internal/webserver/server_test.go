@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/session"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/session"
 )
 
 func TestReadOnlyRoutesAndBrowserBoundary(t *testing.T) {

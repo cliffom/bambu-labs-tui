@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notification_state"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 // Browser delivery uses its own account ledger on every desktop platform. Demo
@@ -16,7 +16,7 @@ func browserServer(ctx context.Context, region, username string, demo bool) (*we
 	var ledger webserver.BrowserLedger
 	cleanup := func() {}
 	if demo {
-		if dir, err := os.MkdirTemp("", "bambu-tui-demo-browser-*"); err == nil {
+		if dir, err := os.MkdirTemp("", "bambustand-demo-browser-*"); err == nil {
 			ledger = notification_state.Store{Path: filepath.Join(dir, "state.json")}
 			cleanup = func() { _ = os.RemoveAll(dir) }
 		}

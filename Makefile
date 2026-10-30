@@ -18,20 +18,20 @@ COMMIT ?= $(shell git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 ifndef BUILD_DATE
 BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 endif
-MODULE := github.com/cliffom/bambu-tui
+MODULE := github.com/cliffom/bambustand
 LDFLAGS := -s -w -X $(MODULE)/internal/buildinfo.Version=$(VERSION) -X $(MODULE)/internal/buildinfo.Commit=$(COMMIT) -X $(MODULE)/internal/buildinfo.Date=$(BUILD_DATE)
 
 build:
-	go build -trimpath -ldflags '$(LDFLAGS)' -o bin/bambu-tui ./cmd/bambu-tui
+	go build -trimpath -ldflags '$(LDFLAGS)' -o bin/bambustand ./cmd/bambustand
 
 auth: build
-	./bin/bambu-tui login $(AUTH_ARGS)
+	./bin/bambustand login $(AUTH_ARGS)
 
 run: build
-	./bin/bambu-tui $(RUN_ARGS) $${THEME:+--theme "$$THEME"}
+	./bin/bambustand $(RUN_ARGS) $${THEME:+--theme "$$THEME"}
 
 demo: build
-	./bin/bambu-tui --demo $(RUN_ARGS) $${THEME:+--theme "$$THEME"}
+	./bin/bambustand --demo $(RUN_ARGS) $${THEME:+--theme "$$THEME"}
 
 test:
 	go test -race ./...
@@ -69,10 +69,10 @@ audit-faults:
 	BAMBU_AUDIT_UPSTREAM=1 go test ./internal/farm -run '^TestUpstreamFaultCatalogue$$' -count=1 -v
 
 cross:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-darwin-arm64 ./cmd/bambu-tui
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-darwin-amd64 ./cmd/bambu-tui
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-linux-arm64 ./cmd/bambu-tui
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambu-tui-linux-amd64 ./cmd/bambu-tui
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambustand-darwin-arm64 ./cmd/bambustand
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambustand-darwin-amd64 ./cmd/bambustand
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambustand-linux-arm64 ./cmd/bambustand
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags '$(LDFLAGS)' -o dist/bambustand-linux-amd64 ./cmd/bambustand
 
 notify-helper:
 	VERSION='$(VERSION)' bash tools/build-notify-helper.sh

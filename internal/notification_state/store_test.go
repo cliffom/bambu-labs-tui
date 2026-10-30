@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 	"golang.org/x/sys/unix"
 )
 
@@ -489,5 +489,30 @@ func TestGroupedReservationIsAtomicAndSkipsPreviouslyClaimedMembers(t *testing.T
 	}
 	if again, err := (Store{Path: store.Path}).ReserveBatch(ids); err != nil || len(again) != 0 {
 		t.Fatal("group reservation was not durable", again, err)
+	}
+}
+
+func TestUpgradeRetainsReservedNotifications(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	root, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Original length-delimited account hash and directory: independent of New.
+	legacy := Store{Path: filepath.Join(root, "bambu-tui", "notifications", "427880e3826beb038aa4a698c700cbfa6da34a767fcd8372d75ee127f11db044.json")}
+	_, state, now := fixture(t)
+	report(t, state, `{"gcode_state":"RUNNING","print_error":117473297,"hms":[]}`, now)
+	candidates := observe(t, legacy, state, now)
+	if len(candidates) != 1 {
+		t.Fatal(candidates)
+	}
+	reserve(t, legacy, candidates[0])
+	current, err := New("global", "synthetic-account")
+	if err != nil || current.Path != legacy.Path {
+		t.Fatalf("notification history moved: %q, %v", current.Path, err)
+	}
+	if replay := observe(t, current, state, now); len(replay) != 0 {
+		t.Fatal("rename replayed a reserved notification", replay)
 	}
 }

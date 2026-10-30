@@ -7,7 +7,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 const detailLabelWidth = 15

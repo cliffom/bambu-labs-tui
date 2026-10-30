@@ -1,4 +1,4 @@
-# Copy to the path printed by `bambu-tui --config-path`.
+# Copy to the path printed by `bambustand --config-path`.
 region = "global" # global or china
 low_filament_percent = 10
 # Optional JSON theme, loaded at startup. Relative paths resolve beside this file.

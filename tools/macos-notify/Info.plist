@@ -5,9 +5,9 @@
     <key>CFBundleIdentifier</key>
     <string>com.github.cliffom.bambu-tui.notify-poc</string>
     <key>CFBundleName</key>
-    <string>Bambu TUI</string>
+    <string>Bambu Stand</string>
     <key>CFBundleDisplayName</key>
-    <string>Bambu TUI</string>
+    <string>Bambu Stand</string>
     <key>CFBundleExecutable</key>
     <string>bambu-notify</string>
     <key>CFBundlePackageType</key>
@@ -16,12 +16,12 @@
     <string>6.0</string>
     <key>CFBundleShortVersionString</key>
     <string>0.0.1</string>
-    <key>BambuTUIReleaseVersion</key>
+    <key>BambuStandReleaseVersion</key>
     <string>0.0.1</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleIconFile</key>
-    <string>BambuTUI.icns</string>
+    <string>BambuStand.icns</string>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSUIElement</key>

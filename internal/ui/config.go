@@ -8,8 +8,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/session"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/session"
 )
 
 type (

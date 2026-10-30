@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/cloud"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/mqtt"
+	"github.com/cliffom/bambustand/internal/cloud"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/mqtt"
 )
 
 type (
@@ -141,7 +141,7 @@ func (r *Runner) Run(ctx context.Context, out chan<- Event, refresh <-chan struc
 			return
 		}
 		if errors.Is(err, cloud.ErrAuth) || errors.Is(err, mqtt.ErrAuth) {
-			emit(ctx, out, Event{Kind: EventConnection, StopReason: StopAuthenticationRejected, Problem: "Session expired or rejected — quit and run bambu-tui login"})
+			emit(ctx, out, Event{Kind: EventConnection, StopReason: StopAuthenticationRejected, Problem: "Session expired or rejected — quit and run bambustand login"})
 			return
 		}
 		problem := "Cloud disconnected; reconnecting"

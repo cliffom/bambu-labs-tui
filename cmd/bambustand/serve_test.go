@@ -22,24 +22,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/accountstore"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/ui"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/accountstore"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/ui"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 func TestServeHelperProcess(t *testing.T) {
-	mode := os.Getenv("BAMBU_TUI_SERVE_CHILD")
+	mode := os.Getenv("BAMBU_STAND_SERVE_CHILD")
 	if mode == "" {
 		return
 	}
 	var err error
 	switch mode {
 	case "cloud":
-		cfg, loadErr := config.Load(os.Getenv("BAMBU_TUI_SERVE_CONFIG"))
+		cfg, loadErr := config.Load(os.Getenv("BAMBU_STAND_SERVE_CONFIG"))
 		if loadErr != nil {
 			t.Fatal(loadErr)
 		}
@@ -55,13 +55,13 @@ func TestServeHelperProcess(t *testing.T) {
 		runner := &monitor.Runner{API: serveAPI{}, Token: "synthetic-token", Dial: func(context.Context) (monitor.Transport, error) {
 			return &serveTransport{closed: make(chan struct{})}, nil
 		}}
-		theme, themeErr := ui.LoadTheme(os.Getenv("BAMBU_TUI_SERVE_CONFIG"), cfg.ThemeFile)
+		theme, themeErr := ui.LoadTheme(os.Getenv("BAMBU_STAND_SERVE_CONFIG"), cfg.ThemeFile)
 		if themeErr != nil {
 			t.Fatal(themeErr)
 		}
 		err = serveMonitor(ctx, cfg, &state, os.Stdout, os.Stderr, func(ctx context.Context, events chan<- monitor.Event) { runner.Run(ctx, events, nil) }, serveOptions{theme: theme})
 	case "close":
-		cfg, loadErr := config.Load(os.Getenv("BAMBU_TUI_SERVE_CONFIG"))
+		cfg, loadErr := config.Load(os.Getenv("BAMBU_STAND_SERVE_CONFIG"))
 		if loadErr != nil {
 			t.Fatal(loadErr)
 		}
@@ -75,8 +75,8 @@ func TestServeHelperProcess(t *testing.T) {
 		fmt.Println("Listening on", status.URL)
 		err = serveSession(context.Background(), &state, web, nil, io.Discard, time.Second)
 	default:
-		args := []string{"serve", "--demo", "--config", os.Getenv("BAMBU_TUI_SERVE_CONFIG")}
-		if override := os.Getenv("BAMBU_TUI_SERVE_THEME"); override != "" {
+		args := []string{"serve", "--demo", "--config", os.Getenv("BAMBU_STAND_SERVE_CONFIG")}
+		if override := os.Getenv("BAMBU_STAND_SERVE_THEME"); override != "" {
 			args = append(args, "--theme", override)
 		}
 		err = run(args)
@@ -101,7 +101,7 @@ func startServeChild(t *testing.T, path, mode string) *serveChild {
 	t.Cleanup(cancel)
 	c := &serveChild{}
 	c.cmd = exec.CommandContext(ctx, os.Args[0], "-test.run=^TestServeHelperProcess$")
-	c.cmd.Env = append(os.Environ(), "BAMBU_TUI_SERVE_CHILD="+mode, "BAMBU_TUI_SERVE_CONFIG="+path, "HOME="+filepath.Dir(path), "XDG_CONFIG_HOME="+filepath.Dir(path))
+	c.cmd.Env = append(os.Environ(), "BAMBU_STAND_SERVE_CHILD="+mode, "BAMBU_STAND_SERVE_CONFIG="+path, "HOME="+filepath.Dir(path), "XDG_CONFIG_HOME="+filepath.Dir(path))
 	c.cmd.Stderr = &c.stderr
 	var err error
 	c.stdin, err = c.cmd.StdinPipe()
@@ -299,7 +299,7 @@ func TestServeBindFailureAndArgumentErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(os.Args[0], "-test.run=^TestServeHelperProcess$")
-	cmd.Env = append(os.Environ(), "BAMBU_TUI_SERVE_CHILD=demo", "BAMBU_TUI_SERVE_CONFIG="+path)
+	cmd.Env = append(os.Environ(), "BAMBU_STAND_SERVE_CHILD=demo", "BAMBU_STAND_SERVE_CONFIG="+path)
 	output, err := cmd.CombinedOutput()
 	if err == nil || !bytes.Contains(output, []byte("already in use")) || bytes.Contains(output, []byte("Listening")) {
 		t.Fatalf("%v: %s", err, output)
@@ -480,7 +480,7 @@ func TestServeThemeOverrideDoesNotLoadOrRewriteConfiguredFile(t *testing.T) {
 	if err := os.WriteFile(path, original, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("BAMBU_TUI_SERVE_THEME", "hotdog")
+	t.Setenv("BAMBU_STAND_SERVE_THEME", "hotdog")
 	child := startServeChild(t, path, "demo")
 	var themes webserver.ThemeCatalog
 	serveGet(t, child.url+"/api/themes", &themes)

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/notification_state"
 )
 
 const workerQueueCapacity = 256
@@ -383,9 +383,9 @@ func (w *Worker) process(input frame) bool {
 		first := group[0]
 		policy := current.Policies[first.PrinterID]
 		title := policy.PrinterName
-		body := policy.PrinterName + " needs attention. Open Bambu TUI to inspect the reported condition."
+		body := policy.PrinterName + " needs attention. Open Bambu Stand to inspect the reported condition."
 		if len(group) > 1 {
-			body = fmt.Sprintf("%s needs attention (%d notices). Open Bambu TUI to inspect them.", policy.PrinterName, len(group))
+			body = fmt.Sprintf("%s needs attention (%d notices). Open Bambu Stand to inspect them.", policy.PrinterName, len(group))
 		}
 		if first.Kind == notification_state.Completion {
 			body = policy.PrinterName + " reports that the print finished."
@@ -397,8 +397,8 @@ func (w *Worker) process(input frame) bool {
 				printers[member.PrinterID] = true
 				policy.Sound = policy.Sound || current.Policies[member.PrinterID].Sound
 			}
-			title = "Bambu TUI"
-			body = fmt.Sprintf("%d events across %d printers. Open Notification activity in Bambu TUI for individual conditions and completions.", len(group), len(printers))
+			title = "Bambu Stand"
+			body = fmt.Sprintf("%d events across %d printers. Open Notification activity in Bambu Stand for individual conditions and completions.", len(group), len(printers))
 		}
 		// At most twelve OS submissions in any rolling minute, including
 		// failures and ambiguous outcomes. The bounded timestamps are session-only.

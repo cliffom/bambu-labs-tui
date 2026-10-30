@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cliffom/bambu-tui/internal/atomicfile"
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/atomicfile"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 const (

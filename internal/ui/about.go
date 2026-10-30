@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/buildinfo"
+	"github.com/cliffom/bambustand/internal/buildinfo"
 )
 
 // WithTheme retains the effective launch choice rather than the saved preference.
@@ -63,9 +63,9 @@ func (m *Model) syncAbout() {
 		version = "unknown"
 	}
 	lines := []string{
-		"Bambu TUI " + version,
+		"Bambu Stand " + version,
 		platform + " / " + runtime.GOARCH,
-		"https://github.com/cliffom/bambu-tui",
+		"https://github.com/cliffom/bambustand",
 		"A Suite Potato Spud",
 		"Lovingly crafted by Michael Clifford",
 		"",

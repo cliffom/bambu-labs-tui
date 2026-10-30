@@ -2,7 +2,7 @@ package ui
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambustand/internal/notifications"
 )
 
 type feedbackKind uint8

@@ -4,7 +4,7 @@
 
 ## Product and visual direction
 
-Keep the interface a compact, keyboard-operated farm monitor. Operators should be able to find unavailable or troubled printers, understand the reported condition, and inspect details without losing their place as telemetry arrives. Preserve read-only behavior unless the user explicitly changes that product scope.
+Use **Bambu Stand** as the product name in terminal/browser headings, About/help, and notification text. Keep the interface a compact, keyboard-operated farm monitor. Operators should be able to find unavailable or troubled printers, understand the reported condition, and inspect details without losing their place as telemetry arrives. Preserve read-only behavior unless the user explicitly changes that product scope.
 
 Extend the existing dashboard hierarchy: version/connection header, farm summary, printer list, printer details, and notices. Put detailed inspection or local configuration in the existing dialog system. Build shared styles from the semantic palette in `internal/ui/palette.go`; keep layout and timing policies in `internal/ui/values.go`, table widths in `internal/ui/layout.go`, and version helpers in `internal/ui/version.go`. Preserve semantic roles and a visible selected-row background. The default theme uses green accent, muted secondary text, amber warnings/offline rows, and red errors; user themes may change these colors. Introduce a new style or layout policy only for a clear operator need, and explain it in the PR.
 
@@ -109,8 +109,8 @@ Existing automated guards make the interaction contracts verifiable:
 | Block hidden actions below minimum size; continue telemetry/saves | `internal/ui/resize_input_test.go` |
 | Stable selection, filters/sorts, empty states, and bounds | `internal/ui/overview_test.go` |
 | Offline text/color and selection across table widths | `internal/ui/offline_test.go` |
-| Raw keyboard input, resizing, quit/signals, terminal restoration | `cmd/bambu-tui/pty_test.go` |
+| Raw keyboard input, resizing, quit/signals, terminal restoration | `cmd/bambustand/pty_test.go` |
 
-Keep these guards passing and extend them for new behavior rather than weakening assertions to fit a regression. Run `go test -race ./internal/ui ./cmd/bambu-tui` for the UI/terminal suites, or `make test` for all packages. Visual review and documentation impact remain required even when automated tests pass.
+Keep these guards passing and extend them for new behavior rather than weakening assertions to fit a regression. Run `go test -race ./internal/ui ./cmd/bambustand` for the UI/terminal suites, or `make test` for all packages. Visual review and documentation impact remain required even when automated tests pass.
 
 In the PR, describe the operator-visible before/after behavior, identify the contracts affected, link updated user guidance, and report regression tests and visual inspection results. An intentional departure from these defaults should be backed by the user's requested behavior, reflected in the direction/user guides, and covered by the relevant checks in the same change. Routine fixes within this direction do not need a separate approval step.

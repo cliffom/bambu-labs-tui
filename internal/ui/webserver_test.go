@@ -8,11 +8,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/notifications"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/notifications"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 type fakeWebServer struct {

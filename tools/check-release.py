@@ -8,7 +8,7 @@ import re
 import struct
 import tarfile
 
-BUNDLE = 'Bambu TUI Notify.app'
+BUNDLE = 'Bambu Stand Notify.app'
 CONTENTS = BUNDLE + '/Contents/'
 EXECUTABLE = CONTENTS + 'MacOS/bambu-notify'
 BUNDLE_ID = 'com.github.cliffom.bambu-tui.notify-poc'
@@ -27,14 +27,14 @@ def universal_cpus(data):
 
 def archive_errors(path, version):
     errors = []
-    match = re.fullmatch(r'bambu-tui_v' + re.escape(version) + r'_(macos|linux)_(arm64|amd64)\.tar\.gz', Path(path).name)
+    match = re.fullmatch(r'bambustand_v' + re.escape(version) + r'_(macos|linux)_(arm64|amd64)\.tar\.gz', Path(path).name)
     if not match:
         return ['invalid release archive filename: ' + Path(path).name]
     macos = match[1] == 'macos'
     with tarfile.open(path) as archive:
         entries = {m.name.removeprefix('./').rstrip('/'): m for m in archive.getmembers()}
-        required_files = {'bambu-tui', 'README.md', 'LICENSE', 'config.example.toml', 'THIRD_PARTY_NOTICES.txt'}
-        helper_files = {EXECUTABLE, CONTENTS + 'Info.plist', CONTENTS + 'Resources/BambuTUI.icns', CONTENTS + '_CodeSignature/CodeResources', CONTENTS + 'CodeResources'}
+        required_files = {'bambustand', 'README.md', 'LICENSE', 'config.example.toml', 'THIRD_PARTY_NOTICES.txt'}
+        helper_files = {EXECUTABLE, CONTENTS + 'Info.plist', CONTENTS + 'Resources/BambuStand.icns', CONTENTS + '_CodeSignature/CodeResources', CONTENTS + 'CodeResources'}
         allowed = required_files | (helper_files if macos else set())
         for member in archive.getmembers():
             name = member.name.removeprefix('./').rstrip('/')
@@ -49,7 +49,7 @@ def archive_errors(path, version):
             entry = entries.get(name)
             if not entry or not entry.isfile() or not entry.size:
                 errors.append('missing runtime file: ' + name)
-        cli = entries.get('bambu-tui')
+        cli = entries.get('bambustand')
         if not cli or not cli.isfile() or not cli.size or not cli.mode & 0o111:
             errors.append('missing or non-executable CLI')
         helper_entries = [name for name in entries if name == BUNDLE or name.startswith(BUNDLE + '/')]
@@ -57,7 +57,7 @@ def archive_errors(path, version):
             if helper_entries:
                 errors.append('Linux archive contains macOS notification helper')
             return errors
-        required = [EXECUTABLE, CONTENTS + 'Info.plist', CONTENTS + 'Resources/BambuTUI.icns', CONTENTS + '_CodeSignature/CodeResources']
+        required = [EXECUTABLE, CONTENTS + 'Info.plist', CONTENTS + 'Resources/BambuStand.icns', CONTENTS + '_CodeSignature/CodeResources']
         for name in required:
             entry = entries.get(name)
             if not entry or not entry.isfile() or not entry.size:
@@ -72,7 +72,7 @@ def archive_errors(path, version):
         if plist and plist.isfile():
             try:
                 metadata = plistlib.loads(archive.extractfile(plist).read())
-                expected = {'CFBundleIdentifier': BUNDLE_ID, 'CFBundleExecutable': 'bambu-notify', 'CFBundleIconFile': 'BambuTUI.icns', 'CFBundleShortVersionString': version.split('-')[0], 'CFBundleVersion': version.split('-')[0], 'BambuTUIReleaseVersion': version}
+                expected = {'CFBundleName': 'Bambu Stand', 'CFBundleDisplayName': 'Bambu Stand', 'CFBundleIdentifier': BUNDLE_ID, 'CFBundleExecutable': 'bambu-notify', 'CFBundleIconFile': 'BambuStand.icns', 'CFBundleShortVersionString': version.split('-')[0], 'CFBundleVersion': version.split('-')[0], 'BambuStandReleaseVersion': version}
                 if not isinstance(metadata, dict) or any(metadata.get(k) != v for k, v in expected.items()) or metadata.get('LSUIElement') is not True:
                     errors.append('notification helper identity/version/icon metadata mismatch')
             except (plistlib.InvalidFileException, ValueError, TypeError):

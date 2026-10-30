@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cliffom/bambu-tui/internal/accountstore"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/credentials"
-	"github.com/cliffom/bambu-tui/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/accountstore"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/credentials"
+	"github.com/cliffom/bambustand/internal/notification_state"
 )
 
 // This explicit maintenance operation never runs alongside a cloud host. It

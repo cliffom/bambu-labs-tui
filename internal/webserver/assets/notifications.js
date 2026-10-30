@@ -2,6 +2,7 @@
 // Page-bound delivery only: no push subscription, service worker, or background
 // service. The server durably claims each automatic attempt before returning it.
 const browserNotifications = (() => {
+  // Keep the original key so upgrades preserve this origin’s preferences.
   const preference = "bambu-tui.browser-notifications.v1";
   const element = (id) => document.querySelector("#" + id);
   let optedIn = false, busy = false, permissionPending = false;
@@ -133,7 +134,7 @@ const browserNotifications = (() => {
   };
   element("test-notifications").onclick = async () => {
     if (!(await permission())) return;
-    try { submit({title: "Bambu TUI browser test", body: "Synthetic notification. Banner and sound are unconfirmed; automatic delivery preferences are unchanged.", sound: false}, true); }
+    try { submit({title: "Bambu Stand browser test", body: "Synthetic notification. Banner and sound are unconfirmed; automatic delivery preferences are unchanged.", sound: false}, true); }
     catch { message = "Notification constructor unavailable or rejected. Check browser and OS settings."; }
     render();
   };

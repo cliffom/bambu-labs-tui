@@ -7,7 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 func TestJobNameUpdatesDuringRunningSession(t *testing.T) {

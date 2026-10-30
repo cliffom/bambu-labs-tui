@@ -10,8 +10,8 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
 )
 
 func resizeModel(m Model, width, height int) Model {

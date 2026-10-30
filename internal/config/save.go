@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/BurntSushi/toml"
-	"github.com/cliffom/bambu-tui/internal/atomicfile"
+	"github.com/cliffom/bambustand/internal/atomicfile"
 )
 
 // SaveChanges reloads valid TOML and applies only fields edited since the last

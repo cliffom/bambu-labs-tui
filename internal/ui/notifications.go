@@ -3,7 +3,7 @@ package ui
 import (
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambustand/internal/notifications"
 )
 
 type notificationClient interface {

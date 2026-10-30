@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — Bambu Stand
+
+- Rename the project, terminal/browser branding, notification helper display name, and hero artwork to Bambu Stand (#153). The repository/module is `github.com/cliffom/bambustand`; CLI and archive names now use `bambustand`. Update scripts and service commands when upgrading.
+- Reuse existing configuration, credentials, account locks, notice decisions, snoozes, notification history, browser preferences, and macOS notification authorization through unchanged persisted identifiers. Monitoring remains read-only.
+
+See [upgrade compatibility](user/usage.md#upgrading-from-bambu-tui) and [validation evidence](development/validation.md#bambu-stand-rename-153).
+
 ## 0.4.8 — Tabbed browser printer inspection
 
 - Organize the browser inspector into Status, Filament, and Notices tabs (#151), using the farm filter styling. Keep navigation and Close visible above the scrolling panel.

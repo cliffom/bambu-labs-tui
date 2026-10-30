@@ -2,8 +2,8 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 type (

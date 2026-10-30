@@ -100,7 +100,7 @@ func TestOwnerIsReleasedByNormalExitAndCrash(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestOwnershipHelperProcess$")
-			child.Env = append(os.Environ(), "BAMBU_TUI_OWNER_TEST="+store.Path)
+			child.Env = append(os.Environ(), "BAMBU_STAND_OWNER_TEST="+store.Path)
 			child.ExtraFiles = []*os.File{readyWrite}
 			child.Stdin = holdRead
 			if err := child.Start(); err != nil {
@@ -152,7 +152,7 @@ func TestOwnerIsReleasedByNormalExitAndCrash(t *testing.T) {
 }
 
 func TestOwnershipHelperProcess(t *testing.T) {
-	path := os.Getenv("BAMBU_TUI_OWNER_TEST")
+	path := os.Getenv("BAMBU_STAND_OWNER_TEST")
 	if path == "" {
 		return
 	}

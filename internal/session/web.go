@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/notifications"
 )
 
 type (

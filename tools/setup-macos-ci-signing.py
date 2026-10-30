@@ -14,7 +14,7 @@ import sys
 
 REQUIRED = ('MACOS_CERTIFICATE_P12_BASE64', 'MACOS_CERTIFICATE_PASSWORD', 'MACOS_SIGN_IDENTITY',
             'APPLE_ID', 'APPLE_TEAM_ID', 'APPLE_APP_SPECIFIC_PASSWORD')
-PROFILE = 'bambu-tui-notary'
+PROFILE = 'bambustand-notary'
 
 
 def command(args, description):
@@ -29,8 +29,8 @@ def paths(env):
     if env.get('GITHUB_ACTIONS') != 'true' or not env.get('RUNNER_TEMP') or sys.platform != 'darwin':
         raise ValueError('This helper runs only on a macOS GitHub Actions runner')
     root = Path(env['RUNNER_TEMP'])
-    return (root / 'bambu-tui-signing.keychain-db', root / 'bambu-tui-signing.p12',
-            root / 'bambu-tui-keychain-search-list.json')
+    return (root / 'bambustand-signing.keychain-db', root / 'bambustand-signing.p12',
+            root / 'bambustand-keychain-search-list.json')
 
 
 def write_private(path, data):

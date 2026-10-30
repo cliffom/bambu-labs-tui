@@ -1,6 +1,6 @@
 # Repository guidance
 
-Bambu TUI is a Go terminal application for read-only Bambu Cloud monitoring. Keep printer control outside the project scope. Preserve distinctions between unknown and confirmed telemetry, local notice decisions, and physical fault resolution.
+Bambu Stand is a Go terminal application for read-only Bambu Cloud monitoring. Keep printer control outside the project scope. Preserve distinctions between unknown and confirmed telemetry, local notice decisions, and physical fault resolution.
 
 ## Required direction and verification
 
@@ -23,7 +23,7 @@ Use the pinned tools documented in the contributing guide; Make supports overrid
 
 ## Code and behavior
 
-- `cmd/bambu-tui`: CLI, login, terminal lifecycle, and PTY smoke tests.
+- `cmd/bambustand`: CLI, login, terminal lifecycle, and PTY smoke tests.
 - `internal/cloud`, `internal/mqtt`, `internal/monitor`: authentication/discovery, transport, and monitor workers.
 - `internal/farm`: telemetry decoding, normalization, condition lifetime, and farm state.
 - `internal/session`: shared serial owner for farm mutations/reconciliation, local browser decisions, immutable publishing, and persistence jobs.

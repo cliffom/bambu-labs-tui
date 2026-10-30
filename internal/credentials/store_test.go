@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/cloud"
+	"github.com/cliffom/bambustand/internal/cloud"
 )
 
 // Simulate native stores at the process boundary: each read is a fresh command,
@@ -201,5 +201,14 @@ func TestNativeCommandCancellation(t *testing.T) {
 	}
 	if ctx.Err() == nil || time.Since(started) > 3*time.Second {
 		t.Fatal("native command did not honor cancellation")
+	}
+}
+
+func TestUpgradeRetainsCredentialService(t *testing.T) {
+	for _, region := range []string{"global", "china"} {
+		store := Store{Region: region}
+		if got := store.service(); got != "com.github.cliffom.bambu-tui."+region {
+			t.Fatalf("saved login namespace changed: %q", got)
+		}
 	}
 }

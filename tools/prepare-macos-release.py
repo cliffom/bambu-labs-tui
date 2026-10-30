@@ -10,9 +10,10 @@ import shutil
 import subprocess
 import tempfile
 
-BUNDLE = 'Bambu TUI Notify.app'
-CLI_ID = 'com.github.cliffom.bambu-tui'
-HELPER_ID = CLI_ID + '.notify-poc'
+BUNDLE = 'Bambu Stand Notify.app'
+CLI_ID = 'com.github.cliffom.bambustand'
+# Keep notification authorization attached to the original helper identity.
+HELPER_ID = 'com.github.cliffom.bambu-tui.notify-poc'
 # Apple's Developer ID Application certificate extension, anchored to Apple.
 DEVELOPER_ID_REQUIREMENT = 'anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists'
 
@@ -51,7 +52,7 @@ def prepare(dist, identity, profile, keychain=''):
         print('Preparing ad-hoc signed candidate archives; distribution signing/notarization not enabled.')
         return
     helper = dist / 'notify-helper' / BUNDLE
-    binaries = [dist / ('bambu-tui-darwin-' + arch) for arch in ('arm64', 'amd64')]
+    binaries = [dist / ('bambustand-darwin-' + arch) for arch in ('arm64', 'amd64')]
     if not helper.is_dir() or any(not path.is_file() for path in binaries):
         raise ValueError('build both macOS CLIs and the notification helper before signing')
     sign(helper, identity, HELPER_ID)
@@ -64,7 +65,7 @@ def prepare(dist, identity, profile, keychain=''):
         return
     reports = dist / 'notarization'
     reports.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='bambu-tui-notarize-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='bambustand-notarize-') as temporary:
         staging = Path(temporary) / 'payload'
         staging.mkdir()
         shutil.copytree(helper, staging / BUNDLE)

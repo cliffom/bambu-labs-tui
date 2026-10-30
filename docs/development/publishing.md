@@ -22,13 +22,13 @@ Commit and push the release preparation on a branch, open a pull request targeti
 
 ```sh
 release_tag="v$(cat VERSION)"
-git tag -a "$release_tag" -m "Bambu TUI $release_tag"
+git tag -a "$release_tag" -m "Bambu Stand $release_tag"
 git push origin "$release_tag"
 ```
 
-Binary release archives contain `bambu-tui`, a concise installation README copied from `docs/user/release-installation.md`, `LICENSE`, `config.example.toml`, and `THIRD_PARTY_NOTICES.txt`. The consolidated notices file preserves complete Go and dependency notice bytes, with module/file headings and stable ordering. It covers the union of modules linked into all four targets; no `third_party/` directory is included. Missing or empty notices fail packaging. macOS archives also include the universal `Bambu TUI Notify.app` beside the CLI; Linux archives omit it. Keep the CLI and helper together after extraction. Doctor registers that adjacent bundle on first use. The full docs tree, contributor guidance, and screenshots stay in the repository and are linked from the installation README. Archive checks reject unexpected files and verify the README against its source. The draft release reads its initial notes from repository `docs/CHANGELOG.md`, uploaded separately from the binary archives.
+Binary release archives contain `bambustand`, a concise installation README copied from `docs/user/release-installation.md`, `LICENSE`, `config.example.toml`, and `THIRD_PARTY_NOTICES.txt`. The consolidated notices file preserves complete Go and dependency notice bytes, with module/file headings and stable ordering. It covers the union of modules linked into all four targets; no `third_party/` directory is included. Missing or empty notices fail packaging. macOS archives also include the universal `Bambu Stand Notify.app` beside the CLI; Linux archives omit it. Keep the CLI and helper together after extraction. Doctor registers that adjacent bundle on first use. The full docs tree, contributor guidance, and screenshots stay in the repository and are linked from the installation README. Archive checks reject unexpected files and verify the README against its source. The draft release reads its initial notes from repository `docs/CHANGELOG.md`, uploaded separately from the binary archives.
 
-From v0.2.1, asset names use `bambu-tui_v<VERSION>_macos_<arm64|amd64>.tar.gz` or `bambu-tui_v<VERSION>_linux_<arm64|amd64>.tar.gz`. Go build targets and intermediate macOS binaries still use `darwin`; v0.2.0 and earlier download names also used `darwin`. Checksums cover the four consumer-facing archive names.
+From v0.5.0, asset names use `bambustand_v<VERSION>_macos_<arm64|amd64>.tar.gz` or `bambustand_v<VERSION>_linux_<arm64|amd64>.tar.gz`. Earlier releases use the `bambu-tui` prefix. From v0.2.1 the download OS label is `macos`. Go build targets and intermediate macOS binaries still use `darwin`; v0.2.0 and earlier download names also used `darwin`. Checksums cover the four consumer-facing archive names.
 
 The tag workflow uses the patched Go version in `go.mod`, verifies the version, scans known vulnerabilities with the pinned scanner, runs race tests and vet, builds macOS/Linux archives for arm64/amd64, and includes dependency licenses. Actions are pinned to commit SHAs and checkout does not persist credentials. The build job runs on macOS with read-only repository permissions and uploads the archives, checksums, and changelog as a one-day artifact. A separate publishing job downloads that artifact and uses repository write permission only to create a **draft** GitHub release with SHA-256 checksums. Build metadata includes the source commit and UTC build date; builds without Git metadata report `unknown` for the commit.
 
@@ -48,19 +48,19 @@ Release preparation signs the universal helper and both macOS CLI binaries with 
 For notarization, first create an app-specific password at your Apple Account's Sign-In and Security page. Store it interactively in Keychain; unspecified account/password options are prompted for by `notarytool`:
 
 ```sh
-xcrun notarytool store-credentials 'bambu-tui-notary' --team-id YOUR_TEAM_ID
+xcrun notarytool store-credentials 'bambustand-notary' --team-id YOUR_TEAM_ID
 make release \
   MACOS_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)' \
-  MACOS_NOTARY_PROFILE='bambu-tui-notary'
+  MACOS_NOTARY_PROFILE='bambustand-notary'
 ```
 
 The profile name is a reference to Keychain credentials, not the password. Credentials and signing private keys stay outside the repository. See [Apple's credential workflow](https://developer.apple.com/documentation/technotes/tn3147-migrating-to-the-latest-notarization-tool) and [notarization requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
 
-The release tool submits a temporary ZIP containing the signed helper and both macOS CLIs, waits up to 20 minutes, and requires an Accepted result. Rejected, interrupted, malformed, or still-processing responses stop packaging. Reports are stored under ignored `dist/notarization/`; Apple may continue processing after a client timeout. Use the submission ID from the report with `xcrun notarytool info SUBMISSION_ID --keychain-profile bambu-tui-notary` to inspect it before deciding to submit a new build.
+The release tool submits a temporary ZIP containing the signed helper and both macOS CLIs, waits up to 20 minutes, and requires an Accepted result. Rejected, interrupted, malformed, or still-processing responses stop packaging. Reports are stored under ignored `dist/notarization/`; Apple may continue processing after a client timeout. Use the submission ID from the report with `xcrun notarytool info SUBMISSION_ID --keychain-profile bambustand-notary` to inspect it before deciding to submit a new build.
 
 After acceptance, the helper's ticket is stapled and validated before archives and checksums are generated. Packaging verifies Developer ID signatures/teams from the extracted helper and CLI in both macOS archives, and validates each extracted helper's stapled ticket, and checks the extracted CLI with codesign's notarized requirement after forcing an online ticket lookup (avoiding dependence on a warm local cache). A raw CLI cannot carry a stapled ticket; its notarization record is checked by macOS online. Stapling the helper does not establish offline installation of the standalone CLI. The ZIP submission is temporary; the public archive format remains `.tar.gz`.
 
-Before public distribution, download the actual release archive onto a clean Mac with Gatekeeper enabled, keep the helper beside the CLI, and test CLI startup, the notification permission workflow, banner/sound delivery, and quit. Verify the helper with `xcrun stapler validate` and `spctl --assess --type execute --verbose=2`. For the standalone CLI, use `codesign --verify --strict --all-architectures --check-notarization -R=notarized /path/to/bambu-tui`; application-oriented `spctl --type execute` can reject a valid CLI because it is not an app bundle. Signing verification, Apple's acceptance, and local execution do not establish the clean-machine experience. The release workflow imports a certificate/private key and notarization credentials into an isolated runner Keychain; creating a local Keychain profile does not configure GitHub Actions. See the setup below.
+Before public distribution, download the actual release archive onto a clean Mac with Gatekeeper enabled, keep the helper beside the CLI, and test CLI startup, the notification permission workflow, banner/sound delivery, and quit. Verify the helper with `xcrun stapler validate` and `spctl --assess --type execute --verbose=2`. For the standalone CLI, use `codesign --verify --strict --all-architectures --check-notarization -R=notarized /path/to/bambustand`; application-oriented `spctl --type execute` can reject a valid CLI because it is not an app bundle. Signing verification, Apple's acceptance, and local execution do not establish the clean-machine experience. The release workflow imports a certificate/private key and notarization credentials into an isolated runner Keychain; creating a local Keychain profile does not configure GitHub Actions. See the setup below.
 
 ## GitHub Actions signing setup
 
@@ -80,12 +80,12 @@ Export the selected identity from Keychain Access → login → My Certificates,
 Set the certificate secret through stdin and enter password secrets at the hidden CLI prompts:
 
 ```sh
-base64 -i /path/to/bambu-tui-signing.p12 | gh secret set MACOS_CERTIFICATE_P12_BASE64 --repo cliffom/bambu-tui
-gh secret set MACOS_CERTIFICATE_PASSWORD --repo cliffom/bambu-tui
-gh secret set MACOS_SIGN_IDENTITY --repo cliffom/bambu-tui
-gh secret set APPLE_ID --repo cliffom/bambu-tui
-gh secret set APPLE_TEAM_ID --repo cliffom/bambu-tui
-gh secret set APPLE_APP_SPECIFIC_PASSWORD --repo cliffom/bambu-tui
+base64 -i /path/to/bambustand-signing.p12 | gh secret set MACOS_CERTIFICATE_P12_BASE64 --repo cliffom/bambustand
+gh secret set MACOS_CERTIFICATE_PASSWORD --repo cliffom/bambustand
+gh secret set MACOS_SIGN_IDENTITY --repo cliffom/bambustand
+gh secret set APPLE_ID --repo cliffom/bambustand
+gh secret set APPLE_TEAM_ID --repo cliffom/bambustand
+gh secret set APPLE_APP_SPECIFIC_PASSWORD --repo cliffom/bambustand
 ```
 
 The build scans vulnerabilities and runs tests before credential installation. The CI helper validates required secrets, decodes the certificate into a private temporary file, creates a Keychain with a random password, imports the selected signing identity, and configures noninteractive codesign access. It stores the notarization profile in that same temporary Keychain. `MACOS_NOTARY_KEYCHAIN` passes its path to submission/log commands; the local default Keychain path remains optional. No profile password is written to `GITHUB_ENV` or logged. The decoded `.p12` is removed after import, and an always-run cleanup restores the original Keychain search list and deletes the temporary Keychain. Hosted runner disposal provides a final boundary.
@@ -93,13 +93,13 @@ The build scans vulnerabilities and runs tests before credential installation. T
 Ordinary PR/main CI does not use these secrets. The signed workflow has no pull-request trigger. Its build job retains read-only repository permissions; the separate draft-publishing job has write permission only for version-tag pushes. A manual run produces signed/notarized workflow artifacts and skips publishing:
 
 ```sh
-gh workflow run release.yml --ref YOUR_TRUSTED_BRANCH --repo cliffom/bambu-tui
+gh workflow run release.yml --ref YOUR_TRUSTED_BRANCH --repo cliffom/bambustand
 ```
 
 Dispatch requires the workflow to be registered on the default branch. Missing/invalid credentials, signing failure, notarization rejection, or ticket verification failure stops release packaging; there is no ad-hoc fallback in the tag/manual workflow. Allowlisted notarization JSON reports are retained as a separate one-day diagnostic artifact; credential files and raw authentication stderr are excluded. Release archives/checksums remain the only distribution assets.
 
 ## Verify and publish
 
-Wait for CI, lint, and release packaging to pass. Download the draft assets from [Releases](https://github.com/cliffom/bambu-tui/releases), verify all four archives against the checksum manifest, and check the native binary's `--version` output. Replace the draft's full-changelog notes with focused release notes describing the changes, validation, and limitations.
+Wait for CI, lint, and release packaging to pass. Download the draft assets from [Releases](https://github.com/cliffom/bambustand/releases), verify all four archives against the checksum manifest, and check the native binary's `--version` output. Replace the draft's full-changelog notes with focused release notes describing the changes, validation, and limitations.
 
 Publish the verified draft as the latest stable release. The tag workflow does not publish automatically. Existing archived releases retain the source/module identity used when they were built.

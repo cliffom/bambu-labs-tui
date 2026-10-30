@@ -51,6 +51,8 @@ const {chromium} = require("playwright");
           },
         }}));
         await page.goto(url);
+        assert.equal(await page.title(), "Bambu Stand · Monitoring");
+        assert.equal((await page.locator(".brand").innerText()).replace(/\s/g, ""), "BambuStand");
         await page.evaluate(scale => {
           document.documentElement.style.fontSize = `${16 * scale}px`;
         }, scale);
@@ -60,8 +62,8 @@ const {chromium} = require("playwright");
           document.querySelectorAll(".card").length === count &&
           document.querySelector("#result-count").textContent === `${count} ${count === 1 ? "printer" : "printers"}`, count,
           {timeout: 10000});
-        const repo = page.getByRole("link", {name: "Bambu TUI on GitHub (opens in a new tab)", exact: true});
-        assert.equal(await repo.getAttribute("href"), "https://github.com/cliffom/bambu-tui");
+        const repo = page.getByRole("link", {name: "Bambu Stand on GitHub (opens in a new tab)", exact: true});
+        assert.equal(await repo.getAttribute("href"), "https://github.com/cliffom/bambustand");
         assert.equal(await page.locator("#clock").count(), 0);
         await repo.focus();
         assert.equal(await repo.evaluate(el => el === document.activeElement), true);

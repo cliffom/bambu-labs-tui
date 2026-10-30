@@ -4,9 +4,11 @@ import "fmt"
 
 // Release builds inject these through -ldflags. Direct go builds remain useful.
 var (
-	Version = "0.4.8"
+	Version = "0.5.0"
 	Commit  = "unknown"
 	Date    = "unknown"
 )
 
-func String() string { return fmt.Sprintf("bambu-tui %s (commit %s, built %s)", Version, Commit, Date) }
+func String() string {
+	return fmt.Sprintf("bambustand %s (commit %s, built %s)", Version, Commit, Date)
+}

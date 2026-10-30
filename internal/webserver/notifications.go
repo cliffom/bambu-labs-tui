@@ -12,9 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/notification_state"
-	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/notifications"
 )
 
 const (

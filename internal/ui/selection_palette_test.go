@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambustand/internal/notifications"
 	"github.com/muesli/termenv"
 )
 

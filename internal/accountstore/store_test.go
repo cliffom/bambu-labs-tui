@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 func openTestStore(t *testing.T, region, account string) *Store {
@@ -45,6 +45,9 @@ func TestExclusiveScopeAndStaleSnapshots(t *testing.T) {
 	}
 	for _, scope := range [][2]string{{"china", "synthetic-account"}, {"global", "other-account"}} {
 		openTestStore(t, scope[0], scope[1])
+	}
+	if filepath.Base(filepath.Dir(first.file.Name())) != "sessions" || filepath.Base(filepath.Dir(filepath.Dir(first.file.Name()))) != "bambu-tui" {
+		t.Fatal("account ownership moved from the original namespace", first.file.Name())
 	}
 	info, err := first.file.Stat()
 	if err != nil || info.Mode().Perm() != 0o600 || info.Size() != 0 {
@@ -142,7 +145,7 @@ func TestOwnerIsReleasedByNormalExitAndCrash(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestOwnershipHelperProcess$")
-			child.Env = append(os.Environ(), "BAMBU_TUI_ACCOUNT_OWNER_TEST=1")
+			child.Env = append(os.Environ(), "BAMBU_STAND_ACCOUNT_OWNER_TEST=1")
 			child.ExtraFiles = []*os.File{readyWrite}
 			child.Stdin = holdRead
 			if err := child.Start(); err != nil {
@@ -200,7 +203,7 @@ func TestOwnerIsReleasedByNormalExitAndCrash(t *testing.T) {
 }
 
 func TestOwnershipHelperProcess(t *testing.T) {
-	path := os.Getenv("BAMBU_TUI_ACCOUNT_OWNER_TEST")
+	path := os.Getenv("BAMBU_STAND_ACCOUNT_OWNER_TEST")
 	if path == "" {
 		return
 	}

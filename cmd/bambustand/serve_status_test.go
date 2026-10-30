@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/webserver"
 	"github.com/muesli/termenv"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/session"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/session"
 )
 
 func TestServeStatusPlainTransitionsAndPrivacy(t *testing.T) {

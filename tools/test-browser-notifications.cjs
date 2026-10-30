@@ -23,7 +23,7 @@ function browser({permission = "default", supported = true, secure = true, store
     document: {querySelector: (s) => elements.get(s)},
     window: {isSecureContext: secure, addEventListener: (n, fn) => listeners[n] = fn, focus() {}},
     Notification: supported ? FakeNotification : undefined,
-    localStorage: {getItem: () => value, setItem: (_, v) => value = v},
+    localStorage: {getItem: (key) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); return value; }, setItem: (key, v) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); value = v; }},
     Date: Clock, AbortSignal,
     fetch: async (url, options) => {
       requests.push({url, options});
@@ -68,6 +68,7 @@ test("permission request follows a click; Test is synthetic and keeps automatic 
   await b.click("test-notifications");
   assert.equal(b.requested(), 1);
   assert.equal(b.notices.length, 1);
+  assert.equal(b.notices[0].title, "Bambu Stand browser test");
   assert.equal(b.run("browserNotifications.enabled()"), false);
   assert.equal(b.requests.length, 0);
   assert.match(b.status(), /banner and sound unconfirmed/);

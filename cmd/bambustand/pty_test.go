@@ -22,11 +22,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/term"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/ui"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/ui"
 	"github.com/creack/pty"
 	"golang.org/x/sys/unix"
 )
@@ -37,24 +37,24 @@ const ptyStepLimit = 5 * time.Second
 // normal path calls the real CLI in demo mode. The failure path wraps the real
 // UI with a test-only panic trigger; production has no fault-injection switch.
 func TestPTYHelperProcess(t *testing.T) {
-	mode := os.Getenv("BAMBU_TUI_PTY_CHILD")
+	mode := os.Getenv("BAMBU_STAND_PTY_CHILD")
 	if mode == "" {
 		return
 	}
 	var err error
 	switch mode {
 	case "demo", "demo-color", "demo-ansi256":
-		args := []string{"--demo", "--config", os.Getenv("BAMBU_TUI_PTY_CONFIG")}
-		if theme := os.Getenv("BAMBU_TUI_PTY_THEME"); theme != "" {
+		args := []string{"--demo", "--config", os.Getenv("BAMBU_STAND_PTY_CONFIG")}
+		if theme := os.Getenv("BAMBU_STAND_PTY_THEME"); theme != "" {
 			args = append(args, "--theme", theme)
 		}
 		err = run(args)
 	case "serve-demo", "serve-occupied", "serve-color":
-		err = run([]string{"serve", "--demo", "--config", os.Getenv("BAMBU_TUI_PTY_CONFIG")})
+		err = run([]string{"serve", "--demo", "--config", os.Getenv("BAMBU_STAND_PTY_CONFIG")})
 	case "serve-fixture":
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer cancel()
-		cfg, loadErr := config.Load(os.Getenv("BAMBU_TUI_PTY_CONFIG"))
+		cfg, loadErr := config.Load(os.Getenv("BAMBU_STAND_PTY_CONFIG"))
 		if loadErr != nil {
 			t.Fatal(loadErr)
 		}
@@ -100,7 +100,7 @@ func TestPTYHelperProcess(t *testing.T) {
 	}
 	code := 0
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "bambu-tui:", err)
+		fmt.Fprintln(os.Stderr, "bambustand:", err)
 		code = 1
 	}
 	// Darwin revokes the controlling slave when its session leader exits.
@@ -239,7 +239,7 @@ func startPTYChildWithTheme(t *testing.T, mode, configPath, theme string) *ptyCh
 		t.Fatal(err)
 	}
 	child.cmd = exec.CommandContext(ctx, executable, "-test.run=^TestPTYHelperProcess$", "-test.count=1")
-	child.cmd.Env = append(os.Environ(), "TERM=xterm-256color", "NO_COLOR=1", "CLICOLOR_FORCE=0", "BAMBU_TUI_PTY_CHILD="+mode, "BAMBU_TUI_PTY_CONFIG="+configPath, "BAMBU_TUI_PTY_THEME="+theme)
+	child.cmd.Env = append(os.Environ(), "TERM=xterm-256color", "NO_COLOR=1", "CLICOLOR_FORCE=0", "BAMBU_STAND_PTY_CHILD="+mode, "BAMBU_STAND_PTY_CONFIG="+configPath, "BAMBU_STAND_PTY_THEME="+theme)
 	if mode == "serve-color" || mode == "demo-color" {
 		child.cmd.Env = append(child.cmd.Env, "NO_COLOR=", "CLICOLOR_FORCE=1", "COLORTERM=truecolor", "CI=")
 	}
@@ -313,7 +313,7 @@ func startPTYChildWithTheme(t *testing.T, mode, configPath, theme string) *ptyCh
 	}()
 	if strings.HasPrefix(mode, "serve-") {
 		if mode != "serve-occupied" {
-			child.expect(t, 0, "Bambu TUI / serve")
+			child.expect(t, 0, "Bambu Stand / serve")
 		}
 		state, err := term.GetState(slave.Fd())
 		if err != nil || !reflect.DeepEqual(child.before, state) {
@@ -437,10 +437,10 @@ func (p *ptyChild) exited(t *testing.T, code int) {
 	output, _ := p.transcript()
 	serveMode, occupied := false, false
 	for _, env := range p.cmd.Env {
-		if strings.HasPrefix(env, "BAMBU_TUI_PTY_CHILD=serve-") {
+		if strings.HasPrefix(env, "BAMBU_STAND_PTY_CHILD=serve-") {
 			serveMode = true
 		}
-		if env == "BAMBU_TUI_PTY_CHILD=serve-occupied" {
+		if env == "BAMBU_STAND_PTY_CHILD=serve-occupied" {
 			occupied = true
 		}
 	}

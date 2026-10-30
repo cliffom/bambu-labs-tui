@@ -7,15 +7,15 @@ import (
 	"io"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/accountstore"
-	"github.com/cliffom/bambu-tui/internal/cloud"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/credentials"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/ui"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/accountstore"
+	"github.com/cliffom/bambustand/internal/cloud"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/credentials"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/ui"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 type serveOptions struct {
@@ -36,7 +36,7 @@ func loadServeAccount(load func() (cloud.Session, error)) (cloud.Session, error)
 		err = credentials.ErrInvalid
 	}
 	if err != nil {
-		return cloud.Session{}, fmt.Errorf("cannot start cloud server: %w; run bambu-tui login to save a session for this config's region; unlock the OS credential store (Linux: install secret-tool and start Secret Service), then retry; bambu-tui doctor checks storage", err)
+		return cloud.Session{}, fmt.Errorf("cannot start cloud server: %w; run bambustand login to save a session for this config's region; unlock the OS credential store (Linux: install secret-tool and start Secret Service), then retry; bambustand doctor checks storage", err)
 	}
 	return account, nil
 }
@@ -189,7 +189,7 @@ running:
 				display.observe(event)
 			}
 			if event.StopReason == monitor.StopAuthenticationRejected {
-				runErr = errors.New("cloud session expired or rejected; run bambu-tui login with this config to save a new session, then restart serve")
+				runErr = errors.New("cloud session expired or rejected; run bambustand login with this config to save a new session, then restart serve")
 				break running
 			}
 			if err := state.ApplyEvent(event); err != nil {

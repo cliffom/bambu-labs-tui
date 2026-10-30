@@ -11,10 +11,10 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/noticestore"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/noticestore"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 func browserDecision(t *testing.T, m Model, target string, retry bool) (Model, string) {

@@ -3,7 +3,7 @@ package session
 import (
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/config"
+	"github.com/cliffom/bambustand/internal/config"
 )
 
 type (

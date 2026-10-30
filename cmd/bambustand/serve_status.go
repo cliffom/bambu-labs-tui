@@ -10,10 +10,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/term"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/ui"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/ui"
+	"github.com/cliffom/bambustand/internal/webserver"
 	"github.com/muesli/termenv"
 )
 
@@ -123,7 +123,7 @@ func (d *serveDisplay) observe(event monitor.Event) {
 	case event.StopReason == monitor.StopAuthenticationRejected:
 		d.connection = "Authentication rejected"
 		d.connectionTone = serveError
-		d.note("Session rejected; run bambu-tui login and restart serve", serveError)
+		d.note("Session rejected; run bambustand login and restart serve", serveError)
 	case event.Kind == monitor.EventConnection:
 		connection := "Reconnecting"
 		d.connectionTone = serveWarning
@@ -179,7 +179,7 @@ func (d *serveDisplay) view(width, height int, now time.Time) string {
 	// Prioritize the complete URL and exit guidance when space is scarce. Wrap
 	// rather than truncate the URL, including on terminals narrower than it.
 	wrap := func(s string) []string { return strings.Split(ansi.Wrap(s, max(1, width), ""), "\n") }
-	url, title := d.url, "Bambu TUI / serve"
+	url, title := d.url, "Bambu Stand / serve"
 	if d.styles != nil {
 		url = d.styles.accent.Underline(true).Render(url)
 		title = d.styles.accent.Render(title)

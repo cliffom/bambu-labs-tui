@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/notification_state"
 )
 
 func awaitWorkerStatus(t *testing.T, w *Worker, ready func(Status) bool) Status {

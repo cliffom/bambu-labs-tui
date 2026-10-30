@@ -19,21 +19,21 @@ class ReleaseInventoryTests(unittest.TestCase):
         # Synthetic architecture headers; native builds separately verify with lipo/codesign.
         binary = struct.pack('>II', 0xcafebabe, 2)
         binary += b''.join(struct.pack('>IIIII', cpu, 0, 0, 0, 0) for cpu in sorted(release.UNIVERSAL_CPUS))
-        metadata = {'CFBundleIdentifier': release.BUNDLE_ID, 'CFBundleExecutable': 'bambu-notify', 'CFBundleIconFile': 'BambuTUI.icns', 'CFBundleShortVersionString': '0.2.0', 'CFBundleVersion': '0.2.0', 'BambuTUIReleaseVersion': '0.2.0', 'LSUIElement': True}
+        metadata = {'CFBundleName': 'Bambu Stand', 'CFBundleDisplayName': 'Bambu Stand', 'CFBundleIdentifier': release.BUNDLE_ID, 'CFBundleExecutable': 'bambu-notify', 'CFBundleIconFile': 'BambuStand.icns', 'CFBundleShortVersionString': '0.2.0', 'CFBundleVersion': '0.2.0', 'BambuStandReleaseVersion': '0.2.0', 'LSUIElement': True}
         self.files = {
-            'bambu-tui': (b'synthetic-cli', 0o755),
+            'bambustand': (b'synthetic-cli', 0o755),
             'README.md': (b'# Install', 0o644),
             'LICENSE': (b'MIT', 0o644),
             'config.example.toml': (b'region = "global"', 0o644),
             'THIRD_PARTY_NOTICES.txt': (b'Go and dependency license notices', 0o644),
             release.EXECUTABLE: (binary, 0o755),
             release.CONTENTS + 'Info.plist': (plistlib.dumps(metadata), 0o644),
-            release.CONTENTS + 'Resources/BambuTUI.icns': (b'synthetic-icon', 0o644),
+            release.CONTENTS + 'Resources/BambuStand.icns': (b'synthetic-icon', 0o644),
             release.CONTENTS + '_CodeSignature/CodeResources': (b'synthetic-signature', 0o644),
         }
 
     def check(self, target='macos_arm64', version='0.2.0', extra_members=()):
-        path = Path(self.temp.name) / ('bambu-tui_v' + version + '_' + target + '.tar.gz')
+        path = Path(self.temp.name) / ('bambustand_v' + version + '_' + target + '.tar.gz')
         with tarfile.open(path, 'w:gz') as archive:
             for name, (data, mode) in self.files.items():
                 entry = tarfile.TarInfo(name)
@@ -86,7 +86,7 @@ class ReleaseInventoryTests(unittest.TestCase):
     def test_macos_archives_require_the_complete_helper(self):
         for target in ('macos_arm64', 'macos_amd64'):
             self.assertEqual(self.check(target), [])
-        del self.files[release.CONTENTS + 'Resources/BambuTUI.icns']
+        del self.files[release.CONTENTS + 'Resources/BambuStand.icns']
         self.assertTrue(any('missing helper file' in error for error in self.check()))
 
     def test_linux_archives_exclude_the_helper(self):
@@ -103,13 +103,13 @@ class ReleaseInventoryTests(unittest.TestCase):
 
     def test_prerelease_keeps_numeric_app_version_and_full_release_identity(self):
         metadata = plistlib.loads(self.files[release.CONTENTS + 'Info.plist'][0])
-        metadata['BambuTUIReleaseVersion'] = '0.2.0-rc1'
+        metadata['BambuStandReleaseVersion'] = '0.2.0-rc1'
         self.files[release.CONTENTS + 'Info.plist'] = (plistlib.dumps(metadata), 0o644)
         self.assertEqual(self.check(version='0.2.0-rc1'), [])
 
     def test_missing_signature_and_cli_fail(self):
         del self.files[release.CONTENTS + '_CodeSignature/CodeResources']
-        del self.files['bambu-tui']
+        del self.files['bambustand']
         errors = self.check()
         self.assertIn('missing or non-executable CLI', errors)
         self.assertTrue(any('_CodeSignature' in error for error in errors))

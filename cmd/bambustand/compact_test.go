@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/accountstore"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/accountstore"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/notification_state"
 )
 
 func TestCompactNotificationsProtectsLiveHostAndBothChannels(t *testing.T) {

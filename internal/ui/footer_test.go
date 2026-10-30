@@ -91,7 +91,7 @@ func TestFooterBackgroundIsContinuousThroughFeedbackSeparators(t *testing.T) {
 						m.now = m.now.Add(notificationTestDimAfter)
 					case "Config failed":
 						m.notificationTestFailed = true
-						m.notificationTestStatus = "Test failed; run bambu-tui doctor --notify."
+						m.notificationTestStatus = "Test failed; run bambustand doctor --notify."
 					}
 				}
 				rows := strings.Split(m.View(), "\n")

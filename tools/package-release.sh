@@ -25,13 +25,13 @@ go_root=$(go env GOROOT)
 # Include notices from dependencies actually linked into the application.
 for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
   CGO_ENABLED=0 GOOS=${target%-*} GOARCH=${target#*-} \
-    go list -deps -f '{{with .Module}}{{.Path}} {{.Dir}}{{end}}' ./cmd/bambu-tui || exit 1
+    go list -deps -f '{{with .Module}}{{.Path}} {{.Dir}}{{end}}' ./cmd/bambustand || exit 1
 done | sort -u > "$release_stage/modules.txt"
 python3 tools/third-party-notices.py --go-root "$go_root" \
   --modules "$release_stage/modules.txt" --output "$release_stage/THIRD_PARTY_NOTICES.txt"
 rm "$release_stage/modules.txt"
 
-notify_bundle='Bambu TUI Notify.app'
+notify_bundle='Bambu Stand Notify.app'
 cp -R "dist/notify-helper/$notify_bundle" "$release_stage/$notify_bundle"
 /usr/bin/codesign --verify --strict --all-architectures "$release_stage/$notify_bundle"
 for notify_arch in arm64 x86_64; do
@@ -40,10 +40,10 @@ done
 
 archives=()
 for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
-  cp "dist/bambu-tui-$target" "$release_stage/bambu-tui"
+  cp "dist/bambustand-$target" "$release_stage/bambustand"
   download_target=${target/darwin/macos}
-  archive="bambu-tui_v${release_version}_${download_target//-/_}.tar.gz"
-  archive_members=(bambu-tui README.md LICENSE config.example.toml THIRD_PARTY_NOTICES.txt)
+  archive="bambustand_v${release_version}_${download_target//-/_}.tar.gz"
+  archive_members=(bambustand README.md LICENSE config.example.toml THIRD_PARTY_NOTICES.txt)
   if [[ "$target" == darwin-* ]]; then
     archive_members+=("$notify_bundle")
   fi
@@ -53,14 +53,14 @@ for target in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
     # Verify signatures from the actual archive, not only the pre-tar bundle.
     notify_extracted="$release_stage/verify-$target"
     mkdir -p "$notify_extracted"
-    tar -xzf "dist/$archive" -C "$notify_extracted" "$notify_bundle" bambu-tui
+    tar -xzf "dist/$archive" -C "$notify_extracted" "$notify_bundle" bambustand
     /usr/bin/codesign --verify --strict --all-architectures "$notify_extracted/$notify_bundle"
     if [[ -n "${MACOS_SIGN_IDENTITY:-}" ]]; then
-      python3 tools/prepare-macos-release.py verify "$notify_extracted/$notify_bundle" "$notify_extracted/bambu-tui"
+      python3 tools/prepare-macos-release.py verify "$notify_extracted/$notify_bundle" "$notify_extracted/bambustand"
     fi
     if [[ -n "${MACOS_NOTARY_PROFILE:-}" ]]; then
       xcrun stapler validate "$notify_extracted/$notify_bundle"
-      /usr/bin/codesign --verify --strict --all-architectures --check-notarization -R=notarized "$notify_extracted/bambu-tui"
+      /usr/bin/codesign --verify --strict --all-architectures --check-notarization -R=notarized "$notify_extracted/bambustand"
     fi
     "$notify_extracted/$notify_bundle/Contents/MacOS/bambu-notify" --help
   fi
@@ -74,5 +74,5 @@ done
   else
     shasum -a 256 "${archives[@]}"
   fi
-) > "dist/bambu-tui_v${release_version}_checksums.txt"
+) > "dist/bambustand_v${release_version}_checksums.txt"
 echo "Release archives and checksums prepared in dist/"

@@ -9,5 +9,6 @@ const (
 	secretToolNotFoundExit = 1
 	keychainMaxInputBytes  = 4095
 	probeRandomBytes       = 12
-	servicePrefix          = "com.github.cliffom.bambu-tui."
+	// Retain the original namespace for upgrade compatibility; see docs/user/usage.md.
+	servicePrefix = "com.github.cliffom.bambu-tui."
 )

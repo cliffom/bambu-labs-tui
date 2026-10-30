@@ -52,6 +52,7 @@ const {chromium} = require("playwright");
       return page;
     }
     async function shot(page, name, target = page) {
+      if (process.env.SCREENSHOT_FILTER && !new RegExp(process.env.SCREENSHOT_FILTER).test(name)) return;
       await page.evaluate(async () => {
         await document.fonts.ready;
         await Promise.all([...document.images].filter(img => {
@@ -90,14 +91,13 @@ const {chromium} = require("playwright");
     await theme(page, "default");
     await page.locator('[data-id="screenshot-x2d"]').click();
     await page.locator("#detail").waitFor({state: "visible"});
-    assert.match(await page.locator("#detail-body").textContent(), /Filament has run out/);
+    assert.equal(await page.getByRole("tab", {selected: true}).textContent(), "Status");
     await shot(page, "browser-printer-details.png", page.locator("#detail"));
-    const ams = page.locator("#detail h2").filter({hasText: "AMS & filament"});
-    await ams.evaluate(el => {
-      const dialog = el.closest("dialog");
-      dialog.scrollTop += el.getBoundingClientRect().top - dialog.getBoundingClientRect().top - 24;
-    });
+    await page.getByRole("tab", {name: "Filament", exact: true}).click();
     await shot(page, "browser-filament.png", page.locator("#detail"));
+    await page.getByRole("tab", {name: "Notices", exact: true}).click();
+    assert.match(await page.locator("#detail-body").textContent(), /Filament has run out/);
+    await shot(page, "browser-notices.png", page.locator("#detail"));
     await page.close();
     const idle = await open({width: 1280, height: 1200}, true);
     await idle.locator('[data-filter="idle"]').click();

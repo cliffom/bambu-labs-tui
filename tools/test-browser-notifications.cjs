@@ -31,7 +31,7 @@ function browser({permission = "default", supported = true, secure = true, store
       if (url === "/api/notifications") await fetchWait;
       return {ok: true, json: async () => url === "/api/session" ? {token: "csrf"} : response};
     },
-    snapshot: {printers: [{id: "printer"}]}, inspect: (id) => inspected = id,
+    snapshot: {printers: [{id: "printer"}]}, inspect: (id, tab) => inspected = {id, tab},
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../internal/webserver/assets/notifications.js"), "utf8"), context);
   return {
@@ -110,7 +110,7 @@ test("claimed notifications navigate to printer on click and close makes no deci
   b.elements.get("#settings-dialog").open = true;
   b.notices[0].onclick();
   assert.equal(b.elements.get("#settings-dialog").open, false);
-  assert.equal(b.inspected(), "printer");
+  assert.deepEqual(b.inspected(), {id: "printer", tab: "notices"});
   assert.equal(b.notices[0].closed, true);
   assert.equal(b.requests.some((r) => r.url === "/api/dismiss"), false);
   assert.deepEqual(JSON.parse(b.requests.at(-1).options.body), {baseline: false, after: 1});

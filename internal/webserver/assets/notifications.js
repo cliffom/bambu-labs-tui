@@ -69,7 +69,7 @@ const browserNotifications = (() => {
         for (const id of ["about-dialog", "settings-dialog"]) {
           if (element(id).open) element(id).close();
         }
-        inspect(event.printer);
+        inspect(event.printer, "notices");
       }
       notification.close();
     };

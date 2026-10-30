@@ -18,6 +18,7 @@ function inspector() {
     const value = {
       id: selector.slice(1), dataset, scrollTop: 0, open: false,
       addEventListener() {},
+      setAttribute(name, value) { this[name] = value; },
       focus(options) {
         document.activeElement = value;
         // Close is at the dialog header; ordinary focus scrolls it into view.
@@ -31,6 +32,7 @@ function inspector() {
     return value;
   }
   for (const id of ["detail", "detail-title", "detail-body", "close-detail",
+    "detail-tab-status", "detail-tab-filament", "detail-tab-notices",
     "search", "sort",
     "review", "about", "close-about", "settings", "settings-dialog", "close-settings"]) element("#" + id);
   let html = "";
@@ -60,7 +62,7 @@ function inspector() {
     state: "IDLE", nozzles: [], ams: [], external: [], conditions: [
       {id: "visible", text: "Visible condition", hidden: false},
       {id: "hidden", text: "Hidden condition", hidden: true, reviewed: true}
-    ]}]}; inspect("printer");`);
+    ]}]}; inspect("printer", "notices");`);
   return {
     run, html: () => html,
     focus(selector) { elements.get(selector).focus(); },
@@ -101,7 +103,7 @@ test("dismissed conditions are hidden by default and inspectable without changin
   view.toggle();
   assert.doesNotMatch(view.html(), /Hidden condition/);
   view.toggle();
-  view.run('inspect("printer")');
+  view.run('inspect("printer", "notices")');
   assert.doesNotMatch(view.html(), /Hidden condition/);
 });
 
@@ -120,30 +122,30 @@ test("all-hidden and empty views differ; new conditions remain visible", () => {
 test("live dismissals preserve scroll and fall back to Close; disappearing toggle does too", () => {
   const view = inspector();
   view.focus('[data-dismiss="visible"]');
-  view.run('$("#detail").scrollTop = 120; snapshot.printers[0].conditions[0].hidden = true; renderDetail()');
+  view.run('$("#detail-body").scrollTop = 120; snapshot.printers[0].conditions[0].hidden = true; renderDetail()');
   assert.equal(view.focused(), "close-detail");
-  assert.equal(view.run('$("#detail").scrollTop'), 120);
+  assert.equal(view.run('$("#detail-body").scrollTop'), 120);
   view.focus("#toggle-hidden-messages");
   view.run("snapshot.printers[0].conditions = []; renderDetail()");
   assert.equal(view.focused(), "close-detail");
-  assert.equal(view.run('$("#detail").scrollTop'), 120);
+  assert.equal(view.run('$("#detail-body").scrollTop'), 120);
 });
 
 test("telemetry removal of a focused condition preserves inspector scroll", () => {
   const view = inspector();
   view.focus('[data-dismiss="visible"]');
-  view.run('$("#detail").scrollTop = 120; snapshot.printers[0].conditions = []; renderDetail()');
+  view.run('$("#detail-body").scrollTop = 120; snapshot.printers[0].conditions = []; renderDetail()');
   assert.equal(view.focused(), "close-detail");
-  assert.equal(view.run('$("#detail").scrollTop'), 120);
+  assert.equal(view.run('$("#detail-body").scrollTop'), 120);
 });
 
 test("ongoing estimate updates retain action focus and inspector scroll", () => {
   const view = inspector();
   view.focus('[data-dismiss="visible"]');
-  view.run('$("#detail").scrollTop = 120; snapshot.printers[0].conditions[0].text = "Estimated filament 8%"; renderDetail()');
+  view.run('$("#detail-body").scrollTop = 120; snapshot.printers[0].conditions[0].text = "Estimated filament 8%"; renderDetail()');
   assert.match(view.html(), /Estimated filament 8%/);
   assert.equal(view.run("document.activeElement?.dataset.dismiss"), "visible");
-  assert.equal(view.run('$("#detail").scrollTop'), 120);
+  assert.equal(view.run('$("#detail-body").scrollTop'), 120);
 });
 
 test("failed-save retry remains available through hidden messages, including feed outages", () => {
@@ -449,7 +451,7 @@ test("offline cards show identity and attention without last-known telemetry", (
   }
   view.run('snapshot.printers[0].image = null; snapshot.printers[0].model = null');
   assert.match(view.run('card(snapshot.printers[0])'), /Unknown model.*<svg/s);
-  view.run('renderDetail()');
+  view.run('selectDetailTab("status")');
   assert.match(view.html(), /Old job/);
 });
 
@@ -467,4 +469,39 @@ test("staleness and feed loss do not simplify online or unknown-connectivity car
       assert.match(html, /Unknown material/);
     }
   }
+});
+
+test("inspection defaults to Status and remembers independent panel positions during updates", () => {
+  const view = inspector();
+  view.run('inspect("printer")');
+  assert.equal(view.run('detailTab'), "status");
+  assert.match(view.html(), /No reported job/);
+  assert.doesNotMatch(view.html(), /Reported conditions|AMS configuration/);
+  view.run('$("#detail-body").scrollTop = 80; selectDetailTab("filament", true)');
+  assert.match(view.html(), /AMS configuration unknown/);
+  assert.doesNotMatch(view.html(), /Reported conditions|No reported job/);
+  assert.equal(view.focused(), "detail-tab-filament");
+  view.run('$("#detail-body").scrollTop = 140; snapshot.decisions = "saving"; renderDetail()');
+  assert.equal(view.run('detailTab'), "filament");
+  assert.equal(view.run('$("#detail-body").scrollTop'), 140);
+  assert.equal(view.focused(), "detail-tab-filament");
+  view.run('selectDetailTab("notices"); selectDetailTab("status")');
+  assert.equal(view.run('$("#detail-body").scrollTop'), 80);
+  view.run('selectDetailTab("filament")');
+  assert.equal(view.run('$("#detail-body").scrollTop'), 140);
+  assert.equal(view.run('snapshot.printers[0].conditions[0].hidden'), false);
+  view.run('inspect("printer")');
+  assert.equal(view.run('detailTab'), "status");
+  assert.equal(view.run('$("#detail-body").scrollTop'), 0);
+});
+
+test("review opens Notices and printer removal preserves tab with safe action focus", () => {
+  const view = inspector();
+  view.run('snapshot.printers[0].attention = true; $("#review").onclick()');
+  assert.equal(view.run('detailTab'), "notices");
+  view.focus('[data-dismiss="visible"]');
+  view.run('snapshot.printers = []; renderDetail()');
+  assert.match(view.html(), /no longer in the discovered farm/);
+  assert.equal(view.focused(), "close-detail");
+  assert.equal(view.run('detailTab'), "notices");
 });

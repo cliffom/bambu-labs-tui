@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.8 — Tabbed browser printer inspection
+
+- Organize the browser inspector into Status, Filament, and Notices tabs (#151), using the farm filter styling. Keep navigation and Close visible above the scrolling panel.
+- Preserve selected tabs, focus, and per-tab reading positions through telemetry and local save updates. Review and system-notification clicks open Notices; ordinary card opening starts at Status. Existing monitoring and local notice semantics are unchanged.
+
+See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#tabbed-browser-printer-inspection-151).
+
 ## 0.4.7 — Compact scrolling dashboard
 
 - Compact the browser header while scrolling the farm, restoring it at the top (#149). Keep visible content steady as header space is reclaimed.

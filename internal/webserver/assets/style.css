@@ -327,7 +327,8 @@ h2 > span {
 .shell.toolbar-scrolls .toolbar {
   position: static;
 }
-.filters {
+.filters,
+.detail-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
@@ -336,7 +337,8 @@ h2 > span {
   border-radius: 7px;
   background: var(--panel);
 }
-.filters button {
+.filters button,
+.detail-tabs button {
   min-height: 2.5rem;
   background: none;
   border: 0;
@@ -347,7 +349,8 @@ h2 > span {
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.filters .selected {
+.filters .selected,
+.detail-tabs [aria-selected="true"] {
   background: var(--selected-background);
   color: var(--selected-text);
   box-shadow: 0 1px 3px #0004;
@@ -1156,3 +1159,67 @@ footer :focus-visible { outline-color: var(--footer-hotkey); }
 .theme-panel select { width: 100%; min-width: 0; }
 .theme-panel p { margin: 0.5rem 0; }
 ::selection { color: var(--selected-text); background: var(--selected-background); }
+
+/* Keep inspection navigation outside the independently scrolling panel. */
+#detail[open] {
+  display: flex;
+  flex-direction: column;
+  height: min(48rem, calc(100dvh - 24px));
+  max-height: calc(100dvh - 24px);
+  width: min(720px, calc(100% - 16px));
+  max-width: calc(100% - 16px);
+  padding: 16px;
+  overflow: hidden;
+}
+#detail .dialog-header {
+  flex: none;
+  margin-bottom: 12px;
+}
+#detail .eyebrow {
+  display: none;
+}
+#detail .dialog-header h2 {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-tabs {
+  flex: none;
+  flex-wrap: wrap;
+}
+.detail-tabs button {
+  min-width: max-content;
+  flex: 1 0 auto;
+  padding-inline: 4px;
+}
+#detail-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 12px 4px;
+  scrollbar-gutter: stable;
+}
+#detail-body h2 {
+  font-size: 1.25rem;
+}
+#detail-body .conditions {
+  margin-top: 0;
+}
+#detail .dialog-footer {
+  flex: none;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+@media (max-height: 360px) {
+  #detail .dialog-footer { display: none; }
+  #detail[open] { padding: 8px; }
+  #detail .dialog-header { margin-bottom: 4px; }
+  #detail .dialog-header h2 { font-size: 1rem; line-height: 1.2; }
+  #detail #close-detail { width: 40px; height: 40px; }
+  #detail-body { padding-block: 8px; }
+}
+@media (max-width: 600px) {
+  #detail .dialog-footer { display: none; }
+}

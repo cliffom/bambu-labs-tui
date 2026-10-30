@@ -20,7 +20,7 @@ A keyboard-driven workspace for your farm: move between printers, inspect job de
 
 ### Web browser dashboard
 
-A visual farm overview with searchable, filterable printer cards, model illustrations, progress, temperatures, and filament. Spot printers needing attention or showing unavailable data, then inspect their reported conditions. Unknown readings stay unknown. Stale readings are labeled last-known; offline cards show just printer identity and inactive artwork, with full details available through inspection.
+A visual farm overview with searchable, filterable printer cards, model illustrations, progress, temperatures, and filament. Spot printers needing attention or showing unavailable data, then open Status, Filament, or Notices in the tabbed printer inspector. Unknown readings stay unknown. Stale readings are labeled last-known; offline cards show just printer identity and inactive artwork, with full details available through inspection.
 
 ![Current browser dashboard with one filter toolbar, printing and paused printers, a simplified offline card, and the bottom status bar.](assets/screenshots/browser.png)
 

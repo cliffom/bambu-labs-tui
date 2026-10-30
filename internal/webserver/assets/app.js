@@ -23,6 +23,8 @@ const labels = {
 const stateLabel = (state) => labels[state] || state || "Unknown";
 let commandPending = null, commandMessage = "";
 let showHiddenMessages = false;
+const detailTabs = ["status", "filament", "notices"];
+let detailTab = "status", detailScroll = {};
 let restoringCardFocus = false;
 let csrfToken = null;
 let snapshot = null,
@@ -242,22 +244,30 @@ function slotCards(slots) {
 function renderDetail() {
   const p = snapshot.printers.find((p) => p.id === selected),
     body = $("#detail-body");
+  const scroll = body.scrollTop;
+  const focusedAction = document.activeElement?.dataset.dismiss;
+  const focusedToggle = document.activeElement?.id === "toggle-hidden-messages";
   if (!p) {
     $("#detail-title").textContent = "Printer unavailable";
     body.innerHTML =
       "<p>This printer is no longer in the discovered farm. Its removal does not confirm fault resolution.</p>";
+    if (focusedAction || focusedToggle) $("#close-detail").focus({preventScroll: true});
+    body.scrollTop = scroll;
     return;
   }
-  const scroll = $("#detail").scrollTop;
-  const focusedAction = document.activeElement?.dataset.dismiss;
-  const focusedToggle = document.activeElement?.id === "toggle-hidden-messages";
   const hiddenCount = p.conditions.filter((c) => c.hidden).length;
   const conditions = p.conditions.filter((c) => showHiddenMessages || !c.hidden);
   $("#detail-title").textContent = p.name;
+  $("#detail-title").title = p.name;
   const metric = (label, value) =>
     `<div>${prefix(p)}${label}<strong>${value}</strong></div>`;
-  body.innerHTML = `<span class="pill ${current(p) ? "" : "warn"}">${escapeHTML(status(p))}</span><p>${escapeHTML(p.model || "Unknown model")} · Last report: ${escapeHTML(localTime(p.last_report))}<br>${current(p) ? "Readings from the latest monitoring snapshot." : "Current state is unconfirmed. Available readings are last-known; missing values remain unknown."}</p><h2>${escapeHTML(p.job || "No reported job")}</h2><p>${prefix(p)}Stage: ${escapeHTML(p.stage || "Unknown")}</p><div class="detail-grid">${metric("Reported state", escapeHTML(stateLabel(p.state)))}${metric("Progress", p.progress === null ? "Unknown" : unknown(p.progress) + "%")}${metric("Layer", unknown(p.layer) + " / " + unknown(p.total_layers))}${metric("Bed / target", temperature(p.bed))}${metric("Chamber", temperature(p.chamber))}${metric("Finish estimate", escapeHTML(remaining(p)))}</div><div class="temperature-list">${p.nozzles.map((n) => `<span>${prefix(p)}${n.id === 0 ? "Right nozzle" : n.id === 1 ? "Left nozzle" : "Nozzle " + unknown(n.id)}: ${temperature(n.temperature)}${n.active ? " · reported active" : ""}</span>`).join("") || "Nozzle readings unknown"}</div><p class="muted">Remaining-time report: ${escapeHTML(localTime(p.remaining_reported))}. Estimates do not confirm completion.</p><div class="conditions"><h2>Reported conditions</h2><p role="status" aria-live="polite">${escapeHTML(commandMessage)}</p><p>Local decision storage: ${escapeHTML(snapshot.decisions || "Unknown")}. Hiding never fixes the printer.</p>${hiddenCount ? `<p><button id="toggle-hidden-messages" aria-pressed="${showHiddenMessages}">${showHiddenMessages ? "Hide hidden messages" : "View hidden messages"} (${hiddenCount})</button></p>` : ""}${conditions.length ? conditions.map((c) => `<div class="condition"><h3>${escapeHTML(c.text)}</h3>${c.guidance ? `<p><strong>Next:</strong> ${escapeHTML(c.guidance)}</p>` : ""}<p class="meta">${escapeHTML(c.level)} · Code: ${escapeHTML(c.code || "Not provided")}<br>Local review: ${c.reviewed ? "Reviewed" : "Unreviewed"}${c.hidden ? " · Hidden locally" : ""}<br>First app-observed: ${escapeHTML(localTime(c.since))}</p><p>Physical resolution is unconfirmed. Inspecting this view makes no local notice decision.</p>${!c.hidden ? `<button data-dismiss="${escapeHTML(c.id)}" aria-disabled="${Boolean(commandPending || feedUnavailable())}">${commandPending === c.id ? "Pending…" : "Hide notice locally"}</button>` : snapshot.decisions === "failed" ? `<button data-dismiss="${escapeHTML(c.id)}" data-retry="true" aria-disabled="${Boolean(commandPending || feedUnavailable())}">Retry saving local decisions</button>` : `<p>Applied locally · ${escapeHTML(snapshot.decisions || "storage unknown")}</p>`}</div>`).join("") : p.conditions.length ? "<p>All reported messages are hidden locally. Physical resolution remains unconfirmed.</p>" : "<p>No active notices in this snapshot. Missing or disconnected data does not confirm physical fault resolution.</p>"}</div><h2 style="margin-top:25px">${prefix(p)}AMS & filament</h2>${p.ams.length ? p.ams.map((unit) => `<p>${escapeHTML(unit.label)} · Humidity: ${unit.humidity === null ? "Unknown" : unknown(unit.humidity) + "%"} · Temperature: ${unit.temperature === null ? "Unknown" : unknown(unit.temperature) + "°C"}</p>${slotCards(unit.slots)}`).join("") : "<p>AMS configuration unknown.</p>"}<h2 style="margin-top:20px">${prefix(p)}External filament</h2>${slotCards(p.external)}`;
-  $("#detail").scrollTop = scroll;
+  const content = {
+    status: `<span class="pill ${current(p) ? "" : "warn"}">${escapeHTML(status(p))}</span><p>${escapeHTML(p.model || "Unknown model")} · Last report: ${escapeHTML(localTime(p.last_report))}<br>${current(p) ? "Readings from the latest monitoring snapshot." : "Current state is unconfirmed. Available readings are last-known; missing values remain unknown."}</p><h2>${escapeHTML(p.job || "No reported job")}</h2><p>${prefix(p)}Stage: ${escapeHTML(p.stage || "Unknown")}</p><div class="detail-grid">${metric("Reported state", escapeHTML(stateLabel(p.state)))}${metric("Progress", p.progress === null ? "Unknown" : unknown(p.progress) + "%")}${metric("Layer", unknown(p.layer) + " / " + unknown(p.total_layers))}${metric("Bed / target", temperature(p.bed))}${metric("Chamber", temperature(p.chamber))}${metric("Finish estimate", escapeHTML(remaining(p)))}</div><div class="temperature-list">${p.nozzles.map((n) => `<span>${prefix(p)}${n.id === 0 ? "Right nozzle" : n.id === 1 ? "Left nozzle" : "Nozzle " + unknown(n.id)}: ${temperature(n.temperature)}${n.active ? " · reported active" : ""}</span>`).join("") || "Nozzle readings unknown"}</div><p class="muted">Remaining-time report: ${escapeHTML(localTime(p.remaining_reported))}. Estimates do not confirm completion.</p>`,
+    filament: `<h2>${prefix(p)}AMS & filament</h2>${p.ams.length ? p.ams.map((unit) => `<p>${escapeHTML(unit.label)} · Humidity: ${unit.humidity === null ? "Unknown" : unknown(unit.humidity) + "%"} · Temperature: ${unit.temperature === null ? "Unknown" : unknown(unit.temperature) + "°C"}</p>${slotCards(unit.slots)}`).join("") : "<p>AMS configuration unknown.</p>"}<h2>${prefix(p)}External filament</h2>${slotCards(p.external)}`,
+    notices: `<div class="conditions"><h2>Reported conditions</h2><p role="status" aria-live="polite">${escapeHTML(commandMessage)}</p><p>Local decision storage: ${escapeHTML(snapshot.decisions || "Unknown")}. Hiding never fixes the printer.</p>${hiddenCount ? `<p><button id="toggle-hidden-messages" aria-pressed="${showHiddenMessages}">${showHiddenMessages ? "Hide hidden messages" : "View hidden messages"} (${hiddenCount})</button></p>` : ""}${conditions.length ? conditions.map((c) => `<div class="condition"><h3>${escapeHTML(c.text)}</h3>${c.guidance ? `<p><strong>Next:</strong> ${escapeHTML(c.guidance)}</p>` : ""}<p class="meta">${escapeHTML(c.level)} · Code: ${escapeHTML(c.code || "Not provided")}<br>Local review: ${c.reviewed ? "Reviewed" : "Unreviewed"}${c.hidden ? " · Hidden locally" : ""}<br>First app-observed: ${escapeHTML(localTime(c.since))}</p><p>Physical resolution is unconfirmed. Inspecting this view makes no local notice decision.</p>${!c.hidden ? `<button data-dismiss="${escapeHTML(c.id)}" aria-disabled="${Boolean(commandPending || feedUnavailable())}">${commandPending === c.id ? "Pending…" : "Hide notice locally"}</button>` : snapshot.decisions === "failed" ? `<button data-dismiss="${escapeHTML(c.id)}" data-retry="true" aria-disabled="${Boolean(commandPending || feedUnavailable())}">Retry saving local decisions</button>` : `<p>Applied locally · ${escapeHTML(snapshot.decisions || "storage unknown")}</p>`}</div>`).join("") : p.conditions.length ? "<p>All reported messages are hidden locally. Physical resolution remains unconfirmed.</p>" : "<p>No active notices in this snapshot. Missing or disconnected data does not confirm physical fault resolution.</p>"}</div>`,
+  };
+  body.innerHTML = content[detailTab];
+  body.scrollTop = scroll;
   if (focusedAction) {
     const next = document.querySelector(`[data-dismiss="${CSS.escape(focusedAction)}"]`);
     if (next) next.focus({preventScroll: true});
@@ -267,11 +277,29 @@ function renderDetail() {
     ($("#toggle-hidden-messages") || $("#close-detail")).focus({preventScroll: true});
   }
 }
-function inspect(id) {
+function selectDetailTab(tab, focus = false) {
+  if (!detailTabs.includes(tab)) return;
+  const body = $("#detail-body");
+  detailScroll[detailTab] = body.scrollTop;
+  detailTab = tab;
+  for (const choice of detailTabs) {
+    const button = $("#detail-tab-" + choice);
+    button.setAttribute("aria-selected", String(choice === tab));
+    button.tabIndex = choice === tab ? 0 : -1;
+  }
+  body.setAttribute("aria-labelledby", "detail-tab-" + tab);
+  renderDetail();
+  body.scrollTop = detailScroll[tab] || 0;
+  if (focus) $("#detail-tab-" + tab).focus({preventScroll: true});
+}
+function inspect(id, tab = "status") {
   showHiddenMessages = false;
   selected = id;
-  renderDetail();
+  detailScroll = {};
+  $("#detail-body").scrollTop = 0;
+  selectDetailTab(tab);
   $("#detail").showModal();
+  $("#detail-body").scrollTop = 0;
   $("#detail").scrollTop = 0;
 }
 function updateFeedWarning(message) {
@@ -351,7 +379,19 @@ async function dismissNotice(target, retry) {
     if ($("#detail").open) renderDetail();
   }
 }
+document.addEventListener("keydown", (event) => {
+  const tab = event.target.closest("[data-detail-tab]");
+  if (!tab) return;
+  const index = detailTabs.indexOf(tab.dataset.detailTab);
+  const next = {ArrowRight: (index + 1) % 3, ArrowLeft: (index + 2) % 3,
+    Home: 0, End: 2}[event.key];
+  if (next === undefined) return;
+  event.preventDefault();
+  selectDetailTab(detailTabs[next], true);
+});
 document.addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-detail-tab]");
+  if (tab) { selectDetailTab(tab.dataset.detailTab, true); return; }
   if (event.target.closest("#toggle-hidden-messages")) {
     showHiddenMessages = !showHiddenMessages;
     renderDetail();
@@ -385,7 +425,7 @@ $("#sort").addEventListener("change", (event) => {
 });
 $("#review").onclick = () => {
   const p = snapshot?.printers.find((p) => p.attention);
-  if (p) inspect(p.id);
+  if (p) inspect(p.id, "notices");
 };
 $("#close-detail").onclick = () => $("#detail").close();
 $("#settings").onclick = () => $("#settings-dialog").showModal();

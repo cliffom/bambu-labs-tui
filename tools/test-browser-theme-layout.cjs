@@ -76,6 +76,16 @@ const {chromium} = require("playwright");
         }
         await page.locator(".card").first().click();
         assert.equal(await page.locator("#detail").evaluate(el => el.scrollWidth > el.clientWidth + 1), false);
+        for (const name of ["Status", "Filament", "Notices"]) {
+          await page.getByRole("tab", {name, exact: true}).click();
+          assert.ok(await page.evaluate(() => {
+            const selected = getComputedStyle(document.querySelector('[role="tab"][aria-selected="true"]'));
+            const filter = getComputedStyle(document.querySelector('.filters .selected'));
+            const dialog = document.querySelector("#detail"), panel = document.querySelector("#detail-body");
+            return selected.backgroundColor === filter.backgroundColor && selected.color === filter.color &&
+              dialog.scrollWidth <= dialog.clientWidth + 1 && panel.scrollWidth <= panel.clientWidth + 1;
+          }), `${theme.id}: ${name} shares filter selection colors and fits`);
+        }
         await page.keyboard.press("Escape");
         await page.evaluate(() => { document.querySelector(".shell").scrollTop = 0; scrollTo(0,0); });
         if (process.env.SCREENSHOT_DIR) {

@@ -12,11 +12,24 @@ Releases through **v0.1.13** also include asynchronous persistence, centralized 
 
 Displayed telemetry has been validated on H2D and X2D, and live router-restart recovery has been observed. These results have specific limits: saved real-account sessions, notice/snooze persistence, pause/completion, firmware comparison, and other operational checks remain open in the [validation record](development/validation.md). A shipped feature or closed issue does not establish that those checks passed.
 
-## Next priorities
+## Open-issue milestones
+
+The current open backlog is grouped by outcome, without committed delivery dates or release versions. The design milestones track decisions only; implementation requires an adopted design and separately scoped work.
+
+| Milestone | Open issues | Completion criteria |
+| --- | --- | --- |
+| [Dashboard usability](https://github.com/cliffom/bambustand/milestone/14) | [#136](https://github.com/cliffom/bambustand/issues/136), [#137](https://github.com/cliffom/bambustand/issues/137), [#138](https://github.com/cliffom/bambustand/issues/138), [#140](https://github.com/cliffom/bambustand/issues/140) | Shared browser notice/snooze controls, TUI Idle / finished filtering, browser view persistence, and a reconciled roadmap, with relevant interaction/layout checks and current documentation/captures. |
+| [Validation and performance baselines](https://github.com/cliffom/bambustand/milestone/15) | [#23](https://github.com/cliffom/bambustand/issues/23), [#38](https://github.com/cliffom/bambustand/issues/38), [#39](https://github.com/cliffom/bambustand/issues/39), [#139](https://github.com/cliffom/bambustand/issues/139) | Recorded native-notification and live-account checks, measured large-farm baselines, and broader browser/device evidence, with exact environments and explicit limitations. Unavailable checks require an explicit disposition before closure. |
+| [Foreground native notifications — design](https://github.com/cliffom/bambustand/milestone/16) | [#142](https://github.com/cliffom/bambustand/issues/142) | A reviewed decision with rationale, environment/lifecycle boundaries, shared delivery policy, implementation phases, and validation requirements coordinated with #23. |
+| [Authenticated remote access — design](https://github.com/cliffom/bambustand/milestone/17) | [#143](https://github.com/cliffom/bambustand/issues/143) | A reviewed decision with rationale, trust/threat model, access protections, deployment options, and phased verification requirements; localhost defaults remain in place. |
+
+Live validation in #23 and #38 remains deferred behind usability work, as recorded in those issues. Milestone assignment does not establish successful validation or authorize printer control, remote binding, or an installed background service. Earlier version milestones retain historical release context; #23 now tracks remaining evidence in the validation milestone. The broader roadmap reconciliation remains tracked in #140.
+
+## Operational follow-ups
 
 1. **Record current operational evidence ([#38](https://github.com/cliffom/bambustand/issues/38)).** Run the remaining applicable live checks on the current release: saved login/restart/logout, notice and snooze persistence/recurrence, pause/completion, firmware/telemetry comparisons, and keyboard/modal behavior during updates. Record host OS/terminal, application version, model/firmware, and actual results in the validation record. Preserve the existing reconnect evidence and explicitly record unavailable scenarios. This follows up the closed original validation issue #6.
 2. **Measure large-farm behavior ([#39](https://github.com/cliffom/bambustand/issues/39)).** Benchmark report/tick updates, navigation, dialogs, and rendering with representative synthetic farm sizes and notice/history loads. Record time and allocations, then profile material costs before proposing optimization. No performance defect is assumed, and fragile wall-clock CI thresholds are outside scope.
-3. **Validate v0.2.0 macOS distribution and live delivery ([#23](https://github.com/cliffom/bambustand/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks, then extend preferences/activity as tracked below. Linux notification delivery is deferred beyond v0.2.x.
+3. **Validate macOS distribution and live delivery ([#23](https://github.com/cliffom/bambustand/issues/23)).** The live notification worker, identity persistence, Config controls, grouped intervention delivery, and signed/notarized release workflow are implemented. Complete clean-Mac download/first-run and remaining hardware checks. Linux notification delivery remains deferred.
 
 ## v0.4.6 — Simplified offline cards
 

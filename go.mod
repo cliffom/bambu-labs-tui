@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/creack/pty v1.1.24
 	github.com/muesli/termenv v0.16.0
-	golang.org/x/sys v0.44.0
+	golang.org/x/sys v0.49.0
 )
 
 require (

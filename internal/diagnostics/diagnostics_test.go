@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/buildinfo"
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/buildinfo"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 // diagnosticState deliberately contains identifiers that must never enter an export.

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/cloud"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/mqtt"
+	"github.com/cliffom/bambustand/internal/cloud"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/mqtt"
 )
 
 // TestDemoRunoutScenario verifies the demo's modal incident without a timed wait.

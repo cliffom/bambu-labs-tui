@@ -11,7 +11,7 @@ if arguments.isEmpty || arguments == ["--help"] {
 let statusOnly = arguments == ["--status"]
 let delivery = arguments == ["--deliver"]
 struct Delivery: Decodable { let title: String?; let body: String; let sound: Bool }
-var title = "Bambu TUI"
+var title = "Bambu Stand"
 var body = "Branded helper test. No printer event occurred."
 var sound = arguments.contains("--sound")
 if delivery {
@@ -20,7 +20,7 @@ if delivery {
         fputs("Invalid notification input.\n", stderr)
         exit(2)
     }
-    title = message.title ?? "Bambu TUI"
+    title = message.title ?? "Bambu Stand"
     body = message.body
     sound = message.sound
 }
@@ -29,7 +29,7 @@ guard delivery || statusOnly || arguments == ["--test"] || arguments == ["--test
     exit(2)
 }
 guard Bundle.main.bundleIdentifier == "com.github.cliffom.bambu-tui.notify-poc" else {
-    fputs("Run the executable inside the built Bambu TUI Notify.app bundle.\n", stderr)
+    fputs("Run the executable inside the built Bambu Stand Notify.app bundle.\n", stderr)
     exit(2)
 }
 if ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"].contains(where: {
@@ -72,7 +72,7 @@ func previewName(_ value: UNShowPreviewsSetting) -> String {
 func notificationFailure(_ error: Error, operation: String) -> Never {
     let native = error as NSError
     if native.domain == UNErrorDomain && native.code == UNError.Code.notificationsNotAllowed.rawValue {
-        finish(3, "Notifications are not allowed. Enable Bambu TUI in System Settings → Notifications, then retry --test.")
+        finish(3, "Notifications are not allowed. Enable Bambu Stand in System Settings → Notifications, then retry --test.")
     }
     finish(4, "\(operation) failed: \(error.localizedDescription)")
 }
@@ -128,16 +128,16 @@ if statusOnly {
     if delivery {
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else {
-                finish(3, "Notifications are not authorized. Run bambu-tui doctor --notify first.")
+                finish(3, "Notifications are not authorized. Run bambustand doctor --notify first.")
             }
             submit()
         }
     } else {
-        print("Bambu TUI notification test: allow notifications if macOS prompts. Sound requested: \(sound).")
+        print("Bambu Stand notification test: allow notifications if macOS prompts. Sound requested: \(sound).")
         fflush(stdout)
         center.requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error = error { notificationFailure(error, operation: "Notification authorization") }
-            guard granted else { finish(3, "Notifications denied. Enable Bambu TUI in System Settings → Notifications, then retry.") }
+            guard granted else { finish(3, "Notifications denied. Enable Bambu Stand in System Settings → Notifications, then retry.") }
             submit()
         }
     }

@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/notification_state"
-	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/notifications"
 )
 
 const syntheticPrinter = "SYNTHETIC_PRIVATE_SERIAL"
@@ -426,5 +426,13 @@ func TestBrowserClaimsDoNotConsumeNativeLedger(t *testing.T) {
 	pending, err := native.Observe(input.Snapshot)
 	if err != nil || len(pending) != 1 || pending[0].ID != candidates[0].ID {
 		t.Fatal("browser consumed native identity")
+	}
+}
+
+func TestBrowserCapacityWarningOnBaseline(t *testing.T) {
+	b := &browserWorker{capacity: notification_state.Capacity{Entries: 3500, Limit: 4096}}
+	result := b.claim(browserRequest{Baseline: true})
+	if !strings.Contains(result.Warning, "3500/4096") || len(result.Events) != 0 || result.Error != "" {
+		t.Fatal(result)
 	}
 }

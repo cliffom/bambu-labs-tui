@@ -1,14 +1,14 @@
-# Bambu TUI
+# Bambu Stand
 
-![Bambu TUI — your print farm, one terminal.](assets/branding/hero.png)
+![Bambu Stand — your farm, two views.](assets/branding/hero.png)
 
-[![CI](https://github.com/cliffom/bambu-tui/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cliffom/bambu-tui/actions/workflows/ci.yml)
-[![Formatting and lint](https://github.com/cliffom/bambu-tui/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/cliffom/bambu-tui/actions/workflows/lint.yml)
-[![Latest release](https://img.shields.io/github/v/release/cliffom/bambu-tui)](https://github.com/cliffom/bambu-tui/releases/latest)
+[![CI](https://github.com/cliffom/bambustand/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/cliffom/bambustand/actions/workflows/ci.yml)
+[![Formatting and lint](https://github.com/cliffom/bambustand/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/cliffom/bambustand/actions/workflows/lint.yml)
+[![Latest release](https://img.shields.io/github/v/release/cliffom/bambustand)](https://github.com/cliffom/bambustand/releases/latest)
 
 Monitor your Bambu Lab print farm **in your terminal or a local web browser**. See printer status, print progress, time estimates, temperatures, filament, and faults at a glance.
 
-Bambu TUI connects through **Bambu Cloud**, with displayed telemetry validated on **H2D and X2D**. Both interfaces monitor printer telemetry and support local notice decisions, including browser hiding synchronized with the TUI. Printer control and LAN connections are outside the project's scope. Try a simulated farm without an account or printer.
+Bambu Stand connects through **Bambu Cloud**, with displayed telemetry validated on **H2D and X2D**. Both interfaces monitor printer telemetry and support local notice decisions, including browser hiding synchronized with the TUI. Printer control and LAN connections are outside the project's scope. Try a simulated farm without an account or printer.
 
 ## Your farm, two ways
 
@@ -16,13 +16,23 @@ Bambu TUI connects through **Bambu Cloud**, with displayed telemetry validated o
 
 A keyboard-driven workspace for your farm: move between printers, inspect job details and AMS filament, review action-needed notices, and set alert preferences. Built-in and custom themes let you make it your own.
 
-![Bambu TUI terminal dashboard showing three printers, selected printer details, filament inventory, notices, and recent events.](assets/screenshots/farm.png)
+![Bambu Stand terminal dashboard showing two synthetic printers, selected printer details, filament inventory, notices, and recent events.](assets/screenshots/farm.png)
 
 ### Web browser dashboard
 
-A visual farm overview with searchable, filterable printer cards, model illustrations, progress, temperatures, and filament. Spot printers needing attention or showing unavailable data, then inspect their reported conditions. Unknown readings stay unknown, and stale or offline readings are marked last-known.
+A visual farm overview with searchable, filterable printer cards, model illustrations, progress, temperatures, and filament. Spot printers needing attention or showing unavailable data, then open Status, Filament, or Notices in the tabbed printer inspector. Unknown readings stay unknown. Stale readings are labeled last-known; offline cards show just printer identity and inactive artwork, with full details available through inspection.
 
-![Bambu TUI browser dashboard showing a three-printer farm overview, summary counts, search and filters, and printer cards with progress, temperatures, and availability.](assets/screenshots/browser.png)
+![Current browser dashboard with one filter toolbar, printing and paused printers, a simplified offline card, and the bottom status bar.](assets/screenshots/browser.png)
+
+Scroll the farm to [compact the header and keep the filter/search toolbar beneath it](assets/screenshots/browser-scrolled.png). Small workspaces let the toolbar scroll so cards remain reachable.
+
+Choose **Settings > Appearance** to follow the terminal theme or select a bundled theme for this browser. Settings also contains the separate, opt-in browser notification controls.
+
+| Gruvbox Dark dashboard | Hotdog Settings |
+| --- | --- |
+| [![Browser dashboard in Gruvbox Dark](assets/screenshots/browser-theme-gruvbox-dark.png)](assets/screenshots/browser-theme-gruvbox-dark.png) | [![Appearance and browser notification options in Hotdog Settings](assets/screenshots/browser-themes.png)](assets/screenshots/browser-themes.png) |
+
+See the [browser screenshot gallery](docs/user/usage.md#browser-screenshots) for all six themes, filtering, printer details, filament, and mobile views. All browser captures use synthetic demo data.
 
 The optional browser dashboard runs on the **same computer** and shares the TUI's monitoring connection. For real printers, keep the TUI running or use the [terminal-free cloud server](docs/user/usage.md#terminal-free-cloud-server) after saving a login. [Enable the browser dashboard](#open-the-browser-dashboard) after starting either the demo or your own farm.
 
@@ -32,7 +42,7 @@ You need macOS or Linux and a terminal of at least **60 columns × 18 rows**. To
 
 ### 1. Install
 
-Download your archive and the checksums file from the [latest release](https://github.com/cliffom/bambu-tui/releases/latest):
+Download your archive and the checksums file from the [latest release](https://github.com/cliffom/bambustand/releases/latest):
 
 | Machine | Archive suffix |
 | --- | --- |
@@ -47,35 +57,37 @@ From your download directory, set the release version below to the one you downl
 
 ```sh
 release_version=vX.Y.Z # Replace with the downloaded release's version.
-archive="bambu-tui_${release_version}_macos_arm64.tar.gz"
+archive="bambustand_${release_version}_macos_arm64.tar.gz"
 shasum -a 256 "$archive"
-# Compare with the matching line in bambu-tui_${release_version}_checksums.txt.
+# Compare with the matching line in bambustand_${release_version}_checksums.txt.
 tar -xzf "$archive"
-./bambu-tui --version
+./bambustand --version
 ```
 
 On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executable here or move it to a directory on your `PATH`.
 
-For optional macOS desktop notifications, keep the included `Bambu TUI Notify.app` beside the executable when moving it. See [desktop notification setup](#desktop-notifications).
+For optional macOS desktop notifications, keep the included `Bambu Stand Notify.app` beside the executable when moving it. See [desktop notification setup](#desktop-notifications).
+
+Upgrading from Bambu TUI? The executable is now `bambustand`; keep the new helper beside it. Existing settings and saved logins are reused. See [upgrade compatibility](docs/user/usage.md#upgrading-from-bambu-tui).
 
 ### 2. Try the demo
 
 ```sh
-./bambu-tui --demo
+./bambustand --demo
 ```
 
 Browse a simulated farm with AMS units and an external spool. Press `m` to inspect filament and `?` for help. A simulated runout demonstrates an action-needed alert about 15 seconds after launch. Close dialogs with `Esc`, then press `q` to quit.
 
-For terminal-free monitoring of your own farm, save a login and run `./bambu-tui serve`. For a terminal-free synthetic browser demo, run `./bambu-tui serve --demo` and open the printed localhost URL. Stop the foreground server with `Ctrl+C`. See [demo server options and limits](docs/user/usage.md#terminal-free-demo-server).
+For terminal-free monitoring of your own farm, save a login and run `./bambustand serve`. For a terminal-free synthetic browser demo, run `./bambustand serve --demo` and open the printed localhost URL. Stop the foreground server with `Ctrl+C`. See [demo server options and limits](docs/user/usage.md#terminal-free-demo-server).
 
 ### 3. Connect your printers
 
 ```sh
-./bambu-tui login --email-code
-./bambu-tui
+./bambustand login --email-code
+./bambustand
 ```
 
-Enter your Bambu account email and the emailed code when prompted. This also works for **Google-linked accounts** using the email bound to Bambu. For password login, use `./bambu-tui login`.
+Enter your Bambu account email and the emailed code when prompted. This also works for **Google-linked accounts** using the email bound to Bambu. For password login, use `./bambustand login`.
 
 All printers on the account appear automatically. If saving the login session is unavailable, login opens a dashboard for the current session instead; see [login troubleshooting](docs/user/usage.md#login-and-saved-sessions). For Bambu's China region, [set `region = "china"`](docs/user/usage.md#configuration) before logging in.
 
@@ -114,7 +126,7 @@ The web server is **off by default**, and its enabled setting and port are saved
 
 ## Desktop notifications
 
-Optional desktop notifications are available on **macOS** and are **off by default**. Signed release archives include a Developer ID-signed and notarized `Bambu TUI Notify.app`; keep it beside `bambu-tui`. No Swift, Xcode, or Apple Developer membership is needed to run a prebuilt release.
+Optional desktop notifications are available on **macOS** and are **off by default**. Signed release archives include a Developer ID-signed and notarized `Bambu Stand Notify.app`; keep it beside `bambustand`. No Swift, Xcode, or Apple Developer membership is needed to run a prebuilt release.
 
 In the TUI, press `,` to open Config, use `Tab` to select **Alerts**, and select **Test Notification**. Allow macOS permission when prompted, then enable **Desktop notifications** and optionally sound. Delivery requires a running TUI session on a local Mac. Linux desktop notifications are not supported. See [notification setup and troubleshooting](docs/user/alerts.md#live-desktop-notifications).
 
@@ -123,19 +135,19 @@ In the TUI, press `,` to open Config, use `Tab` to select **Alerts**, and select
 Requires **Go 1.27.3 or newer**, Git, and Make.
 
 ```sh
-git clone https://github.com/cliffom/bambu-tui.git
-cd bambu-tui
+git clone https://github.com/cliffom/bambustand.git
+cd bambustand
 make demo   # build and try the simulated farm
 make auth   # build and log in with an email code
 make run    # build and open your farm dashboard
 ```
 
-The executable is built at `bin/bambu-tui`. Farm monitoring and the browser dashboard work without a notification helper.
+The executable is built at `bin/bambustand`. Farm monitoring and the browser dashboard work without a notification helper.
 
 For desktop notifications from a source build on macOS, install Xcode Command Line Tools (for Swift) and **Python 3.10+**, then build the helper:
 
 ```sh
-make notify-helper  # creates bin/Bambu TUI Notify.app
+make notify-helper  # creates bin/Bambu Stand Notify.app
 make run
 ```
 
@@ -149,6 +161,6 @@ See [contributing](docs/development/contributing.md) for development setup, test
 - [Troubleshooting and diagnostic exports](docs/user/diagnostics.md)
 - [Hardware validation and known gaps](docs/development/validation.md)
 - [Roadmap](docs/ROADMAP.md) and [changelog](docs/CHANGELOG.md)
-- [Report a bug or request a feature](https://github.com/cliffom/bambu-tui/issues)
+- [Report a bug or request a feature](https://github.com/cliffom/bambustand/issues)
 
 Licensed under [MIT](LICENSE). Release archives include Go and dependency license notices. This project is not affiliated with Bambu Lab.

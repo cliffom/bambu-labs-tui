@@ -18,6 +18,7 @@ function inspector() {
     const value = {
       id: selector.slice(1), dataset, scrollTop: 0, open: false,
       addEventListener() {},
+      setAttribute(name, value) { this[name] = value; },
       focus(options) {
         document.activeElement = value;
         // Close is at the dialog header; ordinary focus scrolls it into view.
@@ -31,7 +32,8 @@ function inspector() {
     return value;
   }
   for (const id of ["detail", "detail-title", "detail-body", "close-detail",
-    "search", "sort", "nav-farm", "nav-attention", "nav-unavailable",
+    "detail-tab-status", "detail-tab-filament", "detail-tab-notices",
+    "search", "sort",
     "review", "about", "close-about", "settings", "settings-dialog", "close-settings"]) element("#" + id);
   let html = "";
   Object.defineProperty(elements.get("#detail-body"), "innerHTML", {
@@ -60,7 +62,7 @@ function inspector() {
     state: "IDLE", nozzles: [], ams: [], external: [], conditions: [
       {id: "visible", text: "Visible condition", hidden: false},
       {id: "hidden", text: "Hidden condition", hidden: true, reviewed: true}
-    ]}]}; inspect("printer");`);
+    ]}]}; inspect("printer", "notices");`);
   return {
     run, html: () => html,
     focus(selector) { elements.get(selector).focus(); },
@@ -101,7 +103,7 @@ test("dismissed conditions are hidden by default and inspectable without changin
   view.toggle();
   assert.doesNotMatch(view.html(), /Hidden condition/);
   view.toggle();
-  view.run('inspect("printer")');
+  view.run('inspect("printer", "notices")');
   assert.doesNotMatch(view.html(), /Hidden condition/);
 });
 
@@ -120,30 +122,30 @@ test("all-hidden and empty views differ; new conditions remain visible", () => {
 test("live dismissals preserve scroll and fall back to Close; disappearing toggle does too", () => {
   const view = inspector();
   view.focus('[data-dismiss="visible"]');
-  view.run('$("#detail").scrollTop = 120; snapshot.printers[0].conditions[0].hidden = true; renderDetail()');
+  view.run('$("#detail-body").scrollTop = 120; snapshot.printers[0].conditions[0].hidden = true; renderDetail()');
   assert.equal(view.focused(), "close-detail");
-  assert.equal(view.run('$("#detail").scrollTop'), 120);
+  assert.equal(view.run('$("#detail-body").scrollTop'), 120);
   view.focus("#toggle-hidden-messages");
   view.run("snapshot.printers[0].conditions = []; renderDetail()");
   assert.equal(view.focused(), "close-detail");
-  assert.equal(view.run('$("#detail").scrollTop'), 120);
+  assert.equal(view.run('$("#detail-body").scrollTop'), 120);
 });
 
 test("telemetry removal of a focused condition preserves inspector scroll", () => {
   const view = inspector();
   view.focus('[data-dismiss="visible"]');
-  view.run('$("#detail").scrollTop = 120; snapshot.printers[0].conditions = []; renderDetail()');
+  view.run('$("#detail-body").scrollTop = 120; snapshot.printers[0].conditions = []; renderDetail()');
   assert.equal(view.focused(), "close-detail");
-  assert.equal(view.run('$("#detail").scrollTop'), 120);
+  assert.equal(view.run('$("#detail-body").scrollTop'), 120);
 });
 
 test("ongoing estimate updates retain action focus and inspector scroll", () => {
   const view = inspector();
   view.focus('[data-dismiss="visible"]');
-  view.run('$("#detail").scrollTop = 120; snapshot.printers[0].conditions[0].text = "Estimated filament 8%"; renderDetail()');
+  view.run('$("#detail-body").scrollTop = 120; snapshot.printers[0].conditions[0].text = "Estimated filament 8%"; renderDetail()');
   assert.match(view.html(), /Estimated filament 8%/);
   assert.equal(view.run("document.activeElement?.dataset.dismiss"), "visible");
-  assert.equal(view.run('$("#detail").scrollTop'), 120);
+  assert.equal(view.run('$("#detail-body").scrollTop'), 120);
 });
 
 test("failed-save retry remains available through hidden messages, including feed outages", () => {
@@ -211,6 +213,7 @@ function cards() {
     hidden: true, activeElement: null, addEventListener() {},
     querySelector(selector) {
       if (selector === "#cards") return container;
+      if (selector === ".shell") return null; // Card-only fixture; layout uses a real browser.
       if (!elements.has(selector)) elements.set(selector, {addEventListener() {}});
       return elements.get(selector);
     },
@@ -359,3 +362,146 @@ for (const mode of ["name", "attention", "state"]) {
     }
   });
 }
+
+test("idle/finished trusts shared eligibility and requires current online telemetry and feed", () => {
+  const view = inspector();
+  const base = {online: true, fresh: true, idle_finished: true};
+  const printers = [
+    {...base, id: "idle", name: "Alpha", state: "IDLE", attention: true},
+    {...base, id: "done", name: "Beta", state: "FINISH"},
+    {...base, id: "offline", name: "Offline", state: "IDLE", online: false},
+    {...base, id: "stale", name: "Stale", state: "FINISH", fresh: false},
+    ...["RUNNING", "PAUSE", "FAILED", "PREPARE", "SLICING", "UNKNOWN", "FUTURE", ""].map(state =>
+      ({...base, id: state, name: state, state, idle_finished: false, progress: 100, remaining: 0})),
+    {...base, id: "missing", name: "No classification", state: "IDLE", idle_finished: undefined},
+  ];
+  view.run(`snapshot.connected = true; snapshot.printers = ${JSON.stringify(printers)}; filter = "idle"`);
+  const ids = () => JSON.parse(view.run("JSON.stringify(visible().map(p => p.id))"));
+  assert.deepEqual(ids(), ["idle", "done"]);
+  view.run('sort = "attention"; query = "alpha"');
+  assert.deepEqual(ids(), ["idle"]);
+  view.run('query = "no match"');
+  assert.deepEqual(ids(), []);
+  view.run('query = ""; feedError = true');
+  assert.deepEqual(ids(), []);
+  view.run('feedError = false; snapshot.at = new Date(Date.now() - 11000).toISOString()');
+  assert.deepEqual(ids(), []);
+  view.run('snapshot.at = new Date().toISOString(); snapshot.connected = false');
+  assert.deepEqual(ids(), []);
+  view.run('snapshot.connected = true');
+  assert.deepEqual(ids(), ["idle", "done"]);
+  view.run('snapshot.printers[0].state = "RUNNING"; snapshot.printers[0].idle_finished = false');
+  assert.deepEqual(ids(), ["done"]);
+  view.run('snapshot.printers[0].state = "FINISH"; snapshot.printers[0].idle_finished = true');
+  assert.deepEqual(ids(), ["idle", "done"]);
+});
+
+test("cards keep last-known scope and attention explicit without repeated metric prefixes", () => {
+  const view = inspector();
+  view.run('snapshot.printers[0].fresh = false; snapshot.printers[0].attention = true');
+  const html = view.run('card(snapshot.printers[0])');
+  assert.match(html, /Current state unconfirmed · readings are last-known; missing values remain unknown/);
+  assert.match(html, /Attention · unreviewed conditions/);
+  assert.match(html, /Unknown material/);
+  assert.doesNotMatch(html, /Last-known · (Nozzle|Bed|Reported progress|Unknown material)/);
+  assert.doesNotMatch(html, /machine-state|MONITORING/);
+});
+
+
+test("every filter count matches its membership before search, including overlapping and last-reported states", () => {
+  const view = inspector();
+  view.run(`snapshot.connected = true; snapshot.printers = [
+    {id:"a",name:"Alpha",state:"IDLE",idle_finished:true,online:true,fresh:true,attention:true},
+    {id:"b",name:"Beta",state:"RUNNING",online:true,fresh:true},
+    {id:"c",name:"Offline",state:"RUNNING",online:false,fresh:false,attention:true},
+    {id:"d",name:"Unknown",state:"UNKNOWN",online:true,fresh:true}
+  ]; query = "no matches";`);
+  const counts = () => JSON.parse(view.run('JSON.stringify(["all","printing","idle","attention","unavailable"].map(filterCount))'));
+  assert.deepEqual(counts(), [4,2,1,2,1]);
+  assert.equal(view.run('visible().length'), 0);
+  view.run('query = ""');
+  for (const choice of ["all","printing","idle","attention","unavailable"])
+    assert.equal(view.run(`filter = "${choice}"; visible().length`), view.run(`filterCount("${choice}")`));
+  view.run('feedError = true');
+  assert.deepEqual(counts(), [4,2,0,2,1]);
+  view.run('snapshot.printers = []');
+  assert.deepEqual(counts(), [0,0,0,0,0]);
+});
+
+
+test("offline cards show identity and attention without last-known telemetry", () => {
+  const view = inspector();
+  view.run(`Object.assign(snapshot.printers[0], {
+    online: false, fresh: false, connection: "Offline", model: "H2D",
+    image: "/assets/printers/h2d.png", job: "Old job", progress: 42,
+    remaining: 60, nozzles: [{temperature: {current: 220}}],
+    bed: {current: 60}, external: [{material: "PLA", color: "FF0000"}], attention: true
+  })`);
+  for (const setup of ["", "feedError = true", "feedError = false; snapshot.connected = false"]) {
+    view.run(setup);
+    const html = view.run('card(snapshot.printers[0])');
+    assert.match(html, /class="card warning offline"/);
+    assert.match(html, /Synthetic printer/);
+    assert.match(html, /H2D/);
+    assert.match(html, /printer-sprite/);
+    assert.match(html, /Inspect Synthetic printer, Offline/);
+    assert.match(html, />Offline</);
+    assert.match(html, /Attention · unreviewed conditions/);
+    assert.doesNotMatch(html, /Old job|progress|metrics|Nozzle|Bed|Finish estimate|swatches|PLA|telemetry-note|Last-known/);
+  }
+  view.run('snapshot.printers[0].image = null; snapshot.printers[0].model = null');
+  assert.match(view.run('card(snapshot.printers[0])'), /Unknown model.*<svg/s);
+  view.run('selectDetailTab("status")');
+  assert.match(view.html(), /Old job/);
+});
+
+test("staleness and feed loss do not simplify online or unknown-connectivity cards", () => {
+  const view = inspector();
+  for (const online of [true, null, undefined]) {
+    view.run(`Object.assign(snapshot.printers[0], {online: ${online}, fresh: false, connection: "Stale"})`);
+    for (const feedError of [false, true]) {
+      view.run(`feedError = ${feedError}; snapshot.connected = false`);
+      const html = view.run('card(snapshot.printers[0])');
+      assert.doesNotMatch(html, /class="card[^"<>]* offline/);
+      assert.match(html, /Current state unconfirmed/);
+      assert.match(html, /Reported progress/);
+      assert.match(html, /Nozzle/);
+      assert.match(html, /Unknown material/);
+    }
+  }
+});
+
+test("inspection defaults to Status and remembers independent panel positions during updates", () => {
+  const view = inspector();
+  view.run('inspect("printer")');
+  assert.equal(view.run('detailTab'), "status");
+  assert.match(view.html(), /No reported job/);
+  assert.doesNotMatch(view.html(), /Reported conditions|AMS configuration/);
+  view.run('$("#detail-body").scrollTop = 80; selectDetailTab("filament", true)');
+  assert.match(view.html(), /AMS configuration unknown/);
+  assert.doesNotMatch(view.html(), /Reported conditions|No reported job/);
+  assert.equal(view.focused(), "detail-tab-filament");
+  view.run('$("#detail-body").scrollTop = 140; snapshot.decisions = "saving"; renderDetail()');
+  assert.equal(view.run('detailTab'), "filament");
+  assert.equal(view.run('$("#detail-body").scrollTop'), 140);
+  assert.equal(view.focused(), "detail-tab-filament");
+  view.run('selectDetailTab("notices"); selectDetailTab("status")');
+  assert.equal(view.run('$("#detail-body").scrollTop'), 80);
+  view.run('selectDetailTab("filament")');
+  assert.equal(view.run('$("#detail-body").scrollTop'), 140);
+  assert.equal(view.run('snapshot.printers[0].conditions[0].hidden'), false);
+  view.run('inspect("printer")');
+  assert.equal(view.run('detailTab'), "status");
+  assert.equal(view.run('$("#detail-body").scrollTop'), 0);
+});
+
+test("review opens Notices and printer removal preserves tab with safe action focus", () => {
+  const view = inspector();
+  view.run('snapshot.printers[0].attention = true; $("#review").onclick()');
+  assert.equal(view.run('detailTab'), "notices");
+  view.focus('[data-dismiss="visible"]');
+  view.run('snapshot.printers = []; renderDetail()');
+  assert.match(view.html(), /no longer in the discovered farm/);
+  assert.equal(view.focused(), "close-detail");
+  assert.equal(view.run('detailTab'), "notices");
+});

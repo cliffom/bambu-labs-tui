@@ -6,9 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/notifications"
+	"github.com/muesli/termenv"
 )
 
 func activityModel(count int) (Model, *notificationStub) {
@@ -232,5 +235,40 @@ func TestQuietActivityExplanationAtSupportedSizes(t *testing.T) {
 			}
 		}
 		t.Logf("%dx%d quiet activity:\n%s", size[0], size[1], view)
+	}
+}
+
+func TestActivityCapacityLayouts(t *testing.T) {
+	previous := lipgloss.ColorProfile()
+	t.Cleanup(func() { lipgloss.SetColorProfile(previous) })
+	for _, profile := range []termenv.Profile{termenv.TrueColor, termenv.ANSI256, termenv.Ascii} {
+		lipgloss.SetColorProfile(profile)
+		for _, size := range [][2]int{{60, 18}, {120, 32}, {59, 17}} {
+			for _, count := range []int{0, 5} {
+				m, client := activityModel(count)
+				client.status.Capacity = notification_state.Capacity{Entries: 3500, Limit: 4096}
+				m = key(m, "N")
+				m = resizeModel(m, size[0], size[1])
+				view := ansi.Strip(m.View())
+				if size[0] >= 60 && !strings.Contains(view, "IDs 3500/4096 !") {
+					t.Fatal("capacity hidden", size, view)
+				}
+				lines := strings.Split(view, "\n")
+				if len(lines) != size[1] {
+					t.Fatal("height", size, len(lines))
+				}
+				for _, line := range lines {
+					if ansi.StringWidth(line) > size[0] {
+						t.Fatal("width", size, line)
+					}
+				}
+				t.Logf("profile=%v size=%dx%d entries=%d:\n%s", profile, size[0], size[1], count, view)
+				m = resizeModel(m, 60, 18)
+				m = key(m, "esc")
+				if m.hasOpenDialog() {
+					t.Fatal("close lost after resize")
+				}
+			}
+		}
 	}
 }

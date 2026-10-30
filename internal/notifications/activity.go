@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/notification_state"
 )
 
 // ActivityLimit bounds session-only diagnostic metadata; it never changes the
@@ -93,7 +93,7 @@ func ReasonText(reason string) string {
 	case ReasonHelper:
 		return "Notification helper missing or unavailable; run doctor --notify."
 	case ReasonPermission:
-		return "macOS denied permission; enable Bambu TUI notifications."
+		return "macOS denied permission; enable Bambu Stand notifications."
 	case ReasonTimeout:
 		return "The notification helper timed out. No automatic retry."
 	case ReasonBackend:
@@ -103,7 +103,7 @@ func ReasonText(reason string) string {
 	case ReasonStorageBusy:
 		return "Identity storage busy; delivery paused. Press r after competing access ends."
 	case ReasonStorageFull:
-		return "Identity capacity reached; delivery paused. Restart cannot free capacity."
+		return "Live identity limit. Stop hosts; see alerts guide for explicit job compaction."
 	case ReasonStorage:
 		return "Identity storage unavailable; delivery paused. Fix storage, then press r in activity."
 	case ReasonReservation:

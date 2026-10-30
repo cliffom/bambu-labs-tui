@@ -2,13 +2,13 @@
 
 [Development guide](contributing.md) · [Live-validation record](validation.md)
 
-The PTY suite in `cmd/bambu-tui/pty_test.go`, `webserver_pty_test.go`, and `serve_pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
+The PTY suite in `cmd/bambustand/pty_test.go`, `webserver_pty_test.go`, and `serve_pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
 
 Run just this suite, or repeat it to exercise scheduling races:
 
 ```sh
-go test -race ./cmd/bambu-tui -run '^TestPTY' -count=1 -v
-go test -race ./cmd/bambu-tui -run '^TestPTY' -count=10
+go test -race ./cmd/bambustand -run '^TestPTY' -count=1 -v
+go test -race ./cmd/bambustand -run '^TestPTY' -count=10
 ```
 
 The parent starts the current Go test executable in a new session with a controlling pseudo-terminal, attaching stdin/stdout/stderr to its slave. The child invokes the real CLI with `--demo` and a generated configuration, which disables automatic modals so results do not depend on the demo's timed runout. It does not authenticate, read saved credentials, contact printers/cloud services, or use the user's configuration. The helper and its environment guard exist only in test builds.

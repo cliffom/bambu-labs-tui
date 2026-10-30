@@ -2,13 +2,13 @@ package ui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 type (
 	webServerClient interface {
-		Publish([]byte)
+		PublishDisplay(session.DisplayState)
 		SetEnabled(bool, int) webserver.Status
 		Status() webserver.Status
 	}
@@ -21,10 +21,11 @@ type (
 )
 
 // WithWebServer installs session-owned listener and notification workers.
-// Immutable display JSON and normalized notification inputs leave the reducer;
+// Independent display values and normalized notification inputs leave the reducer;
 // HTTP clients receive only allowlisted display values, never live farm state.
 func (m Model) WithWebServer(server webServerClient) Model {
 	m.webServer = server
+	m.publishBrowserThemes()
 	return m
 }
 
@@ -60,8 +61,8 @@ func (m Model) waitWebCommand() tea.Cmd {
 	}
 }
 
-func (m *Model) webDecisions() webserver.Decisions { return m.WebDecisions() }
+func (m *Model) webDecisions() session.Decisions { return m.WebDecisions() }
 
 func (m *Model) applyWebCommand(c webserver.Command) {
-	m.ApplyWebCommand(c, m.quitting || m.dialog.active == dialogShutdown, m.webEnabled)
+	c.Reply <- string(m.ApplyDecision(session.DecisionCommand{Target: c.Target, Retry: c.Retry}, m.quitting || m.dialog.active == dialogShutdown, m.webEnabled))
 }

@@ -23,7 +23,7 @@ function browser({permission = "default", supported = true, secure = true, store
     document: {querySelector: (s) => elements.get(s)},
     window: {isSecureContext: secure, addEventListener: (n, fn) => listeners[n] = fn, focus() {}},
     Notification: supported ? FakeNotification : undefined,
-    localStorage: {getItem: () => value, setItem: (_, v) => value = v},
+    localStorage: {getItem: (key) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); return value; }, setItem: (key, v) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); value = v; }},
     Date: Clock, AbortSignal,
     fetch: async (url, options) => {
       requests.push({url, options});
@@ -31,7 +31,7 @@ function browser({permission = "default", supported = true, secure = true, store
       if (url === "/api/notifications") await fetchWait;
       return {ok: true, json: async () => url === "/api/session" ? {token: "csrf"} : response};
     },
-    snapshot: {printers: [{id: "printer"}]}, inspect: (id) => inspected = id,
+    snapshot: {printers: [{id: "printer"}]}, inspect: (id, tab) => inspected = {id, tab},
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../internal/webserver/assets/notifications.js"), "utf8"), context);
   return {
@@ -68,6 +68,7 @@ test("permission request follows a click; Test is synthetic and keeps automatic 
   await b.click("test-notifications");
   assert.equal(b.requested(), 1);
   assert.equal(b.notices.length, 1);
+  assert.equal(b.notices[0].title, "Bambu Stand browser test");
   assert.equal(b.run("browserNotifications.enabled()"), false);
   assert.equal(b.requests.length, 0);
   assert.match(b.status(), /banner and sound unconfirmed/);
@@ -110,7 +111,7 @@ test("claimed notifications navigate to printer on click and close makes no deci
   b.elements.get("#settings-dialog").open = true;
   b.notices[0].onclick();
   assert.equal(b.elements.get("#settings-dialog").open, false);
-  assert.equal(b.inspected(), "printer");
+  assert.deepEqual(b.inspected(), {id: "printer", tab: "notices"});
   assert.equal(b.notices[0].closed, true);
   assert.equal(b.requests.some((r) => r.url === "/api/dismiss"), false);
   assert.deepEqual(JSON.parse(b.requests.at(-1).options.body), {baseline: false, after: 1});
@@ -217,4 +218,19 @@ test("disable and re-enable during an in-flight claim discards the old generatio
   b.setResponse({cursor: 2, events: []});
   await b.run("browserNotifications.poll()");
   assert.equal(JSON.parse(b.requests.at(-1).options.body).baseline, true);
+});
+
+
+test("capacity warning stays visible alongside successful submissions and clears on recovery", async () => {
+ const b=browser({permission:"granted",stored:true});
+ await b.run("browserNotifications.poll()");
+ b.setResponse({cursor:2,events:[event],warning:"Live notification IDs 3500/4096: near limit. Stop hosts and run compact-notifications; unfinished completions will be suppressed."});
+ await b.run("browserNotifications.poll()");
+ assert.equal(b.notices.length,1);
+ assert.match(b.status(),/Submitted to browser/);
+ assert.match(b.status(),/3500\/4096/);
+ assert.match(b.status(),/unfinished completions/);
+ b.setResponse({cursor:3,events:[]});
+ await b.run("browserNotifications.poll()");
+ assert.doesNotMatch(b.status(),/near limit/);
 });

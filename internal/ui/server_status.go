@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambustand/internal/monitor"
 )
 
 type serverDiagnostic struct {

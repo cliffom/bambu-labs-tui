@@ -7,15 +7,15 @@
 Use a Bambu account that already has your printers bound to it:
 
 ```sh
-./bambu-tui login
-./bambu-tui
+./bambustand login
+./bambustand
 ```
 
 Login supports password authentication, email verification, and authenticator challenges. You can also request an email login code or paste an existing access token through a masked prompt:
 
 ```sh
-./bambu-tui login --email-code
-./bambu-tui login --token
+./bambustand login --email-code
+./bambustand login --token
 ```
 
 For accounts normally accessed with Google, use `login --email-code` with the email bound to the Bambu account. This is Bambu email verification; direct Google OAuth is not implemented.
@@ -25,22 +25,32 @@ The commands above use the executable from a release archive. From a source chec
 Account tokens are saved in macOS Keychain or the Linux Secret Service through `secret-tool` (usually provided by `libsecret-tools`). Passwords are never saved. Secret values are passed to credential-store commands through standard input, not command arguments. When the credential store is unavailable, login opens a session-only dashboard. To choose that behavior explicitly:
 
 ```sh
-./bambu-tui login --session
-./bambu-tui logout
+./bambustand login --session
+./bambustand logout
 ```
 
-If saving fails, run `./bambu-tui doctor`. It tests save, reload, and deletion using a disposable credential, without reading or sending Bambu credentials. On macOS, unlock your login keychain and try from a normal terminal if a sandboxed terminal cannot authorize access. Linux needs `secret-tool` and a running Secret Service session. The app verifies writes before reporting success and keeps unavailable stores distinct from missing credentials. Session-only login remains available when the host cannot provide a credential store.
+If saving fails, run `./bambustand doctor`. It tests save, reload, and deletion using a disposable credential, without reading or sending Bambu credentials. On macOS, unlock your login keychain and try from a normal terminal if a sandboxed terminal cannot authorize access. Linux needs `secret-tool` and a running Secret Service session. The app verifies writes before reporting success and keeps unavailable stores distinct from missing credentials. Session-only login remains available when the host cannot provide a credential store.
 
-For an independent synthetic desktop notification test on macOS, run `./bambu-tui doctor --notify`, optionally adding `--sound`. This skips the credential check and requires no login. See [notification testing](alerts.md#desktop-notification-test-and-sound) for permissions, focused/unfocused terminal checks, and delivery limitations.
+For an independent synthetic desktop notification test on macOS, run `./bambustand doctor --notify`, optionally adding `--sound`. This skips the credential check and requires no login. See [notification testing](alerts.md#desktop-notification-test-and-sound) for permissions, focused/unfocused terminal checks, and delivery limitations.
 
 `logout` removes this application's saved session for the configured region; it does not revoke the token with Bambu. Authentication failures stop reconnect attempts and show a notice directing you to log in again. Cloudflare blocks and account API errors are reported without printing response bodies or tokens. If direct login is blocked, token import may help, but account discovery must still be accessible.
+
+## Upgrading from Bambu TUI
+
+Starting with v0.5.0, the project is **Bambu Stand**, the executable is `bambustand`, and archives/checksums use the `bambustand_` prefix. Update shell aliases, scripts, service definitions, and source-build commands to the new executable. Stop existing monitoring before replacing it. Keep `Bambu Stand Notify.app` beside the new CLI on macOS; remove the old CLI/helper from your installation once replaced. Older releases retain their original filenames.
+
+Existing data stays in place; no copy or reset is needed. The default config and account stores retain the `bambu-tui` directory under the OS configuration directory (`~/Library/Application Support/bambu-tui/` on macOS; `$XDG_CONFIG_HOME/bambu-tui/` or `~/.config/bambu-tui/` on Linux). This includes `config.toml`, `sessions/` locks, `notices/` decisions, `alerts/` snoozes, and `notifications/` ledgers, archives, and locks. Diagnostic exports also retain the `bambu-tui/diagnostics/` cache directory, with new `bambustand-diagnostics-` filenames. Custom configuration paths still work.
+
+Credential service names retain `com.github.cliffom.bambu-tui.<region>` so saved login and logout use the same entries. The macOS helper retains bundle ID `com.github.cliffom.bambu-tui.notify-poc` to reuse its notification authorization; macOS may still show the old name until registration/settings refresh. Browser Appearance and notification opt-in retain `bambu-tui.browser-theme.v1` and `bambu-tui.browser-notifications.v1` on the same browser origin (scheme, host, and port). No notification claims or replay history are reset by the rename. Browser origin changes still have independent preferences and permissions.
+
+Historical changelog entries, validation notes, and explicitly historical captures retain the names used when recorded. Generic references to a printer farm describe the monitored printers.
 
 ## Configuration
 
 Print the default configuration path:
 
 ```sh
-./bambu-tui --config-path
+./bambustand --config-path
 ```
 
 Create a `config.toml` there, or pass `--config /path/to/config.toml`. Configuration is optional; defaults are:
@@ -60,6 +70,8 @@ See [Config controls](alerts.md#change-notifications-in-the-tui) for all nine al
 
 ### Local web dashboard
 
+The browser status bar stays at the bottom of the window, separated by a border. Scroll the farm workspace above it to reach all printer cards and the result count; the connection/demo status, monitoring reminder, and GitHub repository link remain visible. The bar wraps to accommodate narrow windows and larger browser text. When a short window cannot fit the header, workspace, and wrapped bar together, the page also scrolls to keep the farm and footer accessible.
+
 Press `,`, then use `Tab` / `Shift+Tab` to select **Web Server**. Select **Enable web server** and use `Enter`, Space, or `←` / `→` to toggle it. It is off by default. The default port is **8080**; a successful start shows `http://127.0.0.1:8080` (or your configured port). Open that exact URL on the same computer.
 
 Select **Port** to configure it: `←` / `→` adjusts by one, or `Enter` lets you type a whole number from **1 to 65535**. Typing replaces the current value; `Ctrl+U` clears, `Enter` applies, and `Esc` cancels the edit. Invalid values stay in the editor with an error. Applying a new port while enabled stops the previous listener and starts on the new port immediately. While disabled, it only saves the next startup port. Port 0 and automatic port selection are not supported.
@@ -78,7 +90,21 @@ port = 8080
 
 The dashboard shows the whole-farm summary, searchable/filterable printer cards, print state/progress, remaining-time estimates, temperatures, AMS/external filament, and reported conditions with intervention guidance where available. It polls every three seconds while visible, and best-effort while hidden when browser notifications are enabled. Multiple browser tabs share the TUI's monitoring connection and one encoded snapshot; they do not create cloud connections. Browser filters/sorting are session-local and do not change TUI preferences. Every browser sort groups online non-idle printers first, reported idle/finished printers next, and offline devices last, using the same [grouping and unknown/last-known distinctions](farm-view.md#sorting) as the TUI. Demo uses the same dashboard with clearly labeled synthetic data (`make demo`).
 
+Use the single printer toolbar to choose **All printers**, **Printing**, **Idle / finished**, **Attention**, or **Unavailable**. Every filter tab shows its matching printer count before search is applied; attention and availability can overlap reported print states. Summary totals describe the whole farm and are not filter buttons. **Idle / finished** includes only currently available online printers explicitly reporting `IDLE` or `FINISH`, with a count before search is applied. Search narrows the selected filter; sorting applies within it. The count below the cards reads `3 printers` when all are visible or `2 of 3 printers` for a subset; Help explains how whole-farm state, attention, and availability counts overlap. Missing/stale telemetry, offline/cloud-disconnected devices, and unknown/active/paused/failed states are excluded from this view. A delayed or disconnected browser feed also removes these current-availability results until recovery. Existing Printing totals and filters still describe the last reported state, independently of availability; the groups can overlap Attention.
+
+Scrolling the farm compacts the branding/Settings/Help header; returning to the top expands it. Once the filter/search/sort toolbar reaches the header, it stays beneath it while printer cards scroll. In short windows or with heavily wrapped controls (including enlarged text), the toolbar scrolls normally when pinning would leave too little room for cards. Keyboard navigation brings card headings clear of the pinned toolbar. Background updates restore focus without scrolling back to a printer that has moved outside the viewport.
+
+Idle and Finished stay distinct on the cards. Neither confirms that a build plate is clear, a fault is resolved, or a printer is ready for another job. Offline cards show the printer name, model, and image with an explicit **Offline** label, a dashed border, and dimmed grayscale artwork. Job, progress, time, temperature, and material readings are omitted from these cards; click or keyboard-open the card to inspect last-known details and notices. Attention warnings remain visible. Only an explicit device-offline report selects this layout; stale data or a disconnected cloud/browser feed does not. Other cards with unavailable telemetry show one warning that their readings are last-known and missing values remain unknown. Material text wraps; full job names and telemetry remain available through inspection. Polling preserves focus and cards that remain visible; if the focused card leaves the active filter, focus returns to that filter button. Connection/demo mode stays on the left of the footer and the repository link on the right, without a duplicate sidebar.
+
+Open a printer card to inspect three tabs: **Status** (state, freshness, job, progress, temperatures, and finish estimate), **Filament** (AMS units/slots and external spools), and **Notices** (reported conditions, guidance, and local notice controls). Ordinary card opening starts at Status; Review and system-notification clicks open Notices. Click a tab or focus it and use Left/Right arrows, Home, or End; Tab moves into the selected panel. The title, tabs, and Close button stay above the scrolling panel. Each tab remembers its reading position while open, and monitoring/save updates retain the selected tab and focus. Close with the button or `Esc` to return to the card. Opening a card again resets to Status and the top. Inspecting or changing tabs makes no notice decision.
+
 Open **Settings** using the gear button beside Help in the dashboard header. Its **Browser notifications** section offers explicit Enable/Test/Disable controls and capability, permission, and submission status. Close with the close button or `Esc`; closing Settings leaves automatic notifications running. Browser permission and automatic opt-in are separate from native macOS delivery. New actionable incidents and confirmed print completions can notify while an enabled page runs; tabs/browsers share durable claims and reloads establish a baseline without backlog. See [browser notification policy, settings, and lifecycle limits](alerts.md#browser-system-notifications). Closing a notification never hides a notice.
+
+In **Settings > Appearance**, **Follow host (configured theme)** uses the host's effective TUI palette, including custom `theme_file` colors and launch-only `--theme` overrides. The selector also offers every bundled TUI theme. A selection applies immediately and is remembered in this browser at the current dashboard origin; other tabs at that origin follow it. Choose Follow host to reset. It leaves the host configuration and TUI appearance unchanged. If browser storage is unavailable, selection still works for the current page with a warning. Unknown saved choices fall back to Follow host.
+
+The browser uses the same semantic RGB colors for text, backgrounds, borders, selection/focus, and status feedback. A `null` terminal background has no browser equivalent, so it uses a dark `#101312` canvas; panels share that canvas. Light themes also switch native form controls to a light color scheme. Custom colors are used as supplied without contrast correction, so inspect their readability. Reported filament swatches retain their original colors; printer artwork does too, except for the inactive treatment on explicitly offline cards. Theme files load at host startup; restart to reload file edits. Host palette updates reach following browsers within 30 seconds while visible, or on opening Settings/returning to the page. Theme-fetch failure preserves the applied appearance and does not interrupt telemetry.
+
+![Browser Appearance settings using the bundled Hotdog theme](../../assets/screenshots/browser-themes.png)
 
 Unknown fields remain unknown. Stale, offline, and disconnected readings are marked last-known; completion is never inferred from progress or an estimate. A stale remaining-time estimate remains last-known even if temperature reports are fresh. If the dashboard server becomes unreachable or its snapshot is delayed, the browser preserves last-known data with a warning; this does not establish printer connectivity or fault resolution. The summary retains the last server-reported counts during an interruption.
 
@@ -91,6 +117,34 @@ The browser shows a pending request before the reducer applies it, then an appli
 TUI changes reach visible browser tabs on their next three-second poll; hidden tabs pause polling and refresh on return. Browser decisions reach the TUI through its event loop without waiting for disk I/O. This synchronization is limited to one running session, with no independent process-to-process synchronization. Shutdown rejects further browser decisions and uses the existing pending-save/failure handling. The browser receives normalized, allowlisted display data, including printer/job names; credentials, raw payloads, protocol job IDs, raw device serials, account information, storage paths, and backend error text are excluded.
 
 Access is **localhost only, without authentication**. Other users and programs on this computer can access the dashboard. Other local clients can also hide notices and retry saves. Exact Host/Origin checks, strict JSON POST requests, and a random session CSRF token protect browser writes from foreign sites; they do not authenticate local programs/users who can fetch the dashboard and token. LAN binding, reverse-proxy/remote access, and TLS remain outside scope. Real-printer browsing requires either the TUI or the foreground `serve` process to stay running. The web server is not a background service.
+
+#### Browser screenshots
+
+These captures show the current dashboard using synthetic demo data, with printing, paused, and explicitly offline printers. Click a preview to open it at full size. Choose a theme in **Settings > Appearance**; **Follow host (configured theme)** follows the terminal palette instead of keeping a separate browser choice.
+
+| Default | Gruvbox Dark |
+| --- | --- |
+| [![Default browser dashboard](../../assets/screenshots/browser.png)](../../assets/screenshots/browser.png) | [![Gruvbox Dark browser dashboard](../../assets/screenshots/browser-theme-gruvbox-dark.png)](../../assets/screenshots/browser-theme-gruvbox-dark.png) |
+| **Hotdog** | **C64** |
+| [![Hotdog browser dashboard](../../assets/screenshots/browser-theme-hotdog.png)](../../assets/screenshots/browser-theme-hotdog.png) | [![C64 browser dashboard](../../assets/screenshots/browser-theme-c64.png)](../../assets/screenshots/browser-theme-c64.png) |
+| **IBM 3270** | **DeskMate** |
+| [![IBM 3270 browser dashboard](../../assets/screenshots/browser-theme-ibm3270.png)](../../assets/screenshots/browser-theme-ibm3270.png) | [![DeskMate browser dashboard](../../assets/screenshots/browser-theme-deskmate.png)](../../assets/screenshots/browser-theme-deskmate.png) |
+
+| Status tab | Filament tab |
+| --- | --- |
+| [![Status tab showing paused printer telemetry](../../assets/screenshots/browser-printer-details.png)](../../assets/screenshots/browser-printer-details.png) | [![Filament tab showing AMS slot materials, colors, estimates, and unknown values](../../assets/screenshots/browser-filament.png)](../../assets/screenshots/browser-filament.png) |
+
+[![Notices tab with synthetic runout guidance and Hide notice locally](../../assets/screenshots/browser-notices.png)](../../assets/screenshots/browser-notices.png)
+
+The **Notices** tab keeps reported conditions and local notice controls separate from telemetry and filament inventory.
+
+The [scrolled desktop view](../../assets/screenshots/browser-scrolled.png) shows the compact header and pinned filter/search/sort toolbar at 1280 × 640. The toolbar also stays visible in the mobile offline-card view below.
+
+The [Appearance and notification settings](../../assets/screenshots/browser-themes.png) capture above shows the theme selector and Enable/Test/Disable controls with automatic browser notifications off. The [Idle / finished filter](../../assets/screenshots/browser-idle-filter.png) capture uses a separate synthetic finished-printer scenario; it does not establish that a printer is physically ready.
+
+| Mobile overview | Mobile offline card after scrolling |
+| --- | --- |
+| [![Browser overview at a 390 by 844 viewport](../../assets/screenshots/browser-mobile.png)](../../assets/screenshots/browser-mobile.png) | [![Focused offline printer card beneath the compact header and pinned mobile toolbar](../../assets/screenshots/browser-mobile-offline.png)](../../assets/screenshots/browser-mobile-offline.png) |
 
 ### TUI Server Status
 
@@ -106,7 +160,7 @@ Use arrows, `j`/`k`, page keys, or Home/End (`g`/`G`) to scroll; long client met
 
 On an interactive terminal, `serve` and `serve --demo` show a compact, continuously updated status screen. The localhost dashboard URL stays at the top, followed by cloud/demo mode, HTTP server state, monitoring connection/reconnect state, session uptime, up to three recent sanitized diagnostics, and HTTP client activity. Open the URL on the same computer. **Connected** describes the monitoring transport; use the browser dashboard for individual printer connectivity and telemetry freshness.
 
-The screen uses the default palette: green for the URL and healthy states, amber for connecting/reconnecting and warnings, and red for authentication, server, and storage failures. Labels retain their meaning with `NO_COLOR=1` or without color support. It updates at most once per second and adapts to terminal resizing. Narrow terminals wrap the URL and keep `Ctrl+C to stop` visible, dropping lower-priority rows when needed. At extremely small sizes even the URL/guidance may not fit; enlarge the terminal to inspect the full status. Terminal themes remain dashboard-only. `Ctrl+C` or `SIGTERM` closes HTTP and performs the existing bounded shutdown; the prior terminal screen and cursor return on exit, followed by a stopped/failed summary.
+The screen uses the default palette: green for the URL and healthy states, amber for connecting/reconnecting and warnings, and red for authentication, server, and storage failures. Labels retain their meaning with `NO_COLOR=1` or without color support. It updates at most once per second and adapts to terminal resizing. Narrow terminals wrap the URL and keep `Ctrl+C to stop` visible, dropping lower-priority rows when needed. At extremely small sizes even the URL/guidance may not fit; enlarge the terminal to inspect the full status. The status screen retains its default palette; the browser uses the configured theme or `serve --theme` override. `Ctrl+C` or `SIGTERM` closes HTTP and performs the existing bounded shutdown; the prior terminal screen and cursor return on exit, followed by a stopped/failed summary.
 
 **HTTP clients** groups connections by socket IP and the first request's sanitized user agent. A browser opening several sockets produces one Connected entry and one active client group; sockets that never send a request produce no entries. Entries include local time, Connected/Disconnected, a session client number, IP, and user agent. Groups are a best-effort display identity, not authenticated people or tabs: identical IP/user-agent pairs share one group, and changing a user agent can create another. The IP comes from the socket, ignoring forwarded headers; with localhost binding it will normally be `127.0.0.1`.
 
@@ -121,35 +175,35 @@ Redirected output, missing terminal input, and `TERM=dumb` use plain output: the
 After saving a login, run the cloud monitor and dashboard in the foreground without a TTY:
 
 ```sh
-./bambu-tui login --email-code --config ./config.toml
-./bambu-tui serve --config ./config.toml
+./bambustand login --email-code --config ./config.toml
+./bambustand serve --config ./config.toml
 ```
 
 Use the same configuration/region for both commands. `serve` reads the existing saved session from macOS Keychain or Linux Secret Service; it never opens login dialogs or accepts `--session`, `--token`, or `--email-code`. A session-only login cannot be reused by `serve`. Missing or invalid credentials fail with login guidance. An unavailable/locked store fails with unlock/Secret Service and `doctor` guidance. Native-store lookup is cancellable and bounded to 15 seconds. A cloud-rejected or expired session stops the server with a nonzero exit: log in again and restart. Transient cloud failures keep reconnecting and the dashboard labels retained data last-known.
 
 Malformed reports and reports exceeding telemetry limits are ignored while monitoring continues. The dashboard retains the last accepted readings, timestamps, and local decisions; rejection does not refresh data or confirm resolution/completion. The first rejection prints a fixed warning to stderr; further rejection warnings are suppressed for that server session to bound diagnostics. Payloads, identifiers, and backend errors are never included in that warning.
 
-Open the localhost URL in the [foreground status display](#foreground-server-status) on the same computer. The command starts HTTP regardless of saved web enablement and preserves configuration and terminal themes, using the configured port without fallback. The URL confirms a listener, not successful cloud authentication or fresh telemetry. One monitor serves all browser tabs. Closing tabs leaves monitoring running; `Ctrl+C` or `SIGTERM` stops it. Unexpected monitor/listener termination also exits nonzero.
+Open the localhost URL in the [foreground status display](#foreground-server-status) on the same computer. The command starts HTTP regardless of saved web enablement and preserves configuration, using the configured port without fallback. Both `serve` modes resolve `theme_file` beside the active configuration and accept `--theme` with the same launch-only precedence as the TUI; invalid themes fail before monitoring or HTTP startup. The URL confirms a listener, not successful cloud authentication or fresh telemetry. One monitor serves all browser tabs. Closing tabs leaves monitoring running; `Ctrl+C` or `SIGTERM` stops it. Unexpected monitor/listener termination also exits nonzero.
 
 Browser notice decisions reuse the TUI's account/region-scoped files and survive restart. Snoozes are loaded and expired deadlines are saved; browser hiding remains separate from snoozing and physical fault resolution. Unreadable stores are preserved with writes disabled and session-only guidance; repair them and restart. Failed writes remain visible with explicit browser retry for notice decisions. Shutdown closes HTTP and drains accepted writes/coalesced revisions for up to five seconds, returning a failure for failed or unconfirmed saves; monitor cancellation/join is bounded separately to five seconds. One cloud host per account/region and storage directory is enforced before loading decisions; another host exits with stop-and-retry guidance. See [saved notice decisions](#saved-notice-decisions) for upgrade and external-edit limits.
 
-Native desktop delivery stays disabled even if saved preferences enable it. Browser system notifications remain planned. This is a localhost-only foreground process, without dashboard authentication, remote access, or an installed background service. Other local users/programs can read the dashboard and submit local notice decisions as described above.
+Native desktop delivery stays disabled even if saved preferences enable it. Browser system notifications are independently opt-in; see [browser notification policy](alerts.md#browser-system-notifications). This is a localhost-only foreground process, without dashboard authentication, remote access, or an installed background service. Other local users/programs can read the dashboard and submit local notice decisions as described above.
 
 ### Terminal-free demo server
 
 Run the synthetic farm in the foreground without a terminal UI, credentials, or hardware:
 
 ```sh
-./bambu-tui serve --demo
-./bambu-tui serve --demo --config ./config.toml
+./bambustand serve --demo
+./bambustand serve --demo --config ./config.toml
 # From a source checkout:
 make build
-./bin/bambu-tui serve --demo --config ./config.toml
+./bin/bambustand serve --demo --config ./config.toml
 ```
 
 Open the printed listening URL on the same computer. This command starts HTTP even when `[web_server].enabled = false`, uses the configured port (default 8080), and never rewrites that preference or the configuration file. An occupied port exits with an error and no fallback; a listening URL is printed only after binding succeeds. Invalid configuration also stops startup. Terminal themes are unused; `--theme` is rejected.
 
-Browser inspection and local notice hiding use the same dashboard and shared session. Demo decisions are **session-only** and reset on restart; real-account notice, snooze, credential, and notification stores are not opened. Native desktop delivery is disabled even if saved preferences enable it, and those preferences are preserved. Browser system notifications are not implemented.
+Browser inspection and local notice hiding use the same dashboard and shared session. Demo decisions are **session-only** and reset on restart; real-account notice, snooze, credential, and notification stores are not opened. Native desktop delivery is disabled even if saved preferences enable it, and those preferences are preserved. Browser system notifications use temporary demo-only storage and explicit browser opt-in; see [browser notification policy](alerts.md#browser-system-notifications).
 
 Stop with `Ctrl+C` or `SIGTERM`. Closing browser tabs leaves the foreground process running. Shutdown closes the listener and rejects new decisions, drains accepted persistence jobs for up to five seconds, and reports unconfirmed saves as a failure; demo has no durable decision writes. Unexpected HTTP termination also exits with an error. For real printers, use the [cloud server](#terminal-free-cloud-server) after saving a login. This mode does not install a service or enable remote access.
 
@@ -158,9 +212,9 @@ Stop with `Ctrl+C` or `SIGTERM`. Closing browser tabs leaves the foreground proc
 Your own themes are ordinary JSON files loaded from disk at startup. **No Go changes, registration, or rebuild are needed.** Create a file using the partial example below, or copy one of the complete theme examples and edit its colors. Launch an installed or already-built binary with the file path:
 
 ```sh
-bambu-tui --theme ./my-theme.json
+bambustand --theme ./my-theme.json
 # From a source checkout, reuse the binary you already built:
-./bin/bambu-tui --theme ./my-theme.json
+./bin/bambustand --theme ./my-theme.json
 ```
 
 Edit the JSON and restart that same binary to apply changes. `make run THEME=./my-theme.json` also works, though `make run` builds the application before launching. The persistent `theme_file` setting below loads your file on each launch. Bundled names are convenient shipped examples; adding a custom file does not require adding it to the application bundle.
@@ -168,8 +222,8 @@ Edit the JSON and restart that same binary to apply changes. `make run THEME=./m
 Select a bundled theme for one launch, with no setup files:
 
 ```sh
-bambu-tui --theme gruvbox-dark
-bambu-tui --demo --theme gruvbox-dark
+bambustand --theme gruvbox-dark
+bambustand --demo --theme gruvbox-dark
 ```
 
 From a source checkout:
@@ -179,12 +233,12 @@ make run THEME=gruvbox-dark
 make demo THEME=gruvbox-dark
 ```
 
-`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, `ibm3270`, `deskmate`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
+`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, `ibm3270`, `deskmate`, or a custom JSON file path. For example, `bambustand --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
 
 For an unmistakable light-theme demonstration, try **Hotdog**, inspired by the red/yellow Hotdog Stand look:
 
 ```sh
-bambu-tui --theme hotdog
+bambustand --theme hotdog
 make run THEME=hotdog
 make demo THEME=hotdog
 ```
@@ -194,7 +248,7 @@ Hotdog uses a very light cream background, dark body text, vivid red headings/bo
 For Commodore-inspired blues, use **C64**:
 
 ```sh
-bambu-tui --theme c64
+bambustand --theme c64
 make run THEME=c64
 make demo THEME=c64
 ```
@@ -204,7 +258,7 @@ C64 uses a deep blue body, light blue/lavender text and borders, blue selections
 For the green-screen terminal look, use **IBM 3270**:
 
 ```sh
-bambu-tui --theme ibm3270
+bambustand --theme ibm3270
 make run THEME=ibm3270
 make demo THEME=ibm3270
 ```
@@ -214,7 +268,7 @@ IBM 3270 uses a near-black green body, phosphor-green text and borders, a revers
 For the classic **DeskMate II** blue/gray text-mode look:
 
 ```sh
-bambu-tui --theme deskmate
+bambustand --theme deskmate
 make run THEME=deskmate
 make demo THEME=deskmate
 ```
@@ -246,7 +300,7 @@ A small override file is sufficient; omitted colors retain the current defaults:
 }
 ```
 
-`version` and the `colors` object are required; `name` is optional descriptive metadata. Keys use exact snake_case names; the complete examples list every role. Colors accept `#RRGGBB` strings. Only `background` also accepts `null`, which inherits the terminal background as the default theme does. Unknown/duplicate keys, invalid colors, unsupported versions, unreadable files, and files larger than 64 KiB stop startup with an error; there is no silent fallback. JSON is the supported format. Themes are selected through `--theme` or `theme_file`; there is no interactive picker or live reload.
+`version` and the `colors` object are required; `name` is optional descriptive metadata. Keys use exact snake_case names; the complete examples list every role. Colors accept `#RRGGBB` strings. Only `background` also accepts `null`, which inherits the terminal background as the default theme does. Unknown/duplicate keys, invalid colors, unsupported versions, unreadable files, and files larger than 64 KiB stop startup with an error; there is no silent fallback. JSON is the supported format. Host themes are selected through `--theme` or `theme_file`; there is no interactive TUI picker or theme-file live reload. The browser has an independent selector in Settings > Appearance, as described above.
 
 Use contrasting text/background pairs, particularly `text`/`background`, `selected_text`/`selected_background`, and all `footer_*` text roles against `footer_background`. Supplied colors are used as written; the loader validates syntax rather than measuring or correcting contrast. Limited-color terminals approximate RGB values, and `NO_COLOR=1` keeps readable labels and selection markers without colors. Reported filament swatches retain the printer's color instead of using theme accents. See [palette roles and contrast assumptions](../development/ui-direction.md#palette-and-message-emphasis).
 
@@ -286,7 +340,7 @@ Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and
 
 The footer follows the focused panel. Fresh informational messages, including delivery ownership and refresh requests, use bright bold text. In the default theme, confirmed local actions use green; warnings use amber and errors use red, with amber dashboard warnings for persistent storage/delivery problems. Custom themes retain these semantic roles with their chosen colors. Labels remain meaningful without color, and ownership does not confirm notification delivery or printer fault resolution.
 
-Press `A` from the dashboard for **About Bambu TUI**. It shows the app name/version, OS/architecture, project URL, branding, and attribution without field labels, followed by the effective bundled theme or custom file path (including launch overrides). Theme field labels use the same secondary text styling as dashboard labels, while the theme source uses primary text. **Theme Palette** shows unique explicit RGB colors as an unlabeled swatch grid, sorted by hue; gray colors come first from dark to light. Colors shared by multiple roles appear once, and an inherited terminal background is omitted because its RGB is unknown. Without color, solid blocks preserve the grid shape but cannot identify the colors; see the [custom theme format](#custom-themes) for named roles and RGB values. About displays no account information. Use arrows/page keys or Home/End to scroll long theme paths; `Enter`, `Esc`, or `A` returns to the prior dashboard focus and selection. Telemetry continues while About is open.
+Press `A` from the dashboard for **About Bambu Stand**. It shows the app name/version, OS/architecture, project URL, branding, and attribution without field labels, followed by the effective bundled theme or custom file path (including launch overrides). Theme field labels use the same secondary text styling as dashboard labels, while the theme source uses primary text. **Theme Palette** shows unique explicit RGB colors as an unlabeled swatch grid, sorted by hue; gray colors come first from dark to light. Colors shared by multiple roles appear once, and an inherited terminal background is omitted because its RGB is unknown. Without color, solid blocks preserve the grid shape but cannot identify the colors; see the [custom theme format](#custom-themes) for named roles and RGB values. About displays no account information. Use arrows/page keys or Home/End to scroll long theme paths; `Enter`, `Esc`, or `A` returns to the prior dashboard focus and selection. Telemetry continues while About is open.
 
 Long feedback shortens before essential controls; multiple failures show an error count. `^E status` means `Ctrl+E`: open **Status / Feedback** for complete messages and recovery guidance, using arrows/page keys or Home/End to scroll. It preserves the current dialog, input, selection, confirmation, and scroll while telemetry and saves continue. Ordinary transient feedback lasts eight seconds; storage, export, browser, and delivery failures remain until their source reports recovery. Notice and snooze saves each show **saving**, **saved**, **failed**, or **session-only**. When an idle writable store has failed, `r retry saves` retries all eligible failed notice/snooze stores. This view does not acknowledge notices or confirm physical fault resolution.
 
@@ -378,3 +432,7 @@ Monitoring requests only: the MQTT client can subscribe to reports and request f
 ### Firmware
 
 Printer details also show the installed printer **Firmware** and **FW Status**. Status is the printer's reported assessment: **Current (printer reported)**, **Update available** with the offered OTA version, or **Unknown (not confirmed)**. Component-only updates do not imply a printer firmware update. Old assessments or disconnected/stale printers show **Last known**; press `r` to request fresh status and firmware metadata. This is not a live comparison against a public release catalogue, and no firmware installation is performed.
+
+## Notification history maintenance
+
+Use `compact-notifications --consume-unfinished` only after stopping account hosts. It preserves deduplication history and frees live job capacity, while consuming unfinished completion tracking in both native and browser channels. See [retention, command examples, consequences, and backup policy](alerts.md#notification-history-and-capacity) before running it. Ordinary activity recheck does not perform maintenance or retry consumed delivery attempts.

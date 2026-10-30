@@ -1,10 +1,10 @@
 # Repository guidance
 
-Bambu TUI is a Go terminal application for read-only Bambu Cloud monitoring. Keep printer control outside the project scope. Preserve distinctions between unknown and confirmed telemetry, local notice decisions, and physical fault resolution.
+Bambu Stand is a Go terminal application for read-only Bambu Cloud monitoring. Keep printer control outside the project scope. Preserve distinctions between unknown and confirmed telemetry, local notice decisions, and physical fault resolution.
 
 ## Required direction and verification
 
-Before making changes, read [UI direction](docs/development/ui-direction.md) for UI work and [documentation direction](docs/development/documentation-direction.md) for every change. Preserve their contracts unless the user requests a change to them; update affected guidance and verification in the same PR. Assess documentation impact and describe it in the PR, including why no documentation update is needed when applicable.
+Before making changes, read [UI direction](docs/development/ui-direction.md) for UI work and [documentation direction](docs/development/documentation-direction.md) for every change. Preserve their contracts unless the user requests a change to them; update affected guidance and verification in the same PR. For every UI or operator-visible behavior change, review the README, affected user/supporting guides, in-app help, and current screenshots; update inaccurate or missing explanations and captures in the same PR. Follow [documentation and screenshot maintenance](docs/development/documentation-direction.md#ui-behavior-and-screenshot-maintenance), and report the files/captures updated or specific reasons they remain accurate.
 
 Run `make docs-check` for every PR. For UI changes, extend relevant interaction tests, perform the applicable demo/layout inspection, and report the sizes/states actually checked and any gaps. See the direction guides for the review criteria.
 
@@ -23,7 +23,7 @@ Use the pinned tools documented in the contributing guide; Make supports overrid
 
 ## Code and behavior
 
-- `cmd/bambu-tui`: CLI, login, terminal lifecycle, and PTY smoke tests.
+- `cmd/bambustand`: CLI, login, terminal lifecycle, and PTY smoke tests.
 - `internal/cloud`, `internal/mqtt`, `internal/monitor`: authentication/discovery, transport, and monitor workers.
 - `internal/farm`: telemetry decoding, normalization, condition lifetime, and farm state.
 - `internal/session`: shared serial owner for farm mutations/reconciliation, local browser decisions, immutable publishing, and persistence jobs.

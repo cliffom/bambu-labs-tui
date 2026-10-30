@@ -19,7 +19,7 @@ func TestNotificationTitleIsPlainBoundedAndHasFallback(t *testing.T) {
 	if title := cleanTitle(strings.Repeat("印", 200)); len([]rune(title)) != maxNotificationTitleRunes {
 		t.Fatal("unbounded title")
 	}
-	if title := cleanTitle("\n\x00 "); title != "Bambu TUI" {
+	if title := cleanTitle("\n\x00 "); title != "Bambu Stand" {
 		t.Fatal("missing safe fallback", title)
 	}
 }

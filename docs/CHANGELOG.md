@@ -1,5 +1,75 @@
 # Changelog
 
+## 0.5.0 — Bambu Stand
+
+- Rename the project, terminal/browser branding, notification helper display name, and hero artwork to Bambu Stand (#153). The repository/module is `github.com/cliffom/bambustand`; CLI and archive names now use `bambustand`. Update scripts and service commands when upgrading.
+- Reuse existing configuration, credentials, account locks, notice decisions, snoozes, notification history, browser preferences, and macOS notification authorization through unchanged persisted identifiers. Monitoring remains read-only.
+
+See [upgrade compatibility](user/usage.md#upgrading-from-bambu-tui) and [validation evidence](development/validation.md#bambu-stand-rename-153).
+
+## 0.4.8 — Tabbed browser printer inspection
+
+- Organize the browser inspector into Status, Filament, and Notices tabs (#151), using the farm filter styling. Keep navigation and Close visible above the scrolling panel.
+- Preserve selected tabs, focus, and per-tab reading positions through telemetry and local save updates. Review and system-notification clicks open Notices; ordinary card opening starts at Status. Existing monitoring and local notice semantics are unchanged.
+
+See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#tabbed-browser-printer-inspection-151).
+
+## 0.4.7 — Compact scrolling dashboard
+
+- Compact the browser header while scrolling the farm, restoring it at the top (#149). Keep visible content steady as header space is reclaimed.
+- Pin the filter, search, and sort toolbar beneath the compact header once reached. In small workspaces, let the toolbar scroll normally so cards remain reachable; preserve keyboard access, polling, and dialog behavior.
+
+See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#compact-browser-header-and-pinned-toolbar-149).
+
+## 0.4.6 — Simplified offline printer cards
+
+- Show offline browser cards with only printer name, model, image, an explicit Offline label, and any attention warning (#145). Omit job, progress, time, temperature, and material readings from these cards while retaining inspection details.
+- Use a dashed card border and desaturated, dimmed artwork to convey inactivity. Preserve focus and image identity through online/offline updates; stale telemetry and feed outages do not independently trigger the offline layout.
+
+See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#offline-browser-cards-145).
+
+## 0.4.5 — Browser theme parity
+
+- Apply the host’s effective TUI theme to the browser dashboard, including custom configured colors and launch overrides (#141). Add Settings > Appearance with Follow host and every bundled TUI theme; browser selections persist locally without changing the TUI configuration.
+- Honor configured theme files and `--theme` in both foreground `serve` modes, validating them before startup. Keep custom file paths and metadata out of browser responses.
+- Use semantic colors throughout cards, controls, dialogs, focus/selection, and the status bar, including light-theme native controls. Preserve monitoring and applied colors if theme loading fails.
+- Remove the redundant MONITORING header badge and show consistent counts on every filter tab before search, preserving availability and last-reported-state distinctions.
+
+See [browser appearance](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#browser-theme-parity-141).
+
+## 0.4.4 — Clearer browser dashboard
+
+- Simplify the browser dashboard with one filter toolbar, static whole-farm summary totals, and more room for printer cards. Remove the duplicate sidebar, repeated counts, decorative headings, and normal monitoring stamps; move connection/demo status to the footer’s left side (#134).
+- Add an online **Idle / finished** filter and count using shared current-telemetry interpretation. Exclude unavailable or unknown printers and suppress current availability during browser-feed outages; idle/finished never establishes physical readiness.
+- Keep offline card readings explicitly last-known without repeating the prefix on every metric, wrap material labels, and return focus to the active filter when a live update removes the focused printer.
+- Align the sort selector chevron, shorten result counts, and move the summary-overlap explanation into Help.
+
+See [dashboard controls](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#browser-dashboard-cleanup-134).
+
+## 0.4.3 — Pinned browser status bar
+
+- Keep the browser status line at the bottom of the viewport while the farm workspace scrolls above it (#132).
+- Add a full-width top border matching the workspace divider, preserve the branding and monitoring message, replace the clock with a GitHub repository icon link, and reserve space so the bar never covers farm content. Reflow the bar at narrow widths and enlarged text sizes. In short windows, allow page scrolling while preserving a usable farm workspace instead of collapsing it beneath the header and footer.
+
+See [browser dashboard behavior](user/usage.md#local-web-dashboard) and [validation evidence and limits](development/validation.md#pinned-browser-status-bar-132).
+
+## 0.4.2 — Preserve live print job names
+
+- Preserve newly reported job names across partial print-start reports instead of clearing them again when the running state or delayed task/subtask IDs arrive (#129, #130).
+- Clear previous-job metadata at the first reported start or changed known identity. Treat numeric/string zero and other unknown IDs as placeholders, preserving the new name, estimates, stage, and observed state when a confirmed identity arrives later.
+- Keep table and printer-details names synchronized, with the G-code filename/path as a fallback until a name is reported. Preserve selection, focus, read-only monitoring, and separate notification identity evidence.
+
+See [job-name display behavior](user/farm-view.md) and [validation evidence and limits](development/validation.md#live-print-job-names-129).
+
+## 0.4.1 — Sustainable notification history and shared session policy
+
+- Keep retired notification job identities in exact, checksummed on-disk archives instead of filling the bounded live ledger with lifetime job history (#105). Preserve replay suppression, conservative identity reuse, and at-most-once attempts across restarts and legacy migration.
+- Show live identity use and near-limit warnings in Notification activity and browser notification status. Add offline `compact-notifications` maintenance for exhausted job tracking; it preserves deduplication and intervention identities while explicitly forfeiting unfinished completions.
+- Give the shared session transport-independent display and local-decision contracts, keep HTTP wire encoding in the web adapter, centralize farm occurrence comparison, and share account persistence initialization/failure policy across terminal and foreground hosts (#106).
+- Preserve local notice decisions, request protections, read-only monitoring, serialized/coalesced persistence, and bounded shutdown. Exact history grows gradually on disk; unreadable/corrupt state still fails closed. Older binaries reject upgraded notification ledgers.
+
+See [history and recovery policy](user/alerts.md#notification-history-and-capacity), [architecture](development/architecture.md#exact-job-history-and-maintenance), and [validation evidence and limits](development/validation.md#notification-history-and-session-boundaries-105-106).
+
 ## 0.4.0 — Terminal safety and persistence durability
 
 - Remove terminal control characters from unrecognized printer-state labels before rendering (#119), closing a telemetry-driven escape-injection path in printer details. Preserve readable future state labels and the original telemetry used for interpretation.

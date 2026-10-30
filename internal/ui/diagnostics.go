@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cliffom/bambu-tui/internal/diagnostics"
+	"github.com/cliffom/bambustand/internal/diagnostics"
 )
 
 type (

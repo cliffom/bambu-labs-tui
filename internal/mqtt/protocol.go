@@ -13,7 +13,7 @@ const (
 	writeTimeout                = 10 * time.Second
 	readTimeout                 = 90 * time.Second
 	clientIDRandomBytes         = 8
-	clientIDPrefix              = "bambu-tui-"
+	clientIDPrefix              = "bambustand-"
 	protocolName                = "MQTT"
 	protocolLevel               = 4
 	connectFlags                = 0xc2 // Username, password, and clean session.

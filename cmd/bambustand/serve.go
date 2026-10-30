@@ -7,15 +7,21 @@ import (
 	"io"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/accountstore"
-	"github.com/cliffom/bambu-tui/internal/cloud"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/credentials"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/accountstore"
+	"github.com/cliffom/bambustand/internal/cloud"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/credentials"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/ui"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
+
+type serveOptions struct {
+	username string
+	theme    ui.Theme
+}
 
 const (
 	serveShutdownTimeout = 5 * time.Second
@@ -30,12 +36,12 @@ func loadServeAccount(load func() (cloud.Session, error)) (cloud.Session, error)
 		err = credentials.ErrInvalid
 	}
 	if err != nil {
-		return cloud.Session{}, fmt.Errorf("cannot start cloud server: %w; run bambu-tui login to save a session for this config's region; unlock the OS credential store (Linux: install secret-tool and start Secret Service), then retry; bambu-tui doctor checks storage", err)
+		return cloud.Session{}, fmt.Errorf("cannot start cloud server: %w; run bambustand login to save a session for this config's region; unlock the OS credential store (Linux: install secret-tool and start Secret Service), then retry; bambustand doctor checks storage", err)
 	}
 	return account, nil
 }
 
-func serveCloud(ctx context.Context, cfg config.Config, output, diagnostics io.Writer) error {
+func serveCloud(ctx context.Context, cfg config.Config, output, diagnostics io.Writer, theme ui.Theme) error {
 	account, err := loadServeAccount(func() (cloud.Session, error) { return (credentials.Store{Region: cfg.Region}).LoadContext(ctx) })
 	if err != nil {
 		if ctx.Err() != nil {
@@ -52,47 +58,40 @@ func serveCloud(ctx context.Context, cfg config.Config, output, diagnostics io.W
 	runner := monitor.New(cloud.New(cfg.Region), account)
 	return serveMonitor(ctx, cfg, &state, output, diagnostics, func(ctx context.Context, events chan<- monitor.Event) {
 		runner.Run(ctx, events, nil)
-	}, account.Username)
+	}, serveOptions{username: account.Username, theme: theme})
 }
 
 // Stores use the same account/region scope and failed-load protection as the TUI.
 func cloudServeState(cfg config.Config, stores *accountstore.Store, diagnostics io.Writer) session.Session {
 	state := session.New(farm.New(cfg.LowFilamentPercent), false)
-	reviews, loadErr := stores.LoadReviews()
-	state.Farm.RestoreReviews(reviews)
-	state.WithNoticePersistence(stores.SaveReviews, loadErr)
-	if loadErr != nil {
-		_, _ = fmt.Fprintln(diagnostics, "Notice persistence: saved data unavailable; decisions apply only to this session; repair the notice store and restart")
-	}
-	deadlines, snoozeErr := stores.LoadSnoozes()
-	state.WithSnoozePersistence(deadlines, stores.SaveSnoozes, snoozeErr)
-	if snoozeErr != nil {
-		_, _ = fmt.Fprintln(diagnostics, "Alert persistence: saved data unavailable; changes apply only to this session; repair the snooze store and restart")
+	for _, warning := range state.WithAccountPersistence(stores) {
+		_, _ = fmt.Fprintln(diagnostics, warning)
 	}
 	return state
 }
 
-func serveDemo(ctx context.Context, cfg config.Config, output io.Writer) error {
+func serveDemo(ctx context.Context, cfg config.Config, output io.Writer, theme ui.Theme) error {
 	state := session.New(farm.New(cfg.LowFilamentPercent), true)
 	return serveMonitor(ctx, cfg, &state, output, io.Discard, func(ctx context.Context, events chan<- monitor.Event) {
 		monitor.Demo(ctx, events, nil)
-	})
+	}, serveOptions{theme: theme})
 }
 
 // Each foreground host has one monitor regardless of browser-client count.
 // Neither host initializes native notification delivery or writes configuration.
-func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session, output, diagnostics io.Writer, run func(context.Context, chan<- monitor.Event), usernames ...string) (result error) {
+func serveMonitor(ctx context.Context, cfg config.Config, state *session.Session, output, diagnostics io.Writer, run func(context.Context, chan<- monitor.Event), options ...serveOptions) (result error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	if ctx.Err() != nil {
 		return nil
 	}
-	username := ""
-	if len(usernames) > 0 {
-		username = usernames[0]
+	option := serveOptions{theme: ui.Theme{Palette: ui.DefaultPalette()}}
+	if len(options) > 0 {
+		option = options[0]
 	}
-	web, closeBrowser := browserServer(ctx, cfg.Region, username, state.Demo)
+	web, closeBrowser := browserServer(ctx, cfg.Region, option.username, state.Demo)
 	defer closeBrowser()
+	web.PublishThemes(ui.BrowserThemes(option.theme.Palette))
 	state.Publish(web, time.Now(), session.BrowserPolicy{Alerts: cfg.Alerts, Active: true})
 	status := web.SetEnabled(true, cfg.WebServer.Port)
 	if status.Error != "" {
@@ -190,7 +189,7 @@ running:
 				display.observe(event)
 			}
 			if event.StopReason == monitor.StopAuthenticationRejected {
-				runErr = errors.New("cloud session expired or rejected; run bambu-tui login with this config to save a new session, then restart serve")
+				runErr = errors.New("cloud session expired or rejected; run bambustand login with this config to save a new session, then restart serve")
 				break running
 			}
 			if err := state.ApplyEvent(event); err != nil {
@@ -210,7 +209,7 @@ running:
 			state.Reconcile(at)
 			state.PruneSnoozes(at)
 		case command := <-web.Commands():
-			state.ApplyWebCommand(command, ctx.Err() != nil, true)
+			command.Reply <- string(state.ApplyDecision(session.DecisionCommand{Target: command.Target, Retry: command.Retry}, ctx.Err() != nil, true))
 		case result := <-results:
 			state.Complete(result)
 		}

@@ -8,13 +8,15 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/notifications"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/notifications"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 type fakeWebServer struct {
+	themes        webserver.ThemeCatalog
 	status        webserver.Status
 	clients       webserver.ClientStatus
 	calls         []bool
@@ -33,6 +35,8 @@ func (s *fakeWebServer) Clients() webserver.ClientStatus {
 	result.Events = append([]webserver.ClientEvent(nil), result.Events...)
 	return result
 }
+
+func (s *fakeWebServer) PublishThemes(c webserver.ThemeCatalog) { s.themes = c }
 
 func (s *fakeWebServer) Publish(data []byte)      { s.snapshot = data }
 func (s *fakeWebServer) Status() webserver.Status { return s.status }
@@ -276,4 +280,8 @@ func TestWebNotificationsObserveWhileDisabledAndStopDuringShutdown(t *testing.T)
 	if !server.notifications[len(server.notifications)-1].Active {
 		t.Fatal("cancelled shutdown did not resume browser observation")
 	}
+}
+
+func (s *fakeWebServer) PublishDisplay(state session.DisplayState) {
+	s.Publish(webserver.EncodeDisplay(state))
 }

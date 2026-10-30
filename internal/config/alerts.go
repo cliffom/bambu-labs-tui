@@ -1,6 +1,6 @@
 package config
 
-import "github.com/cliffom/bambu-tui/internal/farm"
+import "github.com/cliffom/bambustand/internal/farm"
 
 type (
 	// AlertRules controls automatic interruptions without filtering underlying notices.

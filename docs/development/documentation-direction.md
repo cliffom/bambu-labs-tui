@@ -23,7 +23,7 @@ Only root `README.md` and `AGENTS.md` may be Markdown files outside `docs/`, inc
 
 | Change | Review and update when affected |
 | --- | --- |
-| Keys, dialogs, labels, sorting, alerts, or notice lifetime | Relevant user guide, dashboard help/dialog hints, and [UI direction](ui-direction.md) |
+| UI layout/themes, keys, dialogs, labels, sorting, alerts, telemetry interpretation, or notice lifetime | README overview/captions, affected user guides, in-app help, current screenshots/gallery, and [UI direction](ui-direction.md) |
 | CLI, login, installation, platform requirements, configuration | User guide; README if getting started changes; configuration example if defaults/options change |
 | State ownership, concurrency, persistence, package boundaries | Architecture and relevant contributor/testing guidance |
 | Build/check commands, tool pins, workflows, release layout | Contributing, publishing, `AGENTS.md` commands, and affected tooling |
@@ -32,6 +32,17 @@ Only root `README.md` and `AGENTS.md` may be Markdown files outside `docs/`, inc
 | File moves, new topics, or deletions | Index, agent map, inbound links/anchors, source comments, and release references |
 
 Every change must assess documentation impact. Update affected guidance in the same PR. If no documentation changes are needed, explain why in the PR rather than making a cosmetic edit to satisfy a check. Automated checks do not determine whether prose matches behavior, so this assessment is a review requirement.
+
+## UI, behavior, and screenshot maintenance
+
+Documentation and current screenshots are part of a UI or operator-visible behavior change, including changes in telemetry interpretation, defaults, availability, filters, and notice handling that originate outside the UI packages. Complete this review before marking the PR ready; do not defer stale documentation or captures to a later release or cleanup PR.
+
+- Compare the resulting behavior with the README's feature descriptions, setup/controls, screenshots, and captions; then review the affected user/supporting guides, in-app help, and browser gallery. Correct inaccurate text and add concise guidance or a representative capture for new functionality. Keep detailed examples in the owning user guide and link from the README.
+- Inspect every current screenshot that depicts an affected screen, state, theme, or control. Replace captures that no longer match in the same PR, including README and guide images that reuse the affected view. Shared browser layout or theme changes require reviewing the desktop/mobile overview, all affected theme previews, and affected Settings/inspector/filter images. A behavior change can invalidate a caption, count, state label, or synthetic fixture even when the layout is unchanged. Update the capture fixtures and assertions to match the actual behavior; do not preserve an obsolete presentation by changing only the screenshot data.
+- Capture the resulting application with synthetic/demo data, using the [documented browser capture command](contributing.md#test-evidence) for the web gallery and the actual demo TUI for terminal images. Inspect loaded artwork, readable text, controls, state labels, clipping, focus, and scrolling at the documented sizes. Keep unknown/last-known readings and local decisions distinct from physical resolution. Do not retouch captures to simulate an unimplemented interface or include private accounts/telemetry. Capture generation does not replace the applicable interaction/layout tests.
+- Update image links, alt text, and captions together. Keep maintained overview/gallery captures current, while preserving historical before/after evidence under explicit historical filenames and keeping its original links accurate. Record actual visual inspection, version/source revision, sizes, states, themes, and remaining gaps in the [validation record](validation.md).
+
+In the PR description, identify the README/guides/help reviewed, link updated screenshots or show representative captures, and report the capture command and actual sizes/states/themes inspected. When a document or screenshot is unchanged, explain specifically why the changed behavior is not depicted or why the existing depiction remains accurate. Do not regenerate unrelated images for timestamp-only churn or claim that successful tests establish documentation or visual accuracy. A docs-only policy edit may leave product screenshots unchanged when it changes no depicted behavior.
 
 Preserve historical release facts in the changelog. Keep completed work out of the roadmap's next-work queue and verify issue status when refreshing priorities. Do not create version-specific readiness/checklist documents; put ongoing operational checks and actual evidence in the validation record. Keep unperformed checks unchecked. Synthetic tests, demo runs, issue closure, and release publication do not count as hardware validation. Never add private telemetry or credentials to documentation.
 

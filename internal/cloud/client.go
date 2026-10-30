@@ -12,12 +12,12 @@ import (
 	"net/http/cookiejar"
 	"strings"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 var (
-	ErrAuth        = errors.New("account session expired or rejected; run bambu-tui login")
-	ErrBlocked     = errors.New("request rejected by Bambu Cloud; try again later or import an existing token with bambu-tui login --token")
+	ErrAuth        = errors.New("account session expired or rejected; run bambustand login")
+	ErrBlocked     = errors.New("request rejected by Bambu Cloud; try again later or import an existing token with bambustand login --token")
 	ErrRateLimited = errors.New("rate limited by Bambu Cloud; retry later")
 )
 

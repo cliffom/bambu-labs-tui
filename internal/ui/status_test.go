@@ -9,9 +9,9 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/notifications"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/notifications"
 	"github.com/muesli/termenv"
 )
 
@@ -150,7 +150,7 @@ func TestConfigControlsSurviveRetainedTestFailureAndStatusInspection(t *testing.
 	for _, reset := range []bool{false, true} {
 		m := resizeModel(key(demoModel(), ","), 60, 18)
 		m.notificationTestFailed = true
-		m.notificationTestStatus = "Test failed; run bambu-tui doctor --notify."
+		m.notificationTestStatus = "Test failed; run bambustand doctor --notify."
 		m.configStorageError = "Config save failed"
 		if reset {
 			m.configSection = configPrinters

@@ -3,7 +3,7 @@ package cloud
 import (
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/config"
+	"github.com/cliffom/bambustand/internal/config"
 )
 
 // Cloud API paths, authentication identifiers, and local request limits.

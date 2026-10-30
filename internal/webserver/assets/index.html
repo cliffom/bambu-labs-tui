@@ -4,20 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#101312" />
-    <title>Bambu Farm · Monitoring</title>
+    <title>Bambu Stand · Monitoring</title>
     <link rel="icon" href="icon.png" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <header>
       <a class="brand" href="./"
-        ><img src="icon.png" alt="" />bambu<span>farm</span
-        ><small>MONITORING</small></a
+        ><img src="icon.png" alt="" /><span class="brand-name">Bambu <span>Stand</span></span
+        ></a
       >
       <div class="header-right">
-        <span class="live" id="feed-state" role="status">Connecting…</span
-        ><span class="readonly">▣ &nbsp; Monitor</span
-        ><button
+        <button
           id="settings"
           class="icon-button"
           aria-label="Dashboard settings"
@@ -39,66 +37,30 @@
       </div>
     </header>
     <div class="shell">
-      <aside>
-        <div>
-          <div class="nav-label">WORKSPACE</div>
-          <button class="nav active" id="nav-farm">
-            <span>▦</span> Farm overview <b id="nav-total">0</b></button
-          ><button class="nav" id="nav-attention">
-            <span>◇</span> Action needed
-            <b class="amber" id="nav-attention-count">0</b></button
-          ><button class="nav" id="nav-unavailable">
-            <span>⊘</span> Unavailable <b id="nav-unavailable-count">0</b>
-          </button>
-        </div>
-        <div class="sidebar-bottom">
-          <span class="tiny-dot"></span>
-          <span id="farm-mode">Cloud monitoring</span>
-          <p>Shared monitoring session</p>
-          <a
-            href="https://github.com/cliffom/bambu-tui"
-            target="_blank"
-            rel="noreferrer"
-            >Bambu TUI ↗</a
-          >
-        </div>
-      </aside>
       <main>
-        <div class="page-heading">
-          <div class="eyebrow">YOUR WORKSPACE / MONITORING</div>
-          <div class="title-row">
-            <div>
-              <h1>
-                Farm overview<span class="count" id="farm-count"
-                  >0 printers</span
-                >
-              </h1>
-              <p>A little more perspective on every print.</p>
-            </div>
-            <div class="timestamp">
-              Snapshot <span id="updated">waiting for data</span><br /><span
-                >All times shown locally</span
-              >
-            </div>
+        <div class="title-row">
+          <h1>Farm overview</h1>
+          <div class="timestamp">
+            Snapshot <span id="updated">waiting for data</span><br /><span>All times shown locally</span>
           </div>
         </div>
         <section class="summary" aria-label="Whole farm summary">
-          <button data-filter="all">
+          <div class="summary-item">
             <span>Total printers</span><strong id="total">00</strong
-            ><small>Across your farm</small></button
-          ><button data-filter="printing">
+            ><small>Across your farm</small></div
+          ><div class="summary-item">
             <span><i class="green"></i> Printing</span
             ><strong id="printing">00</strong
-            ><small>Last reported running</small></button
-          ><button data-filter="attention">
-            <span><i class="orange"></i> Needs attention</span
+            ><small>Last reported running</small></div
+          ><div class="summary-item">
+            <span><i class="orange"></i> Attention</span
             ><strong class="amber" id="attention">00</strong
-            ><small>Unreviewed conditions</small></button
-          ><button data-filter="unavailable">
+            ><small>Unreviewed conditions</small></div
+          ><div class="summary-item">
             <span><i class="gray"></i> Unavailable</span
             ><strong id="unavailable">00</strong
             ><small>Missing, stale, or disconnected</small>
-          </button>
+          </div>
         </section>
         <div id="feed-warning" class="feed-warning" role="status" hidden></div>
         <div class="attention-banner" hidden>
@@ -111,19 +73,14 @@
           </div>
           <button id="review">Inspect conditions <span>↗</span></button>
         </div>
-        <section class="fleet">
-          <div class="section-title">
-            <h2>Printers <span id="visible-count">0</span></h2>
-            <span class="subtle"
-              >Selection stays with your printer as updates arrive.</span
-            >
-          </div>
+        <section class="fleet" aria-label="Printers">
           <div class="toolbar">
             <div class="filters" role="group" aria-label="Filter printers">
-              <button class="selected" data-filter="all">All printers</button
-              ><button data-filter="printing">Printing</button
-              ><button data-filter="attention">Attention</button
-              ><button data-filter="unavailable">Unavailable</button>
+              <button class="selected" data-filter="all" aria-pressed="true">All printers <span id="all-count">0</span></button
+              ><button data-filter="printing" aria-pressed="false">Printing <span id="printing-count">0</span></button
+              ><button data-filter="idle" aria-pressed="false" aria-describedby="idle-filter-help">Idle / finished <span id="idle-count">0</span></button
+              ><button data-filter="attention" aria-pressed="false">Attention <span id="attention-count">0</span></button
+              ><button data-filter="unavailable" aria-pressed="false">Unavailable <span id="unavailable-count">0</span></button>
             </div>
             <div class="tools">
               <label class="search"
@@ -132,35 +89,42 @@
                   id="search"
                   placeholder="Find a printer…"
                   aria-label="Find a printer" /></label
-              ><select id="sort" aria-label="Sort printers">
-                <option value="name">Name ↑</option>
-                <option value="attention">Attention first</option>
-                <option value="state">State</option>
-              </select>
+              ><div class="sort-control">
+                <select id="sort" aria-label="Sort printers">
+                  <option value="name">Name ↑</option>
+                  <option value="attention">Attention first</option>
+                  <option value="state">State</option>
+                </select>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
             </div>
           </div>
+          <p id="idle-filter-help" class="filter-help" hidden>Online printers reporting Idle or Finished with current telemetry. This does not confirm the build plate is clear or the printer is ready for another job.</p>
           <div id="cards" class="cards">
             <div class="empty">Waiting for a monitoring snapshot…</div>
           </div>
-          <div class="fleet-bottom">
-            <span id="result-count">Waiting for data</span
-            ><span
-              >Availability and attention may overlap reported print
-              states.</span
-            >
-          </div>
+          <p class="result-count" id="result-count">Waiting for data</p>
         </section>
-        <footer>
-          <span
-            ><i class="tiny-dot"></i> Bambu TUI
-            <span class="muted">/ browser monitor</span></span
-          ><span
-            >Monitor here. Manage your printers in Bambu's applications.</span
-          ><span id="clock"></span>
-        </footer>
       </main>
     </div>
-    <dialog id="detail">
+    <footer>
+      <span class="live" id="feed-state" role="status">Connecting…</span
+      ><span
+        >Monitor here. Manage your printers in Bambu's applications.</span
+      ><a
+        class="footer-repo"
+        href="https://github.com/cliffom/bambustand"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Bambu Stand on GitHub (opens in a new tab)"
+        title="Bambu Stand on GitHub"
+        ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+          <path d="M12 .297C5.37.297 0 5.67 0 12.297c0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.043-1.61-4.043-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.73.083-.73 1.205.084 1.838 1.237 1.838 1.237 1.07 1.835 2.807 1.305 3.492.998.108-.776.418-1.305.762-1.605-2.665-.305-5.467-1.334-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.5 11.5 0 0 1 3-.404c1.02.005 2.045.138 3 .404 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.922.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+        </svg></a>
+    </footer>
+    <dialog id="detail" aria-labelledby="detail-title">
       <div class="dialog-header">
         <div>
           <div class="eyebrow">PRINTER INSPECTION</div>
@@ -172,7 +136,12 @@
           aria-label="Close printer details"
         ></button>
       </div>
-      <div id="detail-body"></div>
+      <div class="detail-tabs" role="tablist" aria-label="Printer inspection">
+        <button id="detail-tab-status" role="tab" data-detail-tab="status" aria-selected="true" aria-controls="detail-body">Status</button>
+        <button id="detail-tab-filament" role="tab" data-detail-tab="filament" aria-selected="false" aria-controls="detail-body" tabindex="-1">Filament</button>
+        <button id="detail-tab-notices" role="tab" data-detail-tab="notices" aria-selected="false" aria-controls="detail-body" tabindex="-1">Notices</button>
+      </div>
+      <div id="detail-body" role="tabpanel" aria-labelledby="detail-tab-status" tabindex="0"></div>
       <div class="dialog-footer">
         Monitoring & local notices · Close with <kbd>Esc</kbd>
       </div>
@@ -187,6 +156,18 @@
           autofocus
         ></button>
       </div>
+      <section class="theme-panel" aria-labelledby="theme-heading">
+        <h2 id="theme-heading">Appearance</h2>
+        <label for="theme-select">Theme</label>
+        <div class="sort-control">
+        <select id="theme-select" aria-describedby="theme-help theme-status" disabled>
+          <option value="host">Follow host (configured theme)</option>
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" /></svg>
+        </div>
+        <p id="theme-help">Follow the TUI configuration, or choose a bundled theme for this browser. This leaves the host configuration unchanged.</p>
+        <p id="theme-status" role="status" aria-live="polite">Loading themes…</p>
+      </section>
       <section class="notification-panel" aria-labelledby="notification-heading">
         <div>
           <h2 id="notification-heading">Browser notifications</h2>
@@ -211,7 +192,7 @@
         ></button>
       </div>
       <p>
-        This dashboard shares the existing Bambu TUI monitoring session. It
+        This dashboard shares the existing Bambu Stand monitoring session. It
         refreshes every three seconds while visible, and best-effort while hidden when browser notifications are enabled. Suspended or closed pages cannot deliver notifications. Stop the monitoring process
         to stop the server. In terminal mode, you can also disable Web Server
         in Config (,). Closing browser tabs leaves monitoring running.
@@ -220,7 +201,15 @@
         The server listens only on 127.0.0.1 and has no authentication. Other
         programs and users on this computer can read display data and hide notices locally. Keep it local; remote
         access is not supported. For a terminal-free synthetic demo, run
-        bambu-tui serve --demo; use bambu-tui serve for cloud-backed monitoring after saving a login.
+        bambustand serve --demo; use bambustand serve for cloud-backed monitoring after saving a login.
+      </p>
+      <p>
+        Filters and sorting preserve your printer selection as updates arrive. The Idle / finished filter includes only currently available online printers explicitly reporting Idle or Finished. Offline, stale, missing, and unknown states are excluded; a finished job does not establish that the build plate is clear. Search narrows the selected filter.
+      </p>
+      <p>
+        Scrolling the farm compacts the header. The filter, search, and sort toolbar
+        stays beneath it once reached. Return to the top to expand the header.
+        In small workspaces, the toolbar scrolls with the cards to keep them reachable.
       </p>
       <p>
         Sorting always places online non-idle printers first, reported idle or
@@ -229,17 +218,29 @@
         idle for ordering only; stale readings remain last-known.
       </p>
       <p>
+        Summary totals cover the whole farm. Printing describes the last reported
+        state; availability and attention may overlap reported print states.
+        These counts are not intended to add up.
+      </p>
+      <p>
         Printer names, job names, and normalized telemetry appear here.
         Credentials, raw payloads, account information, and printer serial
         identifiers are excluded.
+      </p>
+      <p>
+        Printer inspection has Status, Filament, and Notices tabs. Card opening
+        starts at Status; Review and notification clicks open Notices. Use Left/Right,
+        Home/End on the tabs, then Tab to enter the scrolling panel. Tabs and Close
+        stay visible; updates keep your tab, focus, and reading position.
       </p>
       <p>
         Inspecting a condition does not acknowledge, hide, snooze, or physically
         resolve it. Hide a notice locally here; terminal mode also offers acknowledgement, snooze, and restoration. Demo decisions are session-only. Use the printer or
         Bambu's applications for physical intervention.
       </p>
-      <div class="dialog-footer">Bambu TUI · Read-only farm monitoring</div>
+      <div class="dialog-footer">Bambu Stand · Read-only farm monitoring</div>
     </dialog>
+    <script src="themes.js"></script>
     <script src="notifications.js"></script>
     <script src="app.js"></script>
   </body>

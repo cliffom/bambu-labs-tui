@@ -1,25 +1,25 @@
-# Bambu TUI
+# Bambu Stand
 
 Read-only Bambu Cloud monitoring for your terminal. This guide is included as `README.md` in binary release archives.
 
 ## Install and run
 
-Download the archive for your machine and its checksum manifest from [GitHub Releases](https://github.com/cliffom/bambu-tui/releases). From v0.2.1, Mac downloads use `macos_arm64` (Apple silicon) or `macos_amd64` (Intel); Linux downloads use `linux_arm64` or `linux_amd64`. Earlier Mac downloads use `darwin` in place of `macos`.
+Download the archive for your machine and its checksum manifest from [GitHub Releases](https://github.com/cliffom/bambustand/releases). From v0.2.1, Mac downloads use `macos_arm64` (Apple silicon) or `macos_amd64` (Intel); Linux downloads use `linux_arm64` or `linux_amd64`. Earlier Mac downloads use `darwin` in place of `macos`.
 
 Compare `shasum -a 256 <archive.tar.gz>` (or `sha256sum` on Linux) with the matching manifest entry, then extract with `tar -xzf <archive.tar.gz>`. From the extracted directory:
 
 ```sh
-./bambu-tui --version
-./bambu-tui --demo
-./bambu-tui login --email-code
-./bambu-tui
+./bambustand --version
+./bambustand --demo
+./bambustand login --email-code
+./bambustand
 ```
 
 The demo needs no account or printer. For login, enter the email bound to your Bambu account and the emailed code. Press `?` for dashboard controls and `q` to quit.
 
-For a browser demo without a terminal UI, run `./bambu-tui serve --demo` (optionally `--config ./config.toml`) and open the printed localhost URL. Stop with `Ctrl+C`. It uses synthetic data and session-only notice decisions; native notifications are disabled. Real-printer monitoring still requires the TUI. See [demo server guidance](https://github.com/cliffom/bambu-tui/blob/main/docs/user/usage.md#terminal-free-demo-server).
+For a browser demo without a terminal UI, run `./bambustand serve --demo` (optionally `--config ./config.toml`) and open the printed localhost URL. Stop with `Ctrl+C`. It uses synthetic data and session-only notice decisions; native notifications are disabled. For real printers, save a login and run `./bambustand serve` or keep the TUI running. See [demo server guidance](https://github.com/cliffom/bambustand/blob/main/docs/user/usage.md#terminal-free-demo-server).
 
-On macOS, keep `Bambu TUI Notify.app` beside `bambu-tui`, including when moving the executable to a directory on your `PATH`. Signed releases include a Developer ID-signed, notarized CLI and helper; no Go, Swift, or Apple Developer account is needed to run them. Linux archives contain the CLI without the helper.
+On macOS, keep `Bambu Stand Notify.app` beside `bambustand`, including when moving the executable to a directory on your `PATH`. Signed releases include a Developer ID-signed, notarized CLI and helper; no Go, Swift, or Apple Developer account is needed to run them. Linux archives contain the CLI without the helper.
 
 ## Configure notifications
 
@@ -30,9 +30,11 @@ The included `config.example.toml` documents available settings. It is not loade
 ```sh
 cp config.example.toml config.toml
 # Edit config.toml before running.
-./bambu-tui --config ./config.toml
+./bambustand --config ./config.toml
 ```
 
-For Bambu's China region, set `region = "china"` before logging in. See the [user guide](https://github.com/cliffom/bambu-tui/blob/main/docs/user/usage.md) for default config locations and login troubleshooting, [alert documentation](https://github.com/cliffom/bambu-tui/blob/main/docs/user/alerts.md) for notification settings, and the [documentation index](https://github.com/cliffom/bambu-tui/blob/main/docs/README.md) for full help.
+For Bambu's China region, set `region = "china"` before logging in. See the [user guide](https://github.com/cliffom/bambustand/blob/main/docs/user/usage.md) for default config locations and login troubleshooting, [alert documentation](https://github.com/cliffom/bambustand/blob/main/docs/user/alerts.md) for notification settings, and the [documentation index](https://github.com/cliffom/bambustand/blob/main/docs/README.md) for full help.
 
 Licensed under MIT (see the included `LICENSE`); Go and dependency notices are in `THIRD_PARTY_NOTICES.txt`. This project is not affiliated with Bambu Lab.
+
+Upgrading from Bambu TUI: replace CLI invocations with `bambustand` and keep the new helper beside it. Existing configuration, saved logins, local decisions, and notification history remain in their original locations. See [upgrade compatibility](https://github.com/cliffom/bambustand/blob/main/docs/user/usage.md#upgrading-from-bambu-tui).

@@ -2,10 +2,11 @@
 // Page-bound delivery only: no push subscription, service worker, or background
 // service. The server durably claims each automatic attempt before returning it.
 const browserNotifications = (() => {
+  // Keep the original key so upgrades preserve this origin’s preferences.
   const preference = "bambu-tui.browser-notifications.v1";
   const element = (id) => document.querySelector("#" + id);
   let optedIn = false, busy = false, permissionPending = false;
-  let token = null, cursor = null, lastPoll = 0, generation = 0, message = "";
+  let token = null, cursor = null, lastPoll = 0, generation = 0, message = "", capacityWarning = "";
   try { optedIn = localStorage.getItem(preference) === "on"; } catch {
     message = "Browser storage unavailable; enable is session-only.";
   }
@@ -19,7 +20,7 @@ const browserNotifications = (() => {
   }
   function enabled() { return optedIn && permitted(); }
   function render() {
-    element("notification-status").textContent = `${capability()} · Automatic: ${enabled() ? "On" : "Off"}${message ? " · " + message : ""}`;
+    element("notification-status").textContent = `${capability()} · Automatic: ${enabled() ? "On" : "Off"}${message ? " · " + message : ""}${capacityWarning ? " · " + capacityWarning : ""}`;
     element("enable-notifications").disabled = permissionPending || enabled() || typeof Notification === "undefined" || !window.isSecureContext;
     element("test-notifications").disabled = permissionPending || typeof Notification === "undefined" || !window.isSecureContext;
     element("disable-notifications").disabled = !optedIn;
@@ -69,7 +70,7 @@ const browserNotifications = (() => {
         for (const id of ["about-dialog", "settings-dialog"]) {
           if (element(id).open) element(id).close();
         }
-        inspect(event.printer);
+        inspect(event.printer, "notices");
       }
       notification.close();
     };
@@ -102,6 +103,7 @@ const browserNotifications = (() => {
         message = "Notification polling paused; resuming establishes a new baseline without backlog.";
         return;
       }
+      capacityWarning = result.warning || "";
       if (result.error) { message = result.error; cursor = null; return; }
       if (cursor === null) message = "Listening for new events. Existing events form a baseline; suspended or closed pages cannot deliver.";
       cursor = result.cursor;
@@ -132,7 +134,7 @@ const browserNotifications = (() => {
   };
   element("test-notifications").onclick = async () => {
     if (!(await permission())) return;
-    try { submit({title: "Bambu TUI browser test", body: "Synthetic notification. Banner and sound are unconfirmed; automatic delivery preferences are unchanged.", sound: false}, true); }
+    try { submit({title: "Bambu Stand browser test", body: "Synthetic notification. Banner and sound are unconfirmed; automatic delivery preferences are unchanged.", sound: false}, true); }
     catch { message = "Notification constructor unavailable or rejected. Check browser and OS settings."; }
     render();
   };

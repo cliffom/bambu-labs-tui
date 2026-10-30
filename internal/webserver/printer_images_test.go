@@ -39,14 +39,14 @@ func TestPrinterModelImagesAndUnknownFallback(t *testing.T) {
 		}
 	}
 	state, now := syntheticState(t)
-	if got := decodeSnapshot(t, SnapshotJSON(state, now, true)).Printers[0].Image; got != printerImages["h2d"] {
+	if got := decodeSnapshot(t, snapshotJSON(state, now, true)).Printers[0].Image; got != printerImages["h2d"] {
 		t.Fatal("snapshot omitted known model artwork", got)
 	}
 	p := state.Printers["PRIVATE-SERIAL"]
 	p.Name = "H2D"
 	p.Model = "Unknown"
 	p.ModelCode = ""
-	if got := decodeSnapshot(t, SnapshotJSON(state, now, true)).Printers[0].Image; got != "" {
+	if got := decodeSnapshot(t, snapshotJSON(state, now, true)).Printers[0].Image; got != "" {
 		t.Fatal("user-assigned name selected model artwork")
 	}
 }

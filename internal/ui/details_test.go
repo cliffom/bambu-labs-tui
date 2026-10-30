@@ -5,9 +5,44 @@ import (
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
+
+func TestJobNameUpdatesDuringRunningSession(t *testing.T) {
+	for _, size := range [][2]int{{60, 18}, {120, 32}, {160, 50}} {
+		m := demoModel()
+		next, _ := m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
+		m = next.(Model)
+		m = attentionReport(t, m, "H", `{"print":{"task_id":"previous","subtask_id":"previous","gcode_state":"FINISH","subtask_name":"Previous job"}}`)
+		for _, step := range []struct{ payload, want string }{
+			{`{"print":{"gcode_state":"PREPARE","gcode_file":"plate_2.gcode","task_id":0,"subtask_id":"0"}}`, "plate_2.gcode"},
+			{`{"print":{"subtask_name":"Fixture next"}}`, "Fixture next"},
+			{`{"print":{"subtask_id":"next"}}`, "Fixture next"},
+			{`{"print":{"task_id":"next"}}`, "Fixture next"},
+			{`{"print":{"gcode_state":"RUNNING","mc_percent":0}}`, "Fixture next"},
+			{`{"print":{"bed_temper":25}}`, "Fixture next"},
+		} {
+			m = attentionReport(t, m, "H", step.payload)
+			if m.current().ID != "H" || m.focus != panelPrinters {
+				t.Fatal("job update changed selection or focus")
+			}
+			details := ansi.Strip(m.detailText(size[0]))
+			if !strings.Contains(details, "Job Name:        "+step.want) || strings.Contains(details, "Previous job") {
+				t.Fatalf("width %d: details did not update job name:\n%s", size[0], details)
+			}
+			if size[0] >= fullTableWidth && !strings.Contains(ansi.Strip(m.printerRow(m.selection)), step.want) {
+				t.Fatalf("width %d: table did not update job name", size[0])
+			}
+			for _, line := range strings.Split(m.View(), "\n") {
+				if ansi.StringWidth(line) > size[0] {
+					t.Fatalf("job update exceeded %d columns", size[0])
+				}
+			}
+		}
+	}
+}
 
 // TestDetailFieldsAlignAndWrap preserves complete values in narrow detail panels.
 func TestDetailFieldsAlignAndWrap(t *testing.T) {

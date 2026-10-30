@@ -3,7 +3,7 @@ package ui
 import (
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/session"
+	"github.com/cliffom/bambustand/internal/session"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/alertstore"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/noticestore"
+	"github.com/cliffom/bambustand/internal/alertstore"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/noticestore"
 	"golang.org/x/sys/unix"
 )
 
@@ -38,6 +38,7 @@ func Open(region, username string) (*Store, error) {
 		return nil, errors.New("cannot locate account persistence directory")
 	}
 	id := sha256.Sum256([]byte(region + "\x00" + username))
+	// Retain the original namespace for upgrade compatibility; see docs/user/usage.md.
 	dir = filepath.Join(dir, "bambu-tui", "sessions")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, errors.New("cannot create account persistence ownership directory; check configuration directory access")

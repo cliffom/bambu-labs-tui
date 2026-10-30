@@ -9,6 +9,7 @@ const (
 	commandLogout               = "logout"
 	commandDoctor               = "doctor"
 	commandServe                = "serve"
+	commandCompact              = "compact-notifications"
 	notificationShutdownTimeout = 5 * time.Second
 	eventBufferSize             = 128
 	promptWidth                 = 48

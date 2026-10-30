@@ -58,7 +58,7 @@ func TestPTYServeCloudReconnectAndAuthenticationFailure(t *testing.T) {
 			t.Logf("%s frame:\n%s", step.text, ansi.Strip(string(frame[start:])))
 		}
 	}
-	child.expect(t, 0, "run bambu-tui login")
+	child.expect(t, 0, "run bambustand login")
 	child.exited(t, 1)
 	assertWebClosed(t, address)
 	output, _ := child.transcript()

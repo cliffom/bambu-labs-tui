@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/buildinfo"
+	"github.com/cliffom/bambustand/internal/buildinfo"
 )
 
 // versionLabel uses the same build metadata as --version, bounded for terminal layout.
@@ -36,7 +36,7 @@ func (m Model) dashboardHeader() string {
 	if m.ended && !m.Demo {
 		connection = m.styles.err.Render("SIGN-IN REQUIRED")
 	}
-	prefix := m.styles.accent.Bold(true).Render("BAMBU TUI ")
+	prefix := m.styles.accent.Bold(true).Render("BAMBU STAND ")
 	suffix := m.styles.secondary.Render(" / "+mode+" ") + connection + m.styles.secondary.Render(" / FARM")
 	version := ansi.Truncate(versionLabel(), max(1, m.width-ansi.StringWidth(prefix+suffix)), "…")
 	header := prefix + m.styles.secondary.Render(version) + suffix

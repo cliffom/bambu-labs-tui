@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 type (

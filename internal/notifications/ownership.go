@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/notification_state"
 )
 
 const (

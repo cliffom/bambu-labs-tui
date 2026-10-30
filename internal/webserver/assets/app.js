@@ -23,6 +23,9 @@ const labels = {
 const stateLabel = (state) => labels[state] || state || "Unknown";
 let commandPending = null, commandMessage = "";
 let showHiddenMessages = false;
+const detailTabs = ["status", "filament", "notices"];
+let detailTab = "status", detailScroll = {};
+let restoringCardFocus = false;
 let csrfToken = null;
 let snapshot = null,
   filter = "all",
@@ -36,6 +39,7 @@ const feedDelayed = () =>
   snapshot && Date.now() - Date.parse(snapshot.at) > 10000;
 const feedUnavailable = () => feedError || feedDelayed();
 const current = (p) => p.fresh && !feedUnavailable();
+const idleFinished = (p) => p.idle_finished === true && p.online === true && current(p) && snapshot?.connected === true;
 const prefix = (p) => (current(p) ? "" : "Last-known · ");
 const status = (p) =>
   feedUnavailable()
@@ -66,7 +70,7 @@ function swatch(color) {
   const match = /^(?:#)?([a-f\d]{6})(?:[a-f\d]{2})?$/i.exec(color || "");
   return match
     ? `<span class="swatch" style="background:#${match[1]}" title="#${match[1]}"></span>`
-    : '<span class="swatch" title="Unknown color" style="border:1px solid #a0aaa2"></span>';
+    : '<span class="swatch" title="Unknown color" style="border:1px solid var(--muted)"></span>';
 }
 function allSlots(p) {
   return [...p.ams.flatMap((unit) => unit.slots), ...p.external];
@@ -78,14 +82,21 @@ function printerGroup(p) {
   return p.state === "IDLE" || p.state === "FINISH" ? 1 : 0;
 }
 const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+function matchesFilter(p, choice) {
+  return choice === "all" ||
+    (choice === "printing" && p.state === "RUNNING") ||
+    (choice === "idle" && idleFinished(p)) ||
+    (choice === "attention" && p.attention) ||
+    (choice === "unavailable" && !p.fresh);
+}
+function filterCount(choice) {
+  return (snapshot?.printers || []).filter(p => matchesFilter(p, choice)).length;
+}
 function visible() {
   return (snapshot?.printers || [])
     .filter(
       (p) =>
-        (filter === "all" ||
-          (filter === "printing" && p.state === "RUNNING") ||
-          (filter === "attention" && p.attention) ||
-          (filter === "unavailable" && !p.fresh)) &&
+        matchesFilter(p, filter) &&
         p.name.toLowerCase().includes(query.toLowerCase()),
     )
     .sort((a, b) => {
@@ -107,17 +118,23 @@ function machine(p) {
   return `<svg viewBox="0 0 160 150" fill="none" aria-hidden="true"><path d="M25 132L82 144L142 127L84 116Z" fill="#0d110e"/><path d="M29 29L88 16L134 29V124L80 137L29 123Z" fill="#424e46" stroke="#68796c"/><path d="M35 34L81 44V128L35 118Z" fill="#222c25" stroke="#657569"/><path d="M81 44L127 34V118L81 128Z" fill="#101c14" stroke="#657569"/><path d="M29 29L81 41L134 29L88 16Z" fill="#657269"/><path d="M40 39L75 47V117L40 110Z" fill="#19261d"/><path d="M87 48L121 40V111L87 119Z" fill="#1a2920"/><path d="M45 98L84 106L119 97L80 90Z" fill="#66796b"/><path d="M45 98V103L84 112L119 102V97L84 106Z" fill="#3c5042"/><path d="M84 54V96M113 46V95M45 50V95" stroke="#536559" stroke-width="2"/><path d="M45 59L116 69M45 65L116 75" stroke="#66786b" stroke-width="2"/><path d="M75 63L88 66V81L75 78Z" fill="#b3c5b6"/><path d="M88 66L96 63V78L88 81Z" fill="#6d8574"/><path d="M69 89L85 85L99 89V99L84 103L69 99Z" fill="${color}"/><path d="M39 28L62 22L78 26L55 32Z" fill="#9aaba0"/></svg>`;
 }
 function card(p) {
+  const offline = p.online === false;
+  const label = offline ? "Offline" : status(p);
+  const heading = `<div class="card-head"><div><h3>${escapeHTML(p.name)}</h3><span class="model">${escapeHTML(p.model || "Unknown model")}</span></div><span class="pill ${p.attention || !current(p) ? "warn" : p.state === "IDLE" ? "neutral" : ""}">${escapeHTML(label)}</span></div><div class="printer-view">${machine(p)}</div>`;
+  const attention = p.attention ? '<p class="card-note">◇ Attention · unreviewed conditions</p>' : "";
+  const opening = `<button class="card ${p.attention ? "warning" : ""}${offline ? " offline" : ""}" data-id="${escapeHTML(p.id)}" aria-label="Inspect ${escapeHTML(p.name)}, ${escapeHTML(label)}">`;
+  if (offline) return `${opening}${heading}${attention}</button>`;
   const slots = allSlots(p).filter((s) => s.present !== false),
     nozzle = p.nozzles.find((n) => n.active) || p.nozzles[0];
   const progress = Number.isFinite(p.progress)
     ? Math.max(0, Math.min(100, p.progress))
     : null;
-  return `<button class="card ${p.attention ? "warning" : ""}" data-id="${escapeHTML(p.id)}" aria-label="Inspect ${escapeHTML(p.name)}, ${escapeHTML(status(p))}"><div class="card-head"><div><h3>${escapeHTML(p.name)}</h3><span class="model">${escapeHTML(p.model || "Unknown model")}</span></div><span class="pill ${p.attention || !current(p) ? "warn" : p.state === "IDLE" ? "neutral" : ""}">${escapeHTML(status(p))}</span></div><div class="printer-view">${machine(p)}<span class="machine-state">${p.attention ? "INSPECT CONDITIONS" : !current(p) ? "CURRENT STATE UNCONFIRMED" : "MONITORING"}</span></div><div class="job">${escapeHTML(p.job || "No reported job")}</div><div class="progress-label"><span>${prefix(p)}Reported progress</span><strong>${progress === null ? "Unknown" : progress + "%"}</strong></div><div class="progress-track"><span style="width:${progress || 0}%"></span></div><div class="metrics"><div>Finish estimate<strong>${escapeHTML(remaining(p))}</strong></div><div>${prefix(p)}Nozzle<strong>${temperature(nozzle?.temperature)}</strong></div><div>${prefix(p)}Bed<strong>${temperature(p.bed)}</strong></div></div><div class="card-bottom"><div class="swatches">${slots
+  return `${opening}${heading}${!current(p) ? '<p class="card-note telemetry-note">Current state unconfirmed · readings are last-known; missing values remain unknown.</p>' : ""}<div class="job">${escapeHTML(p.job || "No reported job")}</div><div class="progress-label"><span>Reported progress</span><strong>${progress === null ? "Unknown" : progress + "%"}</strong></div><div class="progress-track"><span style="width:${progress || 0}%"></span></div><div class="metrics"><div>Finish estimate<strong>${escapeHTML(remaining(p))}</strong></div><div>Nozzle<strong>${temperature(nozzle?.temperature)}</strong></div><div>Bed<strong>${temperature(p.bed)}</strong></div></div><div class="card-bottom"><div class="swatches">${slots
     .slice(0, 4)
     .map((s) => swatch(s.color))
     .join(
       "",
-    )}<span>${prefix(p)}${escapeHTML(slots[0]?.material || "Unknown material")}</span></div><span>${current(p) ? '<i class="green"></i>Fresh' : "◷ Last-known"}</span></div>${p.attention ? '<p class="card-note">◇ Action needed · unreviewed conditions</p>' : !current(p) ? '<p class="card-note">Current state unconfirmed · last-known readings</p>' : ""}</button>`;
+    )}<span>${escapeHTML(slots[0]?.material || "Unknown material")}</span></div><span>${current(p) ? '<i class="green"></i>Fresh' : "◷ Last-known"}</span></div>${attention}</button>`;
 }
 // Keep connected card/image elements across polls. Replacing #cards.innerHTML
 // recreates lazy, async-decoded images even when their immutable URL is unchanged.
@@ -172,43 +189,37 @@ function render() {
   const list = visible(),
     focused = document.activeElement?.dataset.id;
   renderCards(list);
-  if (focused)
-    document
-      .querySelector(`[data-id="${CSS.escape(focused)}"]`)
-      ?.focus({ preventScroll: true });
-  $("#visible-count").textContent = list.length;
-  $("#result-count").textContent =
-    `Showing ${list.length} of ${snapshot?.summary.total || 0} printers`;
+  if (focused) {
+    const target = document.querySelector(`[data-id="${CSS.escape(focused)}"]`)
+      || document.querySelector(`.filters [data-filter="${filter}"]`);
+    // Moving a card can drop DOM focus. Restoring it is not navigation and
+    // must not invoke the workspace's focused-card scroll clearance.
+    restoringCardFocus = true;
+    try {
+      target?.focus({ preventScroll: true });
+    } finally {
+      restoringCardFocus = false;
+    }
+  }
+
+  const total = snapshot?.summary.total || 0;
+  const noun = total === 1 ? "printer" : "printers";
+  $("#result-count").textContent = list.length === total
+    ? `${total} ${noun}`
+    : `${list.length} of ${total} ${noun}`;
   document.querySelectorAll(".filters button").forEach((b) => {
     b.classList.toggle("selected", b.dataset.filter === filter);
     b.setAttribute("aria-pressed", String(b.dataset.filter === filter));
   });
-  document
-    .querySelectorAll(".nav")
-    .forEach((b) =>
-      b.classList.toggle(
-        "active",
-        b.id ===
-          (filter === "attention"
-            ? "nav-attention"
-            : filter === "unavailable"
-              ? "nav-unavailable"
-              : "nav-farm"),
-      ),
-    );
   if (!snapshot) return;
   for (const key of ["total", "printing", "attention", "unavailable"])
     $("#" + key).textContent = String(snapshot.summary[key] || 0).padStart(
       2,
       "0",
     );
-  $("#farm-count").textContent = `${snapshot.summary.total} printers`;
-  $("#nav-total").textContent = snapshot.summary.total;
-  $("#nav-attention-count").textContent = snapshot.summary.attention;
-  $("#nav-unavailable-count").textContent = snapshot.summary.unavailable;
-  $("#farm-mode").textContent = snapshot.demo
-    ? "Synthetic demo farm"
-    : "Cloud monitoring";
+  for (const choice of ["all", "printing", "idle", "attention", "unavailable"])
+    $("#" + choice + "-count").textContent = filterCount(choice);
+  $("#idle-filter-help").hidden = filter !== "idle";
   $(".attention-banner").hidden = !snapshot.summary.attention;
   $("#attention-text").textContent =
     `${snapshot.summary.attention} printer(s) have unreviewed actionable conditions. Physical resolution is unconfirmed.`;
@@ -233,22 +244,30 @@ function slotCards(slots) {
 function renderDetail() {
   const p = snapshot.printers.find((p) => p.id === selected),
     body = $("#detail-body");
+  const scroll = body.scrollTop;
+  const focusedAction = document.activeElement?.dataset.dismiss;
+  const focusedToggle = document.activeElement?.id === "toggle-hidden-messages";
   if (!p) {
     $("#detail-title").textContent = "Printer unavailable";
     body.innerHTML =
       "<p>This printer is no longer in the discovered farm. Its removal does not confirm fault resolution.</p>";
+    if (focusedAction || focusedToggle) $("#close-detail").focus({preventScroll: true});
+    body.scrollTop = scroll;
     return;
   }
-  const scroll = $("#detail").scrollTop;
-  const focusedAction = document.activeElement?.dataset.dismiss;
-  const focusedToggle = document.activeElement?.id === "toggle-hidden-messages";
   const hiddenCount = p.conditions.filter((c) => c.hidden).length;
   const conditions = p.conditions.filter((c) => showHiddenMessages || !c.hidden);
   $("#detail-title").textContent = p.name;
+  $("#detail-title").title = p.name;
   const metric = (label, value) =>
     `<div>${prefix(p)}${label}<strong>${value}</strong></div>`;
-  body.innerHTML = `<span class="pill ${current(p) ? "" : "warn"}">${escapeHTML(status(p))}</span><p>${escapeHTML(p.model || "Unknown model")} · Last report: ${escapeHTML(localTime(p.last_report))}<br>${current(p) ? "Readings from the latest monitoring snapshot." : "Current state is unconfirmed. Available readings are last-known; missing values remain unknown."}</p><h2>${escapeHTML(p.job || "No reported job")}</h2><p>${prefix(p)}Stage: ${escapeHTML(p.stage || "Unknown")}</p><div class="detail-grid">${metric("Reported state", escapeHTML(stateLabel(p.state)))}${metric("Progress", p.progress === null ? "Unknown" : unknown(p.progress) + "%")}${metric("Layer", unknown(p.layer) + " / " + unknown(p.total_layers))}${metric("Bed / target", temperature(p.bed))}${metric("Chamber", temperature(p.chamber))}${metric("Finish estimate", escapeHTML(remaining(p)))}</div><div class="temperature-list">${p.nozzles.map((n) => `<span>${prefix(p)}${n.id === 0 ? "Right nozzle" : n.id === 1 ? "Left nozzle" : "Nozzle " + unknown(n.id)}: ${temperature(n.temperature)}${n.active ? " · reported active" : ""}</span>`).join("") || "Nozzle readings unknown"}</div><p class="muted">Remaining-time report: ${escapeHTML(localTime(p.remaining_reported))}. Estimates do not confirm completion.</p><div class="conditions"><h2>Reported conditions</h2><p role="status" aria-live="polite">${escapeHTML(commandMessage)}</p><p>Local decision storage: ${escapeHTML(snapshot.decisions || "Unknown")}. Hiding never fixes the printer.</p>${hiddenCount ? `<p><button id="toggle-hidden-messages" aria-pressed="${showHiddenMessages}">${showHiddenMessages ? "Hide hidden messages" : "View hidden messages"} (${hiddenCount})</button></p>` : ""}${conditions.length ? conditions.map((c) => `<div class="condition"><h3>${escapeHTML(c.text)}</h3>${c.guidance ? `<p><strong>Next:</strong> ${escapeHTML(c.guidance)}</p>` : ""}<p class="meta">${escapeHTML(c.level)} · Code: ${escapeHTML(c.code || "Not provided")}<br>Local review: ${c.reviewed ? "Reviewed" : "Unreviewed"}${c.hidden ? " · Hidden locally" : ""}<br>First app-observed: ${escapeHTML(localTime(c.since))}</p><p>Physical resolution is unconfirmed. Inspecting this view makes no local notice decision.</p>${!c.hidden ? `<button data-dismiss="${escapeHTML(c.id)}" aria-disabled="${Boolean(commandPending || feedUnavailable())}">${commandPending === c.id ? "Pending…" : "Hide notice locally"}</button>` : snapshot.decisions === "failed" ? `<button data-dismiss="${escapeHTML(c.id)}" data-retry="true" aria-disabled="${Boolean(commandPending || feedUnavailable())}">Retry saving local decisions</button>` : `<p>Applied locally · ${escapeHTML(snapshot.decisions || "storage unknown")}</p>`}</div>`).join("") : p.conditions.length ? "<p>All reported messages are hidden locally. Physical resolution remains unconfirmed.</p>" : "<p>No active notices in this snapshot. Missing or disconnected data does not confirm physical fault resolution.</p>"}</div><h2 style="margin-top:25px">${prefix(p)}AMS & filament</h2>${p.ams.length ? p.ams.map((unit) => `<p>${escapeHTML(unit.label)} · Humidity: ${unit.humidity === null ? "Unknown" : unknown(unit.humidity) + "%"} · Temperature: ${unit.temperature === null ? "Unknown" : unknown(unit.temperature) + "°C"}</p>${slotCards(unit.slots)}`).join("") : "<p>AMS configuration unknown.</p>"}<h2 style="margin-top:20px">${prefix(p)}External filament</h2>${slotCards(p.external)}`;
-  $("#detail").scrollTop = scroll;
+  const content = {
+    status: `<span class="pill ${current(p) ? "" : "warn"}">${escapeHTML(status(p))}</span><p>${escapeHTML(p.model || "Unknown model")} · Last report: ${escapeHTML(localTime(p.last_report))}<br>${current(p) ? "Readings from the latest monitoring snapshot." : "Current state is unconfirmed. Available readings are last-known; missing values remain unknown."}</p><h2>${escapeHTML(p.job || "No reported job")}</h2><p>${prefix(p)}Stage: ${escapeHTML(p.stage || "Unknown")}</p><div class="detail-grid">${metric("Reported state", escapeHTML(stateLabel(p.state)))}${metric("Progress", p.progress === null ? "Unknown" : unknown(p.progress) + "%")}${metric("Layer", unknown(p.layer) + " / " + unknown(p.total_layers))}${metric("Bed / target", temperature(p.bed))}${metric("Chamber", temperature(p.chamber))}${metric("Finish estimate", escapeHTML(remaining(p)))}</div><div class="temperature-list">${p.nozzles.map((n) => `<span>${prefix(p)}${n.id === 0 ? "Right nozzle" : n.id === 1 ? "Left nozzle" : "Nozzle " + unknown(n.id)}: ${temperature(n.temperature)}${n.active ? " · reported active" : ""}</span>`).join("") || "Nozzle readings unknown"}</div><p class="muted">Remaining-time report: ${escapeHTML(localTime(p.remaining_reported))}. Estimates do not confirm completion.</p>`,
+    filament: `<h2>${prefix(p)}AMS & filament</h2>${p.ams.length ? p.ams.map((unit) => `<p>${escapeHTML(unit.label)} · Humidity: ${unit.humidity === null ? "Unknown" : unknown(unit.humidity) + "%"} · Temperature: ${unit.temperature === null ? "Unknown" : unknown(unit.temperature) + "°C"}</p>${slotCards(unit.slots)}`).join("") : "<p>AMS configuration unknown.</p>"}<h2>${prefix(p)}External filament</h2>${slotCards(p.external)}`,
+    notices: `<div class="conditions"><h2>Reported conditions</h2><p role="status" aria-live="polite">${escapeHTML(commandMessage)}</p><p>Local decision storage: ${escapeHTML(snapshot.decisions || "Unknown")}. Hiding never fixes the printer.</p>${hiddenCount ? `<p><button id="toggle-hidden-messages" aria-pressed="${showHiddenMessages}">${showHiddenMessages ? "Hide hidden messages" : "View hidden messages"} (${hiddenCount})</button></p>` : ""}${conditions.length ? conditions.map((c) => `<div class="condition"><h3>${escapeHTML(c.text)}</h3>${c.guidance ? `<p><strong>Next:</strong> ${escapeHTML(c.guidance)}</p>` : ""}<p class="meta">${escapeHTML(c.level)} · Code: ${escapeHTML(c.code || "Not provided")}<br>Local review: ${c.reviewed ? "Reviewed" : "Unreviewed"}${c.hidden ? " · Hidden locally" : ""}<br>First app-observed: ${escapeHTML(localTime(c.since))}</p><p>Physical resolution is unconfirmed. Inspecting this view makes no local notice decision.</p>${!c.hidden ? `<button data-dismiss="${escapeHTML(c.id)}" aria-disabled="${Boolean(commandPending || feedUnavailable())}">${commandPending === c.id ? "Pending…" : "Hide notice locally"}</button>` : snapshot.decisions === "failed" ? `<button data-dismiss="${escapeHTML(c.id)}" data-retry="true" aria-disabled="${Boolean(commandPending || feedUnavailable())}">Retry saving local decisions</button>` : `<p>Applied locally · ${escapeHTML(snapshot.decisions || "storage unknown")}</p>`}</div>`).join("") : p.conditions.length ? "<p>All reported messages are hidden locally. Physical resolution remains unconfirmed.</p>" : "<p>No active notices in this snapshot. Missing or disconnected data does not confirm physical fault resolution.</p>"}</div>`,
+  };
+  body.innerHTML = content[detailTab];
+  body.scrollTop = scroll;
   if (focusedAction) {
     const next = document.querySelector(`[data-dismiss="${CSS.escape(focusedAction)}"]`);
     if (next) next.focus({preventScroll: true});
@@ -258,11 +277,29 @@ function renderDetail() {
     ($("#toggle-hidden-messages") || $("#close-detail")).focus({preventScroll: true});
   }
 }
-function inspect(id) {
+function selectDetailTab(tab, focus = false) {
+  if (!detailTabs.includes(tab)) return;
+  const body = $("#detail-body");
+  detailScroll[detailTab] = body.scrollTop;
+  detailTab = tab;
+  for (const choice of detailTabs) {
+    const button = $("#detail-tab-" + choice);
+    button.setAttribute("aria-selected", String(choice === tab));
+    button.tabIndex = choice === tab ? 0 : -1;
+  }
+  body.setAttribute("aria-labelledby", "detail-tab-" + tab);
+  renderDetail();
+  body.scrollTop = detailScroll[tab] || 0;
+  if (focus) $("#detail-tab-" + tab).focus({preventScroll: true});
+}
+function inspect(id, tab = "status") {
   showHiddenMessages = false;
   selected = id;
-  renderDetail();
+  detailScroll = {};
+  $("#detail-body").scrollTop = 0;
+  selectDetailTab(tab);
   $("#detail").showModal();
+  $("#detail-body").scrollTop = 0;
   $("#detail").scrollTop = 0;
 }
 function updateFeedWarning(message) {
@@ -342,7 +379,19 @@ async function dismissNotice(target, retry) {
     if ($("#detail").open) renderDetail();
   }
 }
+document.addEventListener("keydown", (event) => {
+  const tab = event.target.closest("[data-detail-tab]");
+  if (!tab) return;
+  const index = detailTabs.indexOf(tab.dataset.detailTab);
+  const next = {ArrowRight: (index + 1) % 3, ArrowLeft: (index + 2) % 3,
+    Home: 0, End: 2}[event.key];
+  if (next === undefined) return;
+  event.preventDefault();
+  selectDetailTab(detailTabs[next], true);
+});
 document.addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-detail-tab]");
+  if (tab) { selectDetailTab(tab.dataset.detailTab, true); return; }
   if (event.target.closest("#toggle-hidden-messages")) {
     showHiddenMessages = !showHiddenMessages;
     renderDetail();
@@ -374,31 +423,73 @@ $("#sort").addEventListener("change", (event) => {
   sort = event.target.value;
   render();
 });
-for (const [id, value] of [
-  ["nav-farm", "all"],
-  ["nav-attention", "attention"],
-  ["nav-unavailable", "unavailable"],
-])
-  $("#" + id).onclick = () => {
-    filter = value;
-    render();
-  };
 $("#review").onclick = () => {
   const p = snapshot?.printers.find((p) => p.attention);
-  if (p) inspect(p.id);
+  if (p) inspect(p.id, "notices");
 };
 $("#close-detail").onclick = () => $("#detail").close();
 $("#settings").onclick = () => $("#settings-dialog").showModal();
 $("#close-settings").onclick = () => $("#settings-dialog").close();
 $("#about").onclick = () => $("#about-dialog").showModal();
 $("#close-about").onclick = () => $("#about-dialog").close();
+// The header sits outside the scrolling workspace. Keep the height it releases
+// in the already-scrolled introduction, so collapse never shifts visible cards
+// or changes the scroll range. No animation: geometry and focus stay in sync.
+function setupWorkspaceLayout() {
+  const shell = $(".shell");
+  if (!shell) return;
+  const header = $("header"), toolbar = $(".toolbar");
+  let compact = false;
+  let restoreAnchorFrame = 0;
+  function measure() {
+    const scrollTop = shell.scrollTop;
+    const pageTop = window.scrollY;
+    // Header resizing already compensates in the introduction. Suppress browser
+    // anchoring through the compensated frame, not later telemetry reflow.
+    cancelAnimationFrame(restoreAnchorFrame);
+    shell.style.overflowAnchor = "none";
+    header.classList.remove("compact");
+    const expandedHeight = header.getBoundingClientRect().height;
+    header.classList.toggle("compact", compact);
+    const reclaimed = expandedHeight - header.getBoundingClientRect().height;
+    shell.style.setProperty("--header-reclaimed", `${reclaimed}px`);
+    const toolbarHeight = toolbar.getBoundingClientRect().height;
+    const minimum = Math.min(12 * parseFloat(getComputedStyle(document.documentElement).fontSize), innerHeight / 2);
+    const pin = shell.clientHeight >= toolbarHeight + minimum;
+    shell.classList.toggle("toolbar-scrolls", !pin);
+    // Header measurement can clamp either scroll container. Restore the page
+    // where possible, transferring any lost page offset into the workspace.
+    window.scrollTo(window.scrollX, pageTop);
+    shell.scrollTop = scrollTop + pageTop - window.scrollY;
+    restoreAnchorFrame = requestAnimationFrame(() => {
+      restoreAnchorFrame = requestAnimationFrame(() => {
+        shell.style.removeProperty("overflow-anchor");
+      });
+    });
+  }
+  shell.addEventListener("scroll", () => {
+    const next = shell.scrollTop > 24;
+    if (next === compact) return;
+    compact = next;
+    measure();
+  }, {passive: true});
+  // Reflow can change header, toolbar, and footer heights (including 200% text).
+  const observer = new ResizeObserver(measure);
+  for (const element of [shell, header, toolbar]) observer.observe(element);
+  shell.addEventListener("focusin", event => {
+    const card = event.target.closest(".card");
+    if (!card || restoringCardFocus) return;
+    requestAnimationFrame(() => {
+      if (document.activeElement !== card || shell.classList.contains("toolbar-scrolls")) return;
+      const top = shell.getBoundingClientRect().top + toolbar.getBoundingClientRect().height + 8;
+      const cardTop = card.getBoundingClientRect().top;
+      if (cardTop < top) shell.scrollTop += cardTop - top;
+    });
+  });
+  measure();
+}
+setupWorkspaceLayout();
 document.addEventListener("visibilitychange", () => {
   if (!controller) poll();
 });
-setInterval(() => {
-  $("#clock").textContent = new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}, 1000);
 poll();

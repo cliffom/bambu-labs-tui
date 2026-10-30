@@ -22,7 +22,7 @@ func TestNotificationDoctorReportsAcceptanceWithoutClaimingDelivery(t *testing.T
 		if err != nil || calls != 1 || !strings.Contains(out.String(), "delivery are not confirmed") {
 			t.Fatalf("unexpected doctor result: %v, %s", err, &out)
 		}
-		if !strings.Contains(out.String(), "branded Bambu Stand helper") || !strings.Contains(out.String(), "Focus settings") || strings.Contains(out.String(), "Script Editor") {
+		if !strings.Contains(out.String(), "branded BambuStand helper") || !strings.Contains(out.String(), "Focus settings") || strings.Contains(out.String(), "Script Editor") {
 			t.Fatalf("doctor must describe the branded helper and its suppression settings: %s", &out)
 		}
 	}

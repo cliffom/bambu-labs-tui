@@ -1,6 +1,6 @@
 # Roadmap
 
-Bambu Stand aims to be a dependable, read-only monitor for a Bambu Lab print farm. Prioritize trustworthy state, useful alerts, and quick navigation before adding integrations. Milestones define scope and release criteria rather than delivery dates; linked issues track implementation details.
+BambuStand aims to be a dependable, read-only monitor for a Bambu Lab print farm. Prioritize trustworthy state, useful alerts, and quick navigation before adding integrations. Milestones define scope and release criteria rather than delivery dates; linked issues track implementation details.
 
 [Documentation index](README.md) · [Changelog](CHANGELOG.md) · [Open issues](https://github.com/cliffom/bambustand/issues)
 
@@ -94,7 +94,7 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 
 [#88](https://github.com/cliffom/bambustand/issues/88) adds a default-off Web Server section in Config. Enabling starts a read-only dashboard at a configurable `http://127.0.0.1:<port>` (default 8080, with a visible error and no fallback if occupied), sharing the running TUI's monitoring state. The browser includes farm summaries, filtering/search, printer inspection, AMS/temperatures, and reported conditions with explicit unknown/last-known qualifiers. Disabling or exiting stops the listener. This initial scope is localhost-only without authentication; remote access and standalone/headless mode remain outside scope. See [usage](user/usage.md#local-web-dashboard) and the [validation record](development/validation.md) for evidence and limits.
 
-## v0.2.11 — About Bambu Stand
+## v0.2.11 — About BambuStand
 
 [#85](https://github.com/cliffom/bambustand/issues/85) adds read-only About on `A`: app name/version, platform, project URL, branding, and attribution without field labels, followed by the effective theme source and an unlabeled grid of unique colors sorted by hue. About displays no account information. The dialog preserves focus and telemetry updates. Synthetic layout evidence and remaining terminal gaps are recorded in the [validation record](development/validation.md).
 

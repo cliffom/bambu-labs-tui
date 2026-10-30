@@ -31,7 +31,7 @@ python3 tools/third-party-notices.py --go-root "$go_root" \
   --modules "$release_stage/modules.txt" --output "$release_stage/THIRD_PARTY_NOTICES.txt"
 rm "$release_stage/modules.txt"
 
-notify_bundle='Bambu Stand Notify.app'
+notify_bundle='BambuStand Notify.app'
 cp -R "dist/notify-helper/$notify_bundle" "$release_stage/$notify_bundle"
 /usr/bin/codesign --verify --strict --all-architectures "$release_stage/$notify_bundle"
 for notify_arch in arm64 x86_64; do

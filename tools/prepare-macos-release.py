@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import tempfile
 
-BUNDLE = 'Bambu Stand Notify.app'
+BUNDLE = 'BambuStand Notify.app'
 CLI_ID = 'com.github.cliffom.bambustand'
 # Keep notification authorization attached to the original helper identity.
 HELPER_ID = 'com.github.cliffom.bambu-tui.notify-poc'

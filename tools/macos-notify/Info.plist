@@ -5,9 +5,9 @@
     <key>CFBundleIdentifier</key>
     <string>com.github.cliffom.bambu-tui.notify-poc</string>
     <key>CFBundleName</key>
-    <string>Bambu Stand</string>
+    <string>BambuStand</string>
     <key>CFBundleDisplayName</key>
-    <string>Bambu Stand</string>
+    <string>BambuStand</string>
     <key>CFBundleExecutable</key>
     <string>bambu-notify</string>
     <key>CFBundlePackageType</key>

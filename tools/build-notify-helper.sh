@@ -16,7 +16,7 @@ if [[ ! "$notify_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
   echo 'Invalid helper version' >&2
   exit 2
 fi
-notify_bundle="$notify_output/Bambu Stand Notify.app"
+notify_bundle="$notify_output/BambuStand Notify.app"
 notify_slices=$(mktemp -d)
 trap 'rm -rf "$notify_slices"' EXIT
 mkdir -p "$notify_bundle/Contents/MacOS" "$notify_bundle/Contents/Resources"

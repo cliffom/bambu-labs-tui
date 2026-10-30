@@ -13,7 +13,7 @@ The icon combines a terminal prompt with a bamboo shoot. All artwork uses a limi
 | `icon-32.png` | Small icon with transparent background |
 | `icon-64.png` | Standard icon with transparent background |
 | `icon-512.png` | Large icon with transparent background, scaled 16× from the master |
-| `hero.aseprite` | Layered 400 × 140 Bambu Stand banner source with the approved icon and editable lettering |
+| `hero.aseprite` | Layered 400 × 140 BambuStand banner source with the approved icon and editable lettering |
 | `hero.png` | 1200 × 420 README banner (“Your farm. Two views.”), scaled 3× from its source |
 
 Keep the prompt symmetric, the right-facing leaves inside the bezel, and only the central shoot crossing the top border. Use whole-number scaling without smoothing when exporting.

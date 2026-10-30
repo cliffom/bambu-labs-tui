@@ -1,6 +1,6 @@
 # Repository guidance
 
-Bambu Stand is a Go terminal application for read-only Bambu Cloud monitoring. Keep printer control outside the project scope. Preserve distinctions between unknown and confirmed telemetry, local notice decisions, and physical fault resolution.
+BambuStand is a Go terminal application for read-only Bambu Cloud monitoring. Keep printer control outside the project scope. Preserve distinctions between unknown and confirmed telemetry, local notice decisions, and physical fault resolution.
 
 ## Required direction and verification
 

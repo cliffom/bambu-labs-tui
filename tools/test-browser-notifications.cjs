@@ -68,7 +68,7 @@ test("permission request follows a click; Test is synthetic and keeps automatic 
   await b.click("test-notifications");
   assert.equal(b.requested(), 1);
   assert.equal(b.notices.length, 1);
-  assert.equal(b.notices[0].title, "Bambu Stand browser test");
+  assert.equal(b.notices[0].title, "BambuStand browser test");
   assert.equal(b.run("browserNotifications.enabled()"), false);
   assert.equal(b.requests.length, 0);
   assert.match(b.status(), /banner and sound unconfirmed/);

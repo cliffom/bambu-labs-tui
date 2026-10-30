@@ -62,12 +62,12 @@ func TestCompactHeaderPreservesVersionAndConnection(t *testing.T) {
 	buildinfo.Version = "0.0.10"
 	m := demoModel()
 	m.width = 60
-	if header := ansi.Strip(m.dashboardHeader()); !strings.HasPrefix(header, "BAMBU STAND v0.0.10 / DEMO CONNECTED / FARM") || !strings.Contains(header, m.now.Local().Format("15:04:05")) || ansi.StringWidth(header) > 60 {
+	if header := ansi.Strip(m.dashboardHeader()); !strings.HasPrefix(header, "BambuStand v0.0.10 / DEMO CONNECTED / FARM") || !strings.Contains(header, m.now.Local().Format("15:04:05")) || ansi.StringWidth(header) > 60 {
 		t.Fatal("compact header loses version, connection, or clock")
 	}
 	m.Demo = false
 	m.ended = true
-	if header := ansi.Strip(m.dashboardHeader()); !strings.HasPrefix(header, "BAMBU STAND v0.0.10 / CLOUD SIGN-IN REQUIRED / FARM") || ansi.StringWidth(header) > 60 {
+	if header := ansi.Strip(m.dashboardHeader()); !strings.HasPrefix(header, "BambuStand v0.0.10 / CLOUD SIGN-IN REQUIRED / FARM") || ansi.StringWidth(header) > 60 {
 		t.Fatal("sign-in state displaced version")
 	}
 	buildinfo.Version = "0.1.0\x1b]52;c;PRIVATE\a\n"
@@ -80,14 +80,14 @@ func TestProjectIdentityThroughFallbackAndReturn(t *testing.T) {
 	m := demoModel()
 	for _, size := range [][2]int{{150, 48}, {60, 18}, {59, 17}, {60, 18}} {
 		m = resizeModel(m, size[0], size[1])
-		if text := ansi.Strip(m.View()); !strings.Contains(text, "BAMBU STAND") {
+		if text := ansi.Strip(m.View()); !strings.Contains(text, "BambuStand") {
 			t.Fatalf("identity missing at %v: %s", size, text)
 		}
 	}
 	m = key(m, "A")
 	m = resizeModel(m, 59, 17)
 	m = resizeModel(m, 60, 18)
-	if text := ansi.Strip(m.View()); !strings.Contains(text, "Bambu Stand") || !strings.Contains(text, "https://github.com/cliffom/bambustand") {
+	if text := ansi.Strip(m.View()); !strings.Contains(text, "BambuStand") || !strings.Contains(text, "https://github.com/cliffom/bambustand") {
 		t.Fatal("About identity lost through fallback", text)
 	}
 }

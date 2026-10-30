@@ -383,9 +383,9 @@ func (w *Worker) process(input frame) bool {
 		first := group[0]
 		policy := current.Policies[first.PrinterID]
 		title := policy.PrinterName
-		body := policy.PrinterName + " needs attention. Open Bambu Stand to inspect the reported condition."
+		body := policy.PrinterName + " needs attention. Open BambuStand to inspect the reported condition."
 		if len(group) > 1 {
-			body = fmt.Sprintf("%s needs attention (%d notices). Open Bambu Stand to inspect them.", policy.PrinterName, len(group))
+			body = fmt.Sprintf("%s needs attention (%d notices). Open BambuStand to inspect them.", policy.PrinterName, len(group))
 		}
 		if first.Kind == notification_state.Completion {
 			body = policy.PrinterName + " reports that the print finished."
@@ -397,8 +397,8 @@ func (w *Worker) process(input frame) bool {
 				printers[member.PrinterID] = true
 				policy.Sound = policy.Sound || current.Policies[member.PrinterID].Sound
 			}
-			title = "Bambu Stand"
-			body = fmt.Sprintf("%d events across %d printers. Open Notification activity in Bambu Stand for individual conditions and completions.", len(group), len(printers))
+			title = "BambuStand"
+			body = fmt.Sprintf("%d events across %d printers. Open Notification activity in BambuStand for individual conditions and completions.", len(group), len(printers))
 		}
 		// At most twelve OS submissions in any rolling minute, including
 		// failures and ambiguous outcomes. The bounded timestamps are session-only.

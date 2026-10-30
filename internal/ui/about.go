@@ -63,7 +63,7 @@ func (m *Model) syncAbout() {
 		version = "unknown"
 	}
 	lines := []string{
-		"Bambu Stand " + version,
+		"BambuStand " + version,
 		platform + " / " + runtime.GOARCH,
 		"https://github.com/cliffom/bambustand",
 		"A Suite Potato Spud",

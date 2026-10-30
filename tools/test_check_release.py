@@ -19,7 +19,7 @@ class ReleaseInventoryTests(unittest.TestCase):
         # Synthetic architecture headers; native builds separately verify with lipo/codesign.
         binary = struct.pack('>II', 0xcafebabe, 2)
         binary += b''.join(struct.pack('>IIIII', cpu, 0, 0, 0, 0) for cpu in sorted(release.UNIVERSAL_CPUS))
-        metadata = {'CFBundleName': 'Bambu Stand', 'CFBundleDisplayName': 'Bambu Stand', 'CFBundleIdentifier': release.BUNDLE_ID, 'CFBundleExecutable': 'bambu-notify', 'CFBundleIconFile': 'BambuStand.icns', 'CFBundleShortVersionString': '0.2.0', 'CFBundleVersion': '0.2.0', 'BambuStandReleaseVersion': '0.2.0', 'LSUIElement': True}
+        metadata = {'CFBundleName': 'BambuStand', 'CFBundleDisplayName': 'BambuStand', 'CFBundleIdentifier': release.BUNDLE_ID, 'CFBundleExecutable': 'bambu-notify', 'CFBundleIconFile': 'BambuStand.icns', 'CFBundleShortVersionString': '0.2.0', 'CFBundleVersion': '0.2.0', 'BambuStandReleaseVersion': '0.2.0', 'LSUIElement': True}
         self.files = {
             'bambustand': (b'synthetic-cli', 0o755),
             'README.md': (b'# Install', 0o644),

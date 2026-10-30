@@ -179,7 +179,7 @@ func (d *serveDisplay) view(width, height int, now time.Time) string {
 	// Prioritize the complete URL and exit guidance when space is scarce. Wrap
 	// rather than truncate the URL, including on terminals narrower than it.
 	wrap := func(s string) []string { return strings.Split(ansi.Wrap(s, max(1, width), ""), "\n") }
-	url, title := d.url, "Bambu Stand / serve"
+	url, title := d.url, "BambuStand / serve"
 	if d.styles != nil {
 		url = d.styles.accent.Underline(true).Render(url)
 		title = d.styles.accent.Render(title)

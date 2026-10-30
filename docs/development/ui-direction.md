@@ -4,7 +4,7 @@
 
 ## Product and visual direction
 
-Use **Bambu Stand** as the product name in terminal/browser headings, About/help, and notification text. Keep the interface a compact, keyboard-operated farm monitor. Operators should be able to find unavailable or troubled printers, understand the reported condition, and inspect details without losing their place as telemetry arrives. Preserve read-only behavior unless the user explicitly changes that product scope.
+Use **BambuStand** with this exact capitalization and no space (including terminal headings) as the product name in terminal/browser headings, About/help, and notification text. Keep the interface a compact, keyboard-operated farm monitor. Operators should be able to find unavailable or troubled printers, understand the reported condition, and inspect details without losing their place as telemetry arrives. Preserve read-only behavior unless the user explicitly changes that product scope.
 
 Extend the existing dashboard hierarchy: version/connection header, farm summary, printer list, printer details, and notices. Put detailed inspection or local configuration in the existing dialog system. Build shared styles from the semantic palette in `internal/ui/palette.go`; keep layout and timing policies in `internal/ui/values.go`, table widths in `internal/ui/layout.go`, and version helpers in `internal/ui/version.go`. Preserve semantic roles and a visible selected-row background. The default theme uses green accent, muted secondary text, amber warnings/offline rows, and red errors; user themes may change these colors. Introduce a new style or layout policy only for a clear operator need, and explain it in the PR.
 

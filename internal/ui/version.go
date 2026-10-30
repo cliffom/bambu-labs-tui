@@ -36,7 +36,7 @@ func (m Model) dashboardHeader() string {
 	if m.ended && !m.Demo {
 		connection = m.styles.err.Render("SIGN-IN REQUIRED")
 	}
-	prefix := m.styles.accent.Bold(true).Render("BAMBU STAND ")
+	prefix := m.styles.accent.Bold(true).Render("BambuStand ")
 	suffix := m.styles.secondary.Render(" / "+mode+" ") + connection + m.styles.secondary.Render(" / FARM")
 	version := ansi.Truncate(versionLabel(), max(1, m.width-ansi.StringWidth(prefix+suffix)), "…")
 	header := prefix + m.styles.secondary.Render(version) + suffix

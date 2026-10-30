@@ -72,7 +72,7 @@ func Send(ctx context.Context, message Message) error {
 func cleanTitle(value string) string {
 	title := strings.TrimSpace(cleanText(value, maxNotificationTitleRunes))
 	if title == "" {
-		return "Bambu Stand"
+		return "BambuStand"
 	}
 	return title
 }

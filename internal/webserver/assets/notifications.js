@@ -134,7 +134,7 @@ const browserNotifications = (() => {
   };
   element("test-notifications").onclick = async () => {
     if (!(await permission())) return;
-    try { submit({title: "Bambu Stand browser test", body: "Synthetic notification. Banner and sound are unconfirmed; automatic delivery preferences are unchanged.", sound: false}, true); }
+    try { submit({title: "BambuStand browser test", body: "Synthetic notification. Banner and sound are unconfirmed; automatic delivery preferences are unchanged.", sound: false}, true); }
     catch { message = "Notification constructor unavailable or rejected. Check browser and OS settings."; }
     render();
   };

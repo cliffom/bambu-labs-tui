@@ -233,6 +233,47 @@ const {chromium} = require("playwright");
           assert.ok(Math.abs(await page.locator(`[data-id="${anchor.id}"]`).evaluate(el =>
             el.getBoundingClientRect().top) - anchor.top) < 1,
             "removing earlier last-known warnings preserves visible card position");
+          // Equal-height active cards isolate focus restoration from normal
+          // scroll anchoring when a telemetry update changes row heights.
+          const mixedPrinters = printers.map(p => ({...p}));
+          const uniform = {...printers[2], state: "RUNNING", attention: false, conditions: []};
+          for (const p of printers) Object.assign(p, uniform, {id: p.id, name: p.name});
+          await page.evaluate(() => poll());
+          await page.locator("#sort").selectOption("state");
+          const movingPrinter = printers[10];
+          const movingCard = page.locator(`[data-id="${movingPrinter.id}"]`);
+          const movingNode = await movingCard.elementHandle();
+          await movingCard.focus();
+          await settleLayout();
+          await page.locator(".shell").evaluate(el => { el.scrollTop = 2200; });
+          await settleLayout();
+          assert.ok(await movingCard.evaluate(el => el.getBoundingClientRect().bottom <
+            document.querySelector(".shell").getBoundingClientRect().top),
+            "focused printer has been scrolled above the viewport before telemetry reorders it");
+          const beforeReorder = await page.locator(".shell").evaluate(el => el.scrollTop);
+          const oldIndex = await movingCard.evaluate(el => [...el.parentElement.children].indexOf(el));
+          movingPrinter.state = "FAILED";
+          await page.evaluate(() => poll());
+          await settleLayout();
+          assert.ok(await movingCard.evaluate(el => [...el.parentElement.children].indexOf(el)) < oldIndex,
+            "telemetry moves the focused printer earlier in State sorting");
+          assert.equal(await movingNode.evaluate(el => el.isConnected && el === document.activeElement), true,
+            "telemetry restores focus to the same card after moving its DOM node");
+          assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), beforeReorder,
+            "telemetry focus restoration preserves the scrolled viewport");
+          movingPrinter.state = "RUNNING";
+          await page.evaluate(() => poll());
+          await settleLayout();
+          assert.equal(await page.locator(".shell").evaluate(el => el.scrollTop), beforeReorder,
+            "restoring the printer state also preserves the scrolled viewport");
+          await page.keyboard.press("Tab");
+          await settleLayout();
+          assert.ok(await page.evaluate(() => document.activeElement.classList.contains("card") &&
+            document.activeElement.getBoundingClientRect().top >= document.querySelector(".toolbar").getBoundingClientRect().bottom),
+            "subsequent keyboard navigation still brings the card clear of the pinned toolbar");
+          for (let i = 0; i < printers.length; i++) Object.assign(printers[i], mixedPrinters[i]);
+          await page.evaluate(() => poll());
+          await page.locator("#sort").selectOption("name");
           await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
           await settleLayout();
         }

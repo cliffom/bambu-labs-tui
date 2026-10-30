@@ -23,6 +23,7 @@ const labels = {
 const stateLabel = (state) => labels[state] || state || "Unknown";
 let commandPending = null, commandMessage = "";
 let showHiddenMessages = false;
+let restoringCardFocus = false;
 let csrfToken = null;
 let snapshot = null,
   filter = "all",
@@ -189,7 +190,14 @@ function render() {
   if (focused) {
     const target = document.querySelector(`[data-id="${CSS.escape(focused)}"]`)
       || document.querySelector(`.filters [data-filter="${filter}"]`);
-    target?.focus({ preventScroll: true });
+    // Moving a card can drop DOM focus. Restoring it is not navigation and
+    // must not invoke the workspace's focused-card scroll clearance.
+    restoringCardFocus = true;
+    try {
+      target?.focus({ preventScroll: true });
+    } finally {
+      restoringCardFocus = false;
+    }
   }
 
   const total = snapshot?.summary.total || 0;
@@ -424,7 +432,7 @@ function setupWorkspaceLayout() {
   for (const element of [shell, header, toolbar]) observer.observe(element);
   shell.addEventListener("focusin", event => {
     const card = event.target.closest(".card");
-    if (!card) return;
+    if (!card || restoringCardFocus) return;
     requestAnimationFrame(() => {
       if (document.activeElement !== card || shell.classList.contains("toolbar-scrolls")) return;
       const top = shell.getBoundingClientRect().top + toolbar.getBoundingClientRect().height + 8;

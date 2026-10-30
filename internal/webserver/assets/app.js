@@ -403,6 +403,7 @@ function setupWorkspaceLayout() {
   let restoreAnchorFrame = 0;
   function measure() {
     const scrollTop = shell.scrollTop;
+    const pageTop = window.scrollY;
     // Header resizing already compensates in the introduction. Suppress browser
     // anchoring through the compensated frame, not later telemetry reflow.
     cancelAnimationFrame(restoreAnchorFrame);
@@ -416,9 +417,10 @@ function setupWorkspaceLayout() {
     const minimum = Math.min(12 * parseFloat(getComputedStyle(document.documentElement).fontSize), innerHeight / 2);
     const pin = shell.clientHeight >= toolbarHeight + minimum;
     shell.classList.toggle("toolbar-scrolls", !pin);
-    // Measuring the compact header can temporarily enlarge the workspace and
-    // clamp its offset at the bottom. Restore it after the spacer is in layout.
-    shell.scrollTop = scrollTop;
+    // Header measurement can clamp either scroll container. Restore the page
+    // where possible, transferring any lost page offset into the workspace.
+    window.scrollTo(window.scrollX, pageTop);
+    shell.scrollTop = scrollTop + pageTop - window.scrollY;
     restoreAnchorFrame = requestAnimationFrame(() => {
       restoreAnchorFrame = requestAnimationFrame(() => {
         shell.style.removeProperty("overflow-anchor");

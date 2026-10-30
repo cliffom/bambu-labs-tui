@@ -20,6 +20,7 @@ const {chromium} = require("playwright");
       [320, 568, 2], [568, 320, 1], [568, 320, 2], [1280, 240, 1],
       [1920, 1080, 1], [1280, 800, 1], [390, 844, 1],
       [320, 568, 1], [780, 844, 2], [390, 844, 2],
+      [1280, 240, 2],
     ]) {
       for (const count of [0, 1, 24]) {
         const page = await browser.newPage({viewport: {width, height}});
@@ -141,6 +142,50 @@ const {chromium} = require("playwright");
             await page.locator(".shell").evaluate(el => { el.scrollTop = 0; });
             await settleLayout();
             assert.equal(await page.locator("header").evaluate(el => el.getBoundingClientRect().height), expanded);
+          }
+          const pageRange = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+          if (pageRange > 1) {
+            for (const pageFraction of [0.5, 1]) {
+              for (const workspaceEnd of [false, true]) {
+                await page.evaluate(() => { document.querySelector(".shell").scrollTop = 0; scrollTo(0, 0); });
+                await settleLayout();
+                await page.evaluate(fraction => scrollTo(0,
+                  (document.documentElement.scrollHeight - innerHeight) * fraction), pageFraction);
+                await settleLayout();
+                const beforeCollapse = await page.locator(".shell").evaluate((el, end) => {
+                  el.scrollTop = end ? el.scrollHeight - el.clientHeight : 48;
+                  return {
+                    page: scrollY, combined: scrollY + el.scrollTop,
+                    resultTop: document.querySelector("#result-count").getBoundingClientRect().top,
+                  };
+                }, workspaceEnd);
+                assert.ok(beforeCollapse.page > 0, "outer page is scrolled before the header collapses");
+                await settleLayout();
+                const afterCollapse = await page.locator(".shell").evaluate(el => ({
+                  combined: scrollY + el.scrollTop,
+                  resultTop: document.querySelector("#result-count").getBoundingClientRect().top,
+                }));
+                assert.ok(Math.abs(afterCollapse.combined - beforeCollapse.combined) <= 1,
+                  `collapse with page ${pageFraction * 100}% scrolled preserves the combined page/workspace offset`);
+                assert.ok(Math.abs(afterCollapse.resultTop - beforeCollapse.resultTop) <= 1,
+                  "collapse with a scrolled outer page keeps workspace content steady");
+                const beforeExpand = await page.locator(".shell").evaluate(el => {
+                  el.scrollTop = 12;
+                  return {
+                    combined: scrollY + el.scrollTop,
+                    resultTop: document.querySelector("#result-count").getBoundingClientRect().top,
+                  };
+                });
+                await settleLayout();
+                assert.equal(await page.locator("header.compact").count(), 0);
+                assert.ok(await page.locator(".shell").evaluate((el, before) =>
+                  Math.abs(scrollY + el.scrollTop - before.combined) <= 1 &&
+                  Math.abs(document.querySelector("#result-count").getBoundingClientRect().top - before.resultTop) <= 1,
+                beforeExpand), "expanding the header preserves combined offset and content position");
+              }
+            }
+            await page.evaluate(() => { document.querySelector(".shell").scrollTop = 0; scrollTo(0, 0); });
+            await settleLayout();
           }
           // Crossing the collapse threshold must preserve the introduction's
           // viewport position and the combined page/workspace scroll range.

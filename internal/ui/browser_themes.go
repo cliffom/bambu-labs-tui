@@ -3,7 +3,7 @@ package ui
 import (
 	"reflect"
 
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 // BrowserThemes reuses the terminal inventory and effective palette. Only fixed

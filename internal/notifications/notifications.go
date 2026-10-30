@@ -15,7 +15,7 @@ import (
 const (
 	// The helper waits up to 60 seconds for first-run permission/service access.
 	nativeCommandTimeout       = 65 * time.Second
-	helperBundleName           = "Bambu TUI Notify.app"
+	helperBundleName           = "Bambu Stand Notify.app"
 	helperPermissionDeniedExit = 3
 	helperTimeoutExit          = 5
 	registrationCommand        = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
@@ -55,18 +55,18 @@ func (s sender) test(ctx context.Context, sound bool) error {
 	}
 	executable, err := s.executable()
 	if err != nil {
-		return fmt.Errorf("cannot locate bambu-tui executable: %w", err)
+		return fmt.Errorf("cannot locate bambustand executable: %w", err)
 	}
 	helper, err := helperPath(executable)
 	if err != nil {
-		return fmt.Errorf("branded notification helper unavailable beside bambu-tui; keep Bambu TUI Notify.app beside the extracted CLI, or from source run make notify-helper and use ./bin/bambu-tui: %w", err)
+		return fmt.Errorf("branded notification helper unavailable beside bambustand; keep Bambu Stand Notify.app beside the extracted CLI, or from source run make notify-helper and use ./bin/bambustand: %w", err)
 	}
 	bundle := filepath.Dir(filepath.Dir(filepath.Dir(helper)))
 	if err := s.execute(ctx, registrationCommand, "-f", bundle); err != nil {
 		if ctx.Err() != nil {
 			return fmt.Errorf("notification helper registration interrupted: %w", ctx.Err())
 		}
-		return fmt.Errorf("cannot register the adjacent Bambu TUI notification helper with macOS: %w", err)
+		return fmt.Errorf("cannot register the adjacent Bambu Stand notification helper with macOS: %w", err)
 	}
 	args := []string{"--test"}
 	if sound {
@@ -80,7 +80,7 @@ func (s sender) test(ctx context.Context, sound bool) error {
 		if errors.As(err, &exit) {
 			switch exit.ExitCode() {
 			case helperPermissionDeniedExit:
-				return fmt.Errorf("notifications are not allowed; enable Bambu TUI in System Settings → Notifications and retry: %w", err)
+				return fmt.Errorf("notifications are not allowed; enable Bambu Stand in System Settings → Notifications and retry: %w", err)
 			case helperTimeoutExit:
 				return fmt.Errorf("notification helper timed out waiting for macOS permission/service; check the local desktop session and retry: %w", err)
 			}

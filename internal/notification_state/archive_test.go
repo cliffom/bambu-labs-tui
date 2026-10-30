@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 func jobSnapshot(task, state string) farm.NotificationSnapshot {

@@ -14,21 +14,21 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/cliffom/bambu-tui/internal/accountstore"
-	"github.com/cliffom/bambu-tui/internal/buildinfo"
-	"github.com/cliffom/bambu-tui/internal/cloud"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/credentials"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/notification_state"
-	"github.com/cliffom/bambu-tui/internal/notifications"
-	"github.com/cliffom/bambu-tui/internal/ui"
+	"github.com/cliffom/bambustand/internal/accountstore"
+	"github.com/cliffom/bambustand/internal/buildinfo"
+	"github.com/cliffom/bambustand/internal/cloud"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/credentials"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/notifications"
+	"github.com/cliffom/bambustand/internal/ui"
 )
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, "bambu-tui:", err)
+		fmt.Fprintln(os.Stderr, "bambustand:", err)
 		os.Exit(1)
 	}
 }
@@ -39,7 +39,7 @@ func run(args []string) error {
 		command = args[0]
 		args = args[1:]
 	}
-	flags := flag.NewFlagSet("bambu-tui", flag.ContinueOnError)
+	flags := flag.NewFlagSet("bambustand", flag.ContinueOnError)
 	path, err := config.Path()
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func run(args []string) error {
 	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
 	consumeUnfinished := flags.Bool("consume-unfinished", false, "compact-notifications: consume all retained unfinished completions")
 	flags.Usage = func() {
-		_, _ = fmt.Fprint(flags.Output(), "Usage: bambu-tui [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambu-tui --demo --theme gruvbox-dark\n  bambu-tui serve\n  bambu-tui serve --demo --config ./config.toml\n  bambu-tui --theme ./my-theme.json\n  bambu-tui login\n  bambu-tui login --email-code\n  bambu-tui login --token --session\n  bambu-tui doctor\n  bambu-tui\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambustand [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambustand --demo --theme gruvbox-dark\n  bambustand serve\n  bambustand serve --demo --config ./config.toml\n  bambustand --theme ./my-theme.json\n  bambustand login\n  bambustand login --email-code\n  bambustand login --token --session\n  bambustand doctor\n  bambustand\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -173,10 +173,10 @@ func run(args []string) error {
 		}
 		if !*sessionOnly {
 			if err := store.Save(session); err == nil {
-				fmt.Println("Bambu session saved in the OS credential store. Run bambu-tui to monitor your printers.")
+				fmt.Println("Bambu session saved in the OS credential store. Run bambustand to monitor your printers.")
 				return nil
 			} else {
-				fmt.Fprintf(os.Stderr, "Could not save session: %v. Run bambu-tui doctor for a credential-store check.\n", err)
+				fmt.Fprintf(os.Stderr, "Could not save session: %v. Run bambustand doctor for a credential-store check.\n", err)
 			}
 			fmt.Fprintln(os.Stderr, "OS credential store unavailable. Opening a session-only dashboard; the token will not be saved.")
 		}
@@ -184,7 +184,7 @@ func run(args []string) error {
 	}
 	session, err := store.Load()
 	if err != nil {
-		return fmt.Errorf("%w; run bambu-tui login (or bambu-tui --demo)", err)
+		return fmt.Errorf("%w; run bambustand login (or bambustand --demo)", err)
 	}
 	return dashboard(ctx, *configPath, cfg, theme, api, session, false)
 }
@@ -306,7 +306,7 @@ func dashboard(ctx context.Context, configPath string, cfg config.Config, theme 
 		if setupErr == nil {
 			if demo {
 				var dir string
-				dir, setupErr = os.MkdirTemp("", "bambu-tui-demo-notifications-*")
+				dir, setupErr = os.MkdirTemp("", "bambustand-demo-notifications-*")
 				if setupErr == nil {
 					ledger = notification_state.Store{Path: filepath.Join(dir, "state.json")}
 					cleanup = func() { _ = os.RemoveAll(dir) }

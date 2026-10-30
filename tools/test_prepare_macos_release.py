@@ -26,7 +26,7 @@ class MacOSSigningTests(unittest.TestCase):
         helper.mkdir(parents=True)
         (helper / 'synthetic-resource').write_text('synthetic')
         for arch in ('arm64', 'amd64'):
-            (self.dist / ('bambu-tui-darwin-' + arch)).write_text('synthetic')
+            (self.dist / ('bambustand-darwin-' + arch)).write_text('synthetic')
         self.calls = []
         self.status = 'Accepted'
         self.notary_exit = 0
@@ -53,6 +53,9 @@ class MacOSSigningTests(unittest.TestCase):
             release.prepare(self.dist, 'synthetic-identity', '')
         signing = [args for args in self.calls if args[:2] == ['codesign', '--force']]
         self.assertEqual(len(signing), 3)
+        identities = [args[args.index('--identifier') + 1] for args in signing]
+        self.assertEqual(identities, ['com.github.cliffom.bambu-tui.notify-poc',
+                                     'com.github.cliffom.bambustand', 'com.github.cliffom.bambustand'])
         for args in signing:
             self.assertIn('--timestamp', args)
             self.assertEqual(args[args.index('--options') + 1], 'runtime')

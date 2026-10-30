@@ -2,7 +2,7 @@
 
 [Back to the README](../../README.md)
 
-Bambu TUI separates **what the printer reports** from **when automatic modals or opt-in desktop notifications interrupt you**. Preferences and snoozes change only interruptions. Printer state, faults, notice counts, and event history remain visible. No printer controls are sent.
+Bambu Stand separates **what the printer reports** from **when automatic modals or opt-in desktop notifications interrupt you**. Preferences and snoozes change only interruptions. Printer state, faults, notice counts, and event history remain visible. No printer controls are sent.
 
 ## Browser system notifications
 
@@ -34,7 +34,7 @@ Global and per-printer alert changes apply immediately. Enabling delivery or a c
 
 Config shows **Config file location:** with the active `--config` path or default OS path. A missing file is created, including in demo mode. Background saves reload valid TOML and merge fields edited since the last successful snapshot; untouched external settings and overrides survive. If both editors change the same field, the Config edit wins. Writes use a private atomic replacement, normalize formatting, and remove comments. Avoid simultaneous file editing when possible. Malformed or unknown-key files cause a failure without replacement.
 
-Successful saves are silent. Failed saves remain red with `r` retry guidance in the body; alert/threshold changes remain active in the session, while region changes still require restart. Navigation and ticks do not retry failed writes. Normal quit waits for pending saves and requires an explicit exit choice after failure or timeout. Changing settings does not request macOS permission. In **Alerts**, select **Test Notification** to request permission and test delivery, or run `bambu-tui doctor --notify`.
+Successful saves are silent. Failed saves remain red with `r` retry guidance in the body; alert/threshold changes remain active in the session, while region changes still require restart. Navigation and ticks do not retry failed writes. Normal quit waits for pending saves and requires an explicit exit choice after failure or timeout. Changing settings does not request macOS permission. In **Alerts**, select **Test Notification** to request permission and test delivery, or run `bambustand doctor --notify`.
 
 Select **Test Notification** and press `Space` / `Enter` to send one synthetic notification through the same branded helper as doctor. It uses the current global Notification sound setting and works even when Desktop notifications is off. This action does not change preferences, consume incident/job identities, or affect live delivery counts. Only one Config test runs at a time; the status bar shows bright informational Sending text, green acceptance, or red failure after the selected-option helper text. Accepted results appear in bright green, dim after four seconds, and disappear after seven seconds. On narrow screens, ordinary helper text shortens to keep the result readable. While typing a percentage or confirming a reset, the footer keeps apply/reset/cancel instructions; `Ctrl+E` shows the retained test feedback without canceling the input or test. Test failures remain red until another test. Acceptance does not confirm a visible banner or audible sound: check macOS Focus and notification settings if needed. On first use, allow macOS permission when prompted. Closing Config cancels a pending test; already accepted notifications may still appear. A failed test can be repeated explicitly; doctor provides detailed failure guidance.
 
@@ -78,9 +78,9 @@ The live ledger retains current jobs and unresolved incidents with a 4,096-entry
 For an exhausted ledger dominated by unfinished jobs from removed printers or old history, stop all cloud TUI/serve hosts for the account, then run:
 
 ```sh
-./bambu-tui compact-notifications --consume-unfinished
+./bambustand compact-notifications --consume-unfinished
 # For a non-default account region/config:
-./bambu-tui compact-notifications --consume-unfinished --config /path/to/config.toml
+./bambustand compact-notifications --consume-unfinished --config /path/to/config.toml
 ```
 
 The required `--consume-unfinished` flag explicitly accepts that retained unfinished jobs will never notify completion. Without the flag, the command exits before loading the account or touching storage. This maintenance command uses the saved account for the configured region and takes exclusive account and notification ownership. It archives **all retained jobs in both channels**, consuming unfinished completion tracking: those identities will never notify completion, even if later replayed. New job identities can notify normally after monitoring restarts. Prior accepted, failed, quiet-suppressed, and unconfirmed attempts remain consumed; no OS request is retried. Intervention identities, local notice decisions, and snoozes are preserved. Channels commit independently; if the second fails, the first may already be compacted. Repeating the command is safe.
@@ -89,7 +89,7 @@ Compaction cannot remove unresolved incidents, repair corruption, or free disk s
 
 ## Configure automatic alerts
 
-Add these settings to the file printed by `bambu-tui --config-path`, or your custom `--config` file. Restart the TUI after editing. Existing configurations retain these defaults:
+Add these settings to the file printed by `bambustand --config-path`, or your custom `--config` file. Restart the TUI after editing. Existing configurations retain these defaults:
 
 ```toml
 [alerts]
@@ -199,7 +199,7 @@ Write failures produce a persistent warning and the current session continues wi
 
 ## Live desktop notifications
 
-On a local macOS desktop, first run `bambu-tui doctor --notify` to allow notifications and verify the helper. Then open Config with `,` and enable Desktop notifications. Adjust other defaults in Alerts or use Printers for overrides; external TOML edits require restart. Defaults preserve existing behavior: desktop delivery and sound are off. No notification permissions are requested automatically while monitoring.
+On a local macOS desktop, first run `bambustand doctor --notify` to allow notifications and verify the helper. Then open Config with `,` and enable Desktop notifications. Adjust other defaults in Alerts or use Printers for overrides; external TOML edits require restart. Defaults preserve existing behavior: desktop delivery and sound are off. No notification permissions are requested automatically while monitoring.
 
 The live TUI sends intervention-required and telemetry-confirmed completion notifications through the branded helper while its session runs. Acknowledged/dismissed incidents, disabled categories, and snoozed printers are suppressed. A pending unreviewed incident or still-finished job may become eligible after snooze expiry. Fresh, connected telemetry is required; missing or stale data cannot establish resolution or completion. Job names, ETA, and 100% progress are not completion evidence. Missing/zero or reused job identities can conservatively suppress completion. Eligible intervention notices co-reported for the same printer are included in one desktop notification, with a notice count when several are included. Their review and deduplication identities remain separate. By default, other printers and completion notifications stay separate. An optional burst window can group them across reports; see [Quiet hours and burst grouping](#quiet-hours-and-burst-grouping).
 
@@ -211,35 +211,35 @@ The footer reports recent acceptance/suppression, and `s` shows effective deskto
 
 Delivery runs off the reducer. Policy changes cancel an in-flight helper when possible, but already accepted OS notifications cannot be withdrawn. Shutdown pauses submissions and cancels delivery while persistence finishes; Esc can resume the session. Normal shutdown waits up to five seconds, then offers the existing exit/cancel choice. A final worker join is bounded; unconfirmed shutdown/outcomes are reported after terminal restoration. No new submission starts after shutdown cancellation, and no background service or future delivery trigger is installed. An accepted request may still be presented later by macOS.
 
-To test automatic delivery without credentials or hardware, use the same opt-in configuration with `bambu-tui --demo --config /path/to/demo.toml`. From a source checkout with a repository-local config, use `make demo RUN_ARGS='--config ./config.toml'`. Demo notifications are labelled Demo and use a temporary ledger deleted on clean exit; real account state is not read or written. The synthetic runout occurs after about 15 seconds and completion after about 45 seconds. Restarting the demo starts fresh notification identities.
+To test automatic delivery without credentials or hardware, use the same opt-in configuration with `bambustand --demo --config /path/to/demo.toml`. From a source checkout with a repository-local config, use `make demo RUN_ARGS='--config ./config.toml'`. Demo notifications are labelled Demo and use a temporary ledger deleted on clean exit; real account state is not read or written. The synthetic runout occurs after about 15 seconds and completion after about 45 seconds. Restarting the demo starts fresh notification identities.
 
 ## Desktop notification test and sound
 
 Doctor remains an explicit, repeatable test independent of the ledger. On macOS, you can explicitly test desktop delivery from a local terminal, without logging in or connecting to a printer:
 
 ```sh
-./bambu-tui doctor --notify
-./bambu-tui doctor --notify --sound
+./bambustand doctor --notify
+./bambustand doctor --notify --sound
 ```
 
-The first command requests a notification without sound; the second requests the default macOS notification sound. Both invoke the branded Bambu TUI helper to submit a fixed synthetic message. They skip the credential-store probe and configuration loading, and do not read account or printer data or change alert preferences. `--sound` requires `doctor --notify`.
+The first command requests a notification without sound; the second requests the default macOS notification sound. Both invoke the branded Bambu Stand helper to submit a fixed synthetic message. They skip the credential-store probe and configuration loading, and do not read account or printer data or change alert preferences. `--sound` requires `doctor --notify`.
 
-macOS archives include `Bambu TUI Notify.app` beside the `bambu-tui` executable. Keep them together when extracting or moving the installation. From a source checkout on macOS, build both:
+macOS archives include `Bambu Stand Notify.app` beside the `bambustand` executable. Keep them together when extracting or moving the installation. From a source checkout on macOS, build both:
 
 ```sh
 make build
 make notify-helper
-./bin/bambu-tui doctor --notify
+./bin/bambustand doctor --notify
 ```
 
-The app must be named `Bambu TUI Notify.app` and contain `Contents/MacOS/bambu-notify`. Doctor locates it beside the resolved CLI executable, including when the CLI is launched through a symlink; the current directory is not searched. A missing or invalid helper reports build guidance. There is no AppleScript fallback. Doctor registers the adjacent bundle with macOS before requesting the test notification. See [helper build, test, and cleanup instructions](../development/contributing.md#macos-notification-helper) for prerequisites and local registration details.
+The app must be named `Bambu Stand Notify.app` and contain `Contents/MacOS/bambu-notify`. Doctor locates it beside the resolved CLI executable, including when the CLI is launched through a symlink; the current directory is not searched. A missing or invalid helper reports build guidance. There is no AppleScript fallback. Doctor registers the adjacent bundle with macOS before requesting the test notification. See [helper build, test, and cleanup instructions](../development/contributing.md#macos-notification-helper) for prerequisites and local registration details.
 
-The helper uses the Bambu TUI logo and requests its own notification permission. Allow Bambu TUI notifications if macOS prompts. Success means the native service accepted the request; it does not confirm that a banner appeared or sound played. Check the desktop and Notification Center. If nothing appears, check Bambu TUI in System Settings → Notifications and the active Focus. Focus can delay or suppress a banner even when app notifications are enabled.
+The helper uses the Bambu Stand logo and requests its own notification permission. Allow Bambu Stand notifications if macOS prompts. Success means the native service accepted the request; it does not confirm that a banner appeared or sound played. Check the desktop and Notification Center. If nothing appears, check Bambu Stand in System Settings → Notifications and the active Focus. Focus can delay or suppress a banner even when app notifications are enabled.
 
-If a delivered notification shows only “Notification,” open System Settings → Notifications → Bambu TUI → Show previews and choose When Unlocked or Always. Default inherits the system setting and can effectively hide all preview text, including the printer title. The helper’s `--status` command reports the effective preview setting.
+If a delivered notification shows only “Notification,” open System Settings → Notifications → Bambu Stand → Show previews and choose When Unlocked or Always. Default inherits the system setting and can effectively hide all preview text, including the printer title. The helper’s `--status` command reports the effective preview setting.
 
-Banner lifetime is controlled by macOS. For notifications that stay until dismissed, open System Settings → Notifications → Bambu TUI and set Alert Style to Persistent instead of Temporary. The helper does not remove the notification when it exits. See [Apple’s notification settings guide](https://support.apple.com/guide/mac-help/mh40583/mac).
+Banner lifetime is controlled by macOS. For notifications that stay until dismissed, open System Settings → Notifications → Bambu Stand and set Alert Style to Persistent instead of Temporary. The helper does not remove the notification when it exits. See [Apple’s notification settings guide](https://support.apple.com/guide/mac-help/mh40583/mac).
 
-Test both commands with the terminal focused, then unfocused. To allow time to switch applications, use `sleep 3; ./bin/bambu-tui doctor --notify` (append `--sound` for audio). Record whether the banner appeared and whether audio played separately from command acceptance. The helper allows up to 60 seconds for permission/service access, and doctor bounds its execution to 65 seconds and cancels it on interruption. SSH sessions are explicitly unsupported, Linux delivery is not implemented, and headless delivery is unverified.
+Test both commands with the terminal focused, then unfocused. To allow time to switch applications, use `sleep 3; ./bin/bambustand doctor --notify` (append `--sound` for audio). Record whether the banner appeared and whether audio played separately from command acceptance. The helper allows up to 60 seconds for permission/service access, and doctor bounds its execution to 65 seconds and cancels it on interruption. SSH sessions are explicitly unsupported, Linux delivery is not implemented, and headless delivery is unverified.
 
 This test does not enable automatic notifications or leave monitoring running. Configure live delivery separately as described above. Explicit tests bypass quiet hours, grouping, and automatic delivery rate limits.

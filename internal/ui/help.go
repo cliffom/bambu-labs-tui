@@ -25,7 +25,7 @@ func (m *Model) syncHelp() {
 		",              Configure general settings, alerts, printers, web server",
 		"W              Live Server Status and grouped HTTP client activity",
 		"N              Recent notification outcomes and suppression reasons",
-		"A              About Bambu TUI, platform, and theme colors",
+		"A              About Bambu Stand, platform, and theme colors",
 		"Ctrl+E         Inspect status/errors; r retries failed notice/snooze saves",
 		"!              Reopen unreviewed action-needed alerts",
 		"a              Toggle local acknowledgement of an active notice",

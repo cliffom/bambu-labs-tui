@@ -4,7 +4,7 @@
 import argparse
 from pathlib import Path
 
-PROJECT_MODULE = 'github.com/cliffom/bambu-tui'
+PROJECT_MODULE = 'github.com/cliffom/bambustand'
 
 
 def collect_notices(go_root, modules):
@@ -30,7 +30,7 @@ def collect_notices(go_root, modules):
         if not notices:
             raise ValueError('no license found for ' + module)
         sections.extend((module, path) for path in notices)
-    data = bytearray(b'Third-party notices for Bambu TUI\n\n')
+    data = bytearray(b'Third-party notices for Bambu Stand\n\n')
     for module, path in sections:
         content = path.read_bytes()
         if not content.strip():

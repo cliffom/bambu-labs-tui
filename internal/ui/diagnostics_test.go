@@ -10,8 +10,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/diagnostics"
-	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambustand/internal/diagnostics"
+	"github.com/cliffom/bambustand/internal/monitor"
 )
 
 // TestDiagnosticsRequiresExplicitConfirmation snapshots only after D and Enter, never on telemetry.

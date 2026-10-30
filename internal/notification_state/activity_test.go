@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 func TestObservationExplainsReviewsAndAttemptsWithoutConsumingIdentity(t *testing.T) {

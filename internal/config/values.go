@@ -7,6 +7,7 @@ const (
 	RegionChina               = "china"
 	defaultLowFilamentPercent = 10
 	maxPercent                = 100
-	applicationDirectory      = "bambu-tui"
-	configFilename            = "config.toml"
+	// Retain the original namespace for upgrade compatibility; see docs/user/usage.md.
+	applicationDirectory = "bambu-tui"
+	configFilename       = "config.toml"
 )

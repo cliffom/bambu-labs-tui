@@ -3,7 +3,7 @@ package webserver
 import (
 	"encoding/json"
 
-	"github.com/cliffom/bambu-tui/internal/session"
+	"github.com/cliffom/bambustand/internal/session"
 )
 
 type (

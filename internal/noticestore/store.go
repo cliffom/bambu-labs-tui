@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cliffom/bambu-tui/internal/atomicfile"
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/atomicfile"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 const schemaVersion = 1
@@ -31,6 +31,7 @@ func New(region, username string) (Store, error) {
 	}
 	// Account identifiers never become path components. Tokens are not used.
 	id := sha256.Sum256([]byte(region + "\x00" + username))
+	// Retain the original namespace for upgrade compatibility; see docs/user/usage.md.
 	return Store{Path: filepath.Join(dir, "bambu-tui", "notices", fmt.Sprintf("%x.json", id))}, nil
 }
 

@@ -95,7 +95,7 @@ func TestProbePreservesNativeFailureAndCancellation(t *testing.T) {
 }
 
 func TestNativeRunnerPropagatesFailure(t *testing.T) {
-	err := run(context.Background(), "/nonexistent/bambu-tui-test-command")
+	err := run(context.Background(), "/nonexistent/bambustand-test-command")
 	if err == nil {
 		t.Fatal("missing native command reported success")
 	}
@@ -104,11 +104,11 @@ func TestNativeRunnerPropagatesFailure(t *testing.T) {
 func fixtureSender(t *testing.T) (sender, string) {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "CLI with spaces")
-	helper := filepath.Join(dir, "Bambu TUI Notify.app", "Contents", "MacOS", "bambu-notify")
+	helper := filepath.Join(dir, "Bambu Stand Notify.app", "Contents", "MacOS", "bambu-notify")
 	if err := os.MkdirAll(filepath.Dir(helper), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	executable := filepath.Join(dir, "bambu-tui")
+	executable := filepath.Join(dir, "bambustand")
 	for _, path := range []string{executable, helper} {
 		if err := os.WriteFile(path, nil, 0o700); err != nil {
 			t.Fatal(err)
@@ -127,7 +127,7 @@ func TestHelperDiscoveryResolvesCLISymlink(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	link := filepath.Join(t.TempDir(), "bambu-tui-link")
+	link := filepath.Join(t.TempDir(), "bambustand-link")
 	if err := os.Symlink(target, link); err != nil {
 		t.Fatal(err)
 	}

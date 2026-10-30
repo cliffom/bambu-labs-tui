@@ -7,8 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
 )
 
 const runoutReport = `{"print":{"gcode_state":"PAUSE","stg_cur":6,"print_error":117473297,"hms":[{"attr":117448704,"code":131073}]}}`

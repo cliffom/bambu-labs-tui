@@ -1,4 +1,4 @@
-module github.com/cliffom/bambu-tui
+module github.com/cliffom/bambustand
 
 go 1.27.3
 

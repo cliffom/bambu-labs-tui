@@ -7,15 +7,15 @@
 Use a Bambu account that already has your printers bound to it:
 
 ```sh
-./bambu-tui login
-./bambu-tui
+./bambustand login
+./bambustand
 ```
 
 Login supports password authentication, email verification, and authenticator challenges. You can also request an email login code or paste an existing access token through a masked prompt:
 
 ```sh
-./bambu-tui login --email-code
-./bambu-tui login --token
+./bambustand login --email-code
+./bambustand login --token
 ```
 
 For accounts normally accessed with Google, use `login --email-code` with the email bound to the Bambu account. This is Bambu email verification; direct Google OAuth is not implemented.
@@ -25,22 +25,32 @@ The commands above use the executable from a release archive. From a source chec
 Account tokens are saved in macOS Keychain or the Linux Secret Service through `secret-tool` (usually provided by `libsecret-tools`). Passwords are never saved. Secret values are passed to credential-store commands through standard input, not command arguments. When the credential store is unavailable, login opens a session-only dashboard. To choose that behavior explicitly:
 
 ```sh
-./bambu-tui login --session
-./bambu-tui logout
+./bambustand login --session
+./bambustand logout
 ```
 
-If saving fails, run `./bambu-tui doctor`. It tests save, reload, and deletion using a disposable credential, without reading or sending Bambu credentials. On macOS, unlock your login keychain and try from a normal terminal if a sandboxed terminal cannot authorize access. Linux needs `secret-tool` and a running Secret Service session. The app verifies writes before reporting success and keeps unavailable stores distinct from missing credentials. Session-only login remains available when the host cannot provide a credential store.
+If saving fails, run `./bambustand doctor`. It tests save, reload, and deletion using a disposable credential, without reading or sending Bambu credentials. On macOS, unlock your login keychain and try from a normal terminal if a sandboxed terminal cannot authorize access. Linux needs `secret-tool` and a running Secret Service session. The app verifies writes before reporting success and keeps unavailable stores distinct from missing credentials. Session-only login remains available when the host cannot provide a credential store.
 
-For an independent synthetic desktop notification test on macOS, run `./bambu-tui doctor --notify`, optionally adding `--sound`. This skips the credential check and requires no login. See [notification testing](alerts.md#desktop-notification-test-and-sound) for permissions, focused/unfocused terminal checks, and delivery limitations.
+For an independent synthetic desktop notification test on macOS, run `./bambustand doctor --notify`, optionally adding `--sound`. This skips the credential check and requires no login. See [notification testing](alerts.md#desktop-notification-test-and-sound) for permissions, focused/unfocused terminal checks, and delivery limitations.
 
 `logout` removes this application's saved session for the configured region; it does not revoke the token with Bambu. Authentication failures stop reconnect attempts and show a notice directing you to log in again. Cloudflare blocks and account API errors are reported without printing response bodies or tokens. If direct login is blocked, token import may help, but account discovery must still be accessible.
+
+## Upgrading from Bambu TUI
+
+Starting with v0.5.0, the project is **Bambu Stand**, the executable is `bambustand`, and archives/checksums use the `bambustand_` prefix. Update shell aliases, scripts, service definitions, and source-build commands to the new executable. Stop existing monitoring before replacing it. Keep `Bambu Stand Notify.app` beside the new CLI on macOS; remove the old CLI/helper from your installation once replaced. Older releases retain their original filenames.
+
+Existing data stays in place; no copy or reset is needed. The default config and account stores retain the `bambu-tui` directory under the OS configuration directory (`~/Library/Application Support/bambu-tui/` on macOS; `$XDG_CONFIG_HOME/bambu-tui/` or `~/.config/bambu-tui/` on Linux). This includes `config.toml`, `sessions/` locks, `notices/` decisions, `alerts/` snoozes, and `notifications/` ledgers, archives, and locks. Diagnostic exports also retain the `bambu-tui/diagnostics/` cache directory, with new `bambustand-diagnostics-` filenames. Custom configuration paths still work.
+
+Credential service names retain `com.github.cliffom.bambu-tui.<region>` so saved login and logout use the same entries. The macOS helper retains bundle ID `com.github.cliffom.bambu-tui.notify-poc` to reuse its notification authorization; macOS may still show the old name until registration/settings refresh. Browser Appearance and notification opt-in retain `bambu-tui.browser-theme.v1` and `bambu-tui.browser-notifications.v1` on the same browser origin (scheme, host, and port). No notification claims or replay history are reset by the rename. Browser origin changes still have independent preferences and permissions.
+
+Historical changelog entries, validation notes, and explicitly historical captures retain the names used when recorded. Generic references to a printer farm describe the monitored printers.
 
 ## Configuration
 
 Print the default configuration path:
 
 ```sh
-./bambu-tui --config-path
+./bambustand --config-path
 ```
 
 Create a `config.toml` there, or pass `--config /path/to/config.toml`. Configuration is optional; defaults are:
@@ -165,8 +175,8 @@ Redirected output, missing terminal input, and `TERM=dumb` use plain output: the
 After saving a login, run the cloud monitor and dashboard in the foreground without a TTY:
 
 ```sh
-./bambu-tui login --email-code --config ./config.toml
-./bambu-tui serve --config ./config.toml
+./bambustand login --email-code --config ./config.toml
+./bambustand serve --config ./config.toml
 ```
 
 Use the same configuration/region for both commands. `serve` reads the existing saved session from macOS Keychain or Linux Secret Service; it never opens login dialogs or accepts `--session`, `--token`, or `--email-code`. A session-only login cannot be reused by `serve`. Missing or invalid credentials fail with login guidance. An unavailable/locked store fails with unlock/Secret Service and `doctor` guidance. Native-store lookup is cancellable and bounded to 15 seconds. A cloud-rejected or expired session stops the server with a nonzero exit: log in again and restart. Transient cloud failures keep reconnecting and the dashboard labels retained data last-known.
@@ -184,11 +194,11 @@ Native desktop delivery stays disabled even if saved preferences enable it. Brow
 Run the synthetic farm in the foreground without a terminal UI, credentials, or hardware:
 
 ```sh
-./bambu-tui serve --demo
-./bambu-tui serve --demo --config ./config.toml
+./bambustand serve --demo
+./bambustand serve --demo --config ./config.toml
 # From a source checkout:
 make build
-./bin/bambu-tui serve --demo --config ./config.toml
+./bin/bambustand serve --demo --config ./config.toml
 ```
 
 Open the printed listening URL on the same computer. This command starts HTTP even when `[web_server].enabled = false`, uses the configured port (default 8080), and never rewrites that preference or the configuration file. An occupied port exits with an error and no fallback; a listening URL is printed only after binding succeeds. Invalid configuration also stops startup. Terminal themes are unused; `--theme` is rejected.
@@ -202,9 +212,9 @@ Stop with `Ctrl+C` or `SIGTERM`. Closing browser tabs leaves the foreground proc
 Your own themes are ordinary JSON files loaded from disk at startup. **No Go changes, registration, or rebuild are needed.** Create a file using the partial example below, or copy one of the complete theme examples and edit its colors. Launch an installed or already-built binary with the file path:
 
 ```sh
-bambu-tui --theme ./my-theme.json
+bambustand --theme ./my-theme.json
 # From a source checkout, reuse the binary you already built:
-./bin/bambu-tui --theme ./my-theme.json
+./bin/bambustand --theme ./my-theme.json
 ```
 
 Edit the JSON and restart that same binary to apply changes. `make run THEME=./my-theme.json` also works, though `make run` builds the application before launching. The persistent `theme_file` setting below loads your file on each launch. Bundled names are convenient shipped examples; adding a custom file does not require adding it to the application bundle.
@@ -212,8 +222,8 @@ Edit the JSON and restart that same binary to apply changes. `make run THEME=./m
 Select a bundled theme for one launch, with no setup files:
 
 ```sh
-bambu-tui --theme gruvbox-dark
-bambu-tui --demo --theme gruvbox-dark
+bambustand --theme gruvbox-dark
+bambustand --demo --theme gruvbox-dark
 ```
 
 From a source checkout:
@@ -223,12 +233,12 @@ make run THEME=gruvbox-dark
 make demo THEME=gruvbox-dark
 ```
 
-`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, `ibm3270`, `deskmate`, or a custom JSON file path. For example, `bambu-tui --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
+`--theme` accepts `default`, `gruvbox-dark`, `hotdog`, `c64`, `ibm3270`, `deskmate`, or a custom JSON file path. For example, `bambustand --theme ./my-theme.json` or `make run THEME=./my-theme.json`. CLI paths resolve from the working directory. The launch override takes precedence over `theme_file`, including when that configured file is missing, and is never saved by interactive edits. Use `--theme default` to temporarily bypass a configured theme. `make run` and `make demo` also accept `RUN_ARGS='--theme gruvbox-dark'`; when both are set, `THEME` wins. The option is supported for monitoring, demo, and login, and is rejected for doctor/logout.
 
 For an unmistakable light-theme demonstration, try **Hotdog**, inspired by the red/yellow Hotdog Stand look:
 
 ```sh
-bambu-tui --theme hotdog
+bambustand --theme hotdog
 make run THEME=hotdog
 make demo THEME=hotdog
 ```
@@ -238,7 +248,7 @@ Hotdog uses a very light cream background, dark body text, vivid red headings/bo
 For Commodore-inspired blues, use **C64**:
 
 ```sh
-bambu-tui --theme c64
+bambustand --theme c64
 make run THEME=c64
 make demo THEME=c64
 ```
@@ -248,7 +258,7 @@ C64 uses a deep blue body, light blue/lavender text and borders, blue selections
 For the green-screen terminal look, use **IBM 3270**:
 
 ```sh
-bambu-tui --theme ibm3270
+bambustand --theme ibm3270
 make run THEME=ibm3270
 make demo THEME=ibm3270
 ```
@@ -258,7 +268,7 @@ IBM 3270 uses a near-black green body, phosphor-green text and borders, a revers
 For the classic **DeskMate II** blue/gray text-mode look:
 
 ```sh
-bambu-tui --theme deskmate
+bambustand --theme deskmate
 make run THEME=deskmate
 make demo THEME=deskmate
 ```
@@ -330,7 +340,7 @@ Use a terminal of at least 60 columns × 18 rows. At 105 columns the details and
 
 The footer follows the focused panel. Fresh informational messages, including delivery ownership and refresh requests, use bright bold text. In the default theme, confirmed local actions use green; warnings use amber and errors use red, with amber dashboard warnings for persistent storage/delivery problems. Custom themes retain these semantic roles with their chosen colors. Labels remain meaningful without color, and ownership does not confirm notification delivery or printer fault resolution.
 
-Press `A` from the dashboard for **About Bambu TUI**. It shows the app name/version, OS/architecture, project URL, branding, and attribution without field labels, followed by the effective bundled theme or custom file path (including launch overrides). Theme field labels use the same secondary text styling as dashboard labels, while the theme source uses primary text. **Theme Palette** shows unique explicit RGB colors as an unlabeled swatch grid, sorted by hue; gray colors come first from dark to light. Colors shared by multiple roles appear once, and an inherited terminal background is omitted because its RGB is unknown. Without color, solid blocks preserve the grid shape but cannot identify the colors; see the [custom theme format](#custom-themes) for named roles and RGB values. About displays no account information. Use arrows/page keys or Home/End to scroll long theme paths; `Enter`, `Esc`, or `A` returns to the prior dashboard focus and selection. Telemetry continues while About is open.
+Press `A` from the dashboard for **About Bambu Stand**. It shows the app name/version, OS/architecture, project URL, branding, and attribution without field labels, followed by the effective bundled theme or custom file path (including launch overrides). Theme field labels use the same secondary text styling as dashboard labels, while the theme source uses primary text. **Theme Palette** shows unique explicit RGB colors as an unlabeled swatch grid, sorted by hue; gray colors come first from dark to light. Colors shared by multiple roles appear once, and an inherited terminal background is omitted because its RGB is unknown. Without color, solid blocks preserve the grid shape but cannot identify the colors; see the [custom theme format](#custom-themes) for named roles and RGB values. About displays no account information. Use arrows/page keys or Home/End to scroll long theme paths; `Enter`, `Esc`, or `A` returns to the prior dashboard focus and selection. Telemetry continues while About is open.
 
 Long feedback shortens before essential controls; multiple failures show an error count. `^E status` means `Ctrl+E`: open **Status / Feedback** for complete messages and recovery guidance, using arrows/page keys or Home/End to scroll. It preserves the current dialog, input, selection, confirmation, and scroll while telemetry and saves continue. Ordinary transient feedback lasts eight seconds; storage, export, browser, and delivery failures remain until their source reports recovery. Notice and snooze saves each show **saving**, **saved**, **failed**, or **session-only**. When an idle writable store has failed, `r retry saves` retries all eligible failed notice/snooze stores. This view does not acknowledge notices or confirm physical fault resolution.
 

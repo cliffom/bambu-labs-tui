@@ -4,6 +4,7 @@
 (() => {
   const select = document.querySelector("#theme-select");
   const status = document.querySelector("#theme-status");
+  // Keep the original key so upgrades preserve this origin’s preferences.
   const key = "bambu-tui.browser-theme.v1";
   const roles = {
     background: "bg", text: "text", secondary_text: "secondary", muted_text: "muted",

@@ -16,14 +16,14 @@ if [[ ! "$notify_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
   echo 'Invalid helper version' >&2
   exit 2
 fi
-notify_bundle="$notify_output/Bambu TUI Notify.app"
+notify_bundle="$notify_output/Bambu Stand Notify.app"
 notify_slices=$(mktemp -d)
 trap 'rm -rf "$notify_slices"' EXIT
 mkdir -p "$notify_bundle/Contents/MacOS" "$notify_bundle/Contents/Resources"
 cp "$notify_repo/tools/macos-notify/Info.plist" "$notify_bundle/Contents/Info.plist"
 
 # Wrap the approved PNGs in an ICNS container without resampling the artwork.
-python3 - "$notify_repo" "$notify_bundle/Contents/Resources/BambuTUI.icns" <<'PY'
+python3 - "$notify_repo" "$notify_bundle/Contents/Resources/BambuStand.icns" <<'PY'
 import pathlib
 import struct
 import sys
@@ -51,7 +51,7 @@ for notify_arch in arm64 x86_64; do
 done
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${notify_version%%-*}" "$notify_bundle/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${notify_version%%-*}" "$notify_bundle/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :BambuTUIReleaseVersion $notify_version" "$notify_bundle/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :BambuStandReleaseVersion $notify_version" "$notify_bundle/Contents/Info.plist"
 /usr/bin/plutil -lint "$notify_bundle/Contents/Info.plist"
 /usr/bin/codesign --force --sign - --identifier com.github.cliffom.bambu-tui.notify-poc "$notify_bundle"
 /usr/bin/codesign --verify --strict --all-architectures "$notify_bundle"

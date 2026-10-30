@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/notification_state"
+	"github.com/cliffom/bambustand/internal/notification_state"
 )
 
 // ActivityLimit bounds session-only diagnostic metadata; it never changes the
@@ -93,7 +93,7 @@ func ReasonText(reason string) string {
 	case ReasonHelper:
 		return "Notification helper missing or unavailable; run doctor --notify."
 	case ReasonPermission:
-		return "macOS denied permission; enable Bambu TUI notifications."
+		return "macOS denied permission; enable Bambu Stand notifications."
 	case ReasonTimeout:
 		return "The notification helper timed out. No automatic retry."
 	case ReasonBackend:

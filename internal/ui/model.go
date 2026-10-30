@@ -11,12 +11,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/diagnostics"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/diagnostics"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 type (
@@ -301,7 +301,7 @@ func (m Model) update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		case keyRefreshOrRestore:
 			if m.ended {
-				m.setToast(feedbackWarning, "Reconnect by restarting bambu-tui after signing in")
+				m.setToast(feedbackWarning, "Reconnect by restarting bambustand after signing in")
 			} else {
 				select {
 				case m.Refresh <- struct{}{}:
@@ -473,9 +473,9 @@ func (m Model) view() string {
 	route := routeFor(m.dialog.active)
 	if !m.terminalFits() && !route.compact {
 		if m.hasOpenDialog() {
-			return fit(m.versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
+			return fit(m.versionedTitle("BAMBU STAND / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress Esc to close the dialog.", m.width, m.height)
 		}
-		return fit(m.versionedTitle("BAMBU / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
+		return fit(m.versionedTitle("BAMBU STAND / FARM", m.width)+"\n\nResize to at least 60 columns × 18 rows.\nPress q to quit.", m.width, m.height)
 	}
 	if m.hasOpenDialog() {
 		return route.view(m)

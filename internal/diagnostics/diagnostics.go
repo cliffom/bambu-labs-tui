@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/buildinfo"
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/buildinfo"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 var exportSchema = telemetrySchema()
@@ -220,7 +220,8 @@ func Destination(now time.Time) (string, error) {
 	if err != nil {
 		return "", errors.New("diagnostic directory unavailable")
 	}
-	return filepath.Join(base, "bambu-tui", "diagnostics", "bambu-tui-diagnostics-"+now.UTC().Format("20060102T150405.000000000Z")+".json"), nil
+	// Retain the original namespace for upgrade compatibility; see docs/user/usage.md.
+	return filepath.Join(base, "bambu-tui", "diagnostics", "bambustand-diagnostics-"+now.UTC().Format("20060102T150405.000000000Z")+".json"), nil
 }
 
 // Write creates one private file exclusively, never overwriting a file or following a target symlink.

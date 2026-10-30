@@ -1,6 +1,7 @@
 # Build and release artifacts
 /bin/
 /dist/
+/bambustand
 /bambu-tui
 *.test
 
@@ -31,6 +32,7 @@
 Thumbs.db
 
 # Local diagnostic artifacts copied from the export directory
+bambustand-diagnostics-*.json
 bambu-tui-diagnostics-*.json
 
 # Python documentation-check tooling

@@ -25,7 +25,7 @@ func (m *Model) startNotificationTest() tea.Cmd {
 	if m.testNotification == nil {
 		m.notificationTestFailed = true
 		m.notificationTestKind = feedbackError
-		m.notificationTestStatus = "Test unavailable; run bambu-tui doctor --notify"
+		m.notificationTestStatus = "Test unavailable; run bambustand doctor --notify"
 		return nil
 	}
 	ctx, cancel := context.WithCancel(m.notificationTestContext)
@@ -54,7 +54,7 @@ func (m *Model) notificationTestResult(msg notificationTestResultMsg) {
 	m.notificationTestStatus = "Test accepted by macOS; check banner and sound."
 	if msg.err != nil {
 		m.notificationTestKind = feedbackError
-		m.notificationTestStatus = "Test failed; run bambu-tui doctor --notify."
+		m.notificationTestStatus = "Test failed; run bambustand doctor --notify."
 	}
 }
 

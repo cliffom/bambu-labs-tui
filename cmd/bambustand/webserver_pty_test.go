@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/cliffom/bambu-tui/internal/config"
+	"github.com/cliffom/bambustand/internal/config"
 )
 
 func ptyWebURL(t *testing.T, child *ptyChild, after int) string {

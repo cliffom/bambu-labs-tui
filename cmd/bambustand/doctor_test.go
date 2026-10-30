@@ -22,7 +22,7 @@ func TestNotificationDoctorReportsAcceptanceWithoutClaimingDelivery(t *testing.T
 		if err != nil || calls != 1 || !strings.Contains(out.String(), "delivery are not confirmed") {
 			t.Fatalf("unexpected doctor result: %v, %s", err, &out)
 		}
-		if !strings.Contains(out.String(), "branded Bambu TUI helper") || !strings.Contains(out.String(), "Focus settings") || strings.Contains(out.String(), "Script Editor") {
+		if !strings.Contains(out.String(), "branded Bambu Stand helper") || !strings.Contains(out.String(), "Focus settings") || strings.Contains(out.String(), "Script Editor") {
 			t.Fatalf("doctor must describe the branded helper and its suppression settings: %s", &out)
 		}
 	}
@@ -54,7 +54,7 @@ func TestNotificationFlagsRequireDoctor(t *testing.T) {
 
 func TestNotificationDoctorBypassesConfigurationAndCredentials(t *testing.T) {
 	t.Setenv("SSH_CONNECTION", "synthetic-ssh-session")
-	err := run([]string{"doctor", "--notify", "--config", "/nonexistent/bambu-tui-test/config.toml"})
+	err := run([]string{"doctor", "--notify", "--config", "/nonexistent/bambustand-test/config.toml"})
 	if err == nil || (!strings.Contains(err.Error(), "SSH is unsupported") && !strings.Contains(err.Error(), "macOS only")) {
 		t.Fatalf("notification test should reach backend without configuration or credentials: %v", err)
 	}

@@ -19,25 +19,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/accountstore"
-	"github.com/cliffom/bambu-tui/internal/alertstore"
-	"github.com/cliffom/bambu-tui/internal/cloud"
-	"github.com/cliffom/bambu-tui/internal/config"
-	"github.com/cliffom/bambu-tui/internal/credentials"
-	"github.com/cliffom/bambu-tui/internal/farm"
-	"github.com/cliffom/bambu-tui/internal/monitor"
-	"github.com/cliffom/bambu-tui/internal/mqtt"
-	"github.com/cliffom/bambu-tui/internal/noticestore"
-	"github.com/cliffom/bambu-tui/internal/session"
-	"github.com/cliffom/bambu-tui/internal/ui"
-	"github.com/cliffom/bambu-tui/internal/webserver"
+	"github.com/cliffom/bambustand/internal/accountstore"
+	"github.com/cliffom/bambustand/internal/alertstore"
+	"github.com/cliffom/bambustand/internal/cloud"
+	"github.com/cliffom/bambustand/internal/config"
+	"github.com/cliffom/bambustand/internal/credentials"
+	"github.com/cliffom/bambustand/internal/farm"
+	"github.com/cliffom/bambustand/internal/monitor"
+	"github.com/cliffom/bambustand/internal/mqtt"
+	"github.com/cliffom/bambustand/internal/noticestore"
+	"github.com/cliffom/bambustand/internal/session"
+	"github.com/cliffom/bambustand/internal/ui"
+	"github.com/cliffom/bambustand/internal/webserver"
 )
 
 func TestServeSavedAccountFailures(t *testing.T) {
 	for _, failure := range []error{credentials.ErrNotFound, credentials.ErrInvalid, credentials.ErrUnavailable} {
 		t.Run(failure.Error(), func(t *testing.T) {
 			account, err := loadServeAccount(func() (cloud.Session, error) { return cloud.Session{}, failure })
-			if !errors.Is(err, failure) || account != (cloud.Session{}) || !strings.Contains(err.Error(), "bambu-tui login") || !strings.Contains(err.Error(), "credential store") {
+			if !errors.Is(err, failure) || account != (cloud.Session{}) || !strings.Contains(err.Error(), "bambustand login") || !strings.Contains(err.Error(), "credential store") {
 				t.Fatal(account, err)
 			}
 		})

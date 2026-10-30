@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 // Demo scheduling is separate from the literal synthetic telemetry fixtures.

@@ -58,7 +58,7 @@ class CISigningTests(unittest.TestCase):
         self.assertEqual(json.loads(state.read_text()), ['/synthetic/login.keychain-db'])
         exported = Path(self.env['GITHUB_ENV']).read_text()
         self.assertIn('MACOS_NOTARY_KEYCHAIN=' + str(keychain), exported)
-        self.assertIn('MACOS_NOTARY_PROFILE=bambu-tui-notary', exported)
+        self.assertIn('MACOS_NOTARY_PROFILE=bambustand-notary', exported)
         self.assertNotIn(self.env['MACOS_CERTIFICATE_PASSWORD'], exported)
         self.assertNotIn(self.env['APPLE_APP_SPECIFIC_PASSWORD'], exported)
         credential = next(args for args in self.calls if args[:3] == ['xcrun', 'notarytool', 'store-credentials'])

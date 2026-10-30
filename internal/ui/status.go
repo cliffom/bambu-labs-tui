@@ -30,7 +30,7 @@ func (m Model) statusProblems() []statusProblem {
 		}
 	}
 	if m.notificationTestFailed {
-		problems = append(problems, statusProblem{"Notification test", m.notificationTestStatus, "Run bambu-tui doctor --notify, or retry Test Notification in Config > Alerts."})
+		problems = append(problems, statusProblem{"Notification test", m.notificationTestStatus, "Run bambustand doctor --notify, or retry Test Notification in Config > Alerts."})
 	}
 	return problems
 }

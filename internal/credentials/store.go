@@ -14,13 +14,13 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/cliffom/bambu-tui/internal/cloud"
+	"github.com/cliffom/bambustand/internal/cloud"
 )
 
 var (
 	ErrUnavailable = errors.New("OS credential store unavailable")
 	ErrNotFound    = errors.New("no saved account session")
-	ErrInvalid     = errors.New("saved account session is invalid; run bambu-tui login")
+	ErrInvalid     = errors.New("saved account session is invalid; run bambustand login")
 )
 
 type (
@@ -156,7 +156,7 @@ func (s Store) Save(session cloud.Session) error {
 		}
 		_, err = s.run(input, "/usr/bin/security", "-i")
 	case "linux":
-		_, err = s.run(string(b), "secret-tool", "store", "--label=Bambu TUI", "service", s.service(), "account", "session")
+		_, err = s.run(string(b), "secret-tool", "store", "--label=Bambu Stand", "service", s.service(), "account", "session")
 	default:
 		return ErrUnavailable
 	}

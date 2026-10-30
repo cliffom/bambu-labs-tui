@@ -3,7 +3,7 @@ package session
 import (
 	"time"
 
-	"github.com/cliffom/bambu-tui/internal/farm"
+	"github.com/cliffom/bambustand/internal/farm"
 )
 
 // AccountPersistence is attached only after the host acquires exclusive account

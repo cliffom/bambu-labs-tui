@@ -85,11 +85,10 @@ For terminal-free monitoring of your own farm, save a login and run `./bambustan
 ### 3. Connect your printers
 
 ```sh
-./bambustand login --email-code
 ./bambustand
 ```
 
-Enter your Bambu account email and the emailed code when prompted. This also works for **Google-linked accounts** using the email bound to Bambu. For password login, use `./bambustand login`.
+On the first interactive launch, enter your Bambu account email and the emailed code when prompted. The app validates and saves the session, then opens the dashboard in the same launch. Later launches reuse the saved session. This also works for **Google-linked accounts** using the email bound to Bambu. You can still save a login separately with `./bambustand login --email-code`. For password login, use `./bambustand login`.
 
 All printers on the account appear automatically. If saving the login session is unavailable, login opens a dashboard for the current session instead; see [login troubleshooting](docs/user/usage.md#login-and-saved-sessions). For Bambu's China region, [set `region = "china"`](docs/user/usage.md#configuration) before logging in.
 

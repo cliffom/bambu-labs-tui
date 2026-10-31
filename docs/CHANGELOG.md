@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.4 — First-launch email login
+
+- Start email-code login automatically on an interactive dashboard launch when the configured region has no saved session (#160). Validate and save the account, then continue directly into monitoring.
+- Preserve existing saved sessions, explicit login commands, and session-only fallback if saving cannot be verified. Locked/unavailable stores and noninteractive launches receive recovery guidance; demo and foreground `serve` keep their authentication behavior.
+
 ## 0.5.3 — BambuStand
 
 - Use BambuStand as one word with mixed capitalization throughout the terminal/browser interfaces, About/Help, notifications, and current documentation.

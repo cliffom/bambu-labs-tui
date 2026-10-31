@@ -12,6 +12,8 @@ Releases through **v0.1.13** also include asynchronous persistence, centralized 
 
 Displayed telemetry has been validated on H2D and X2D, and live router-restart recovery has been observed. These results have specific limits: saved real-account sessions, notice/snooze persistence, pause/completion, firmware comparison, and other operational checks remain open in the [validation record](development/validation.md). A shipped feature or closed issue does not establish that those checks passed.
 
+Interactive first launch now offers email-code login when the configured region has no saved session ([#160](https://github.com/cliffom/bambustand/issues/160)), then continues directly into monitoring. See [login guidance](user/usage.md#login-and-saved-sessions).
+
 ## Open-issue milestones
 
 The current open backlog is grouped by outcome, without committed delivery dates or release versions. The design milestones track decisions only; implementation requires an adopted design and separately scoped work.

@@ -2,7 +2,7 @@
 
 [Development guide](contributing.md) · [Live-validation record](validation.md)
 
-The PTY suite in `cmd/bambustand/pty_test.go`, `webserver_pty_test.go`, and `serve_pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
+The PTY suite in `cmd/bambustand/pty_test.go`, `webserver_pty_test.go`, `serve_pty_test.go`, and `startup_login_pty_test.go` runs on Linux and macOS under ordinary `make test`, including the existing Ubuntu/macOS CI matrix. Its build constraint excludes other operating systems; PTY setup failures on supported hosts fail the tests rather than silently skipping them.
 
 Run just this suite, or repeat it to exercise scheduling races:
 
@@ -11,7 +11,7 @@ go test -race ./cmd/bambustand -run '^TestPTY' -count=1 -v
 go test -race ./cmd/bambustand -run '^TestPTY' -count=10
 ```
 
-The parent starts the current Go test executable in a new session with a controlling pseudo-terminal, attaching stdin/stdout/stderr to its slave. The child invokes the real CLI with `--demo` and a generated configuration, which disables automatic modals so results do not depend on the demo's timed runout. It does not authenticate, read saved credentials, contact printers/cloud services, or use the user's configuration. The helper and its environment guard exist only in test builds.
+The parent starts the current Go test executable in a new session with a controlling pseudo-terminal, attaching stdin/stdout/stderr to its slave. The child invokes the real CLI with `--demo` and a generated configuration, which disables automatic modals so results do not depend on the demo's timed runout. The startup-login fixture separately exercises the shared startup flow, real prompts, email-code authentication, and account validation against synthetic local HTTP responses, then opens the demo dashboard with the validated account checked at the handoff. It uses a fake credential store. No fixture reads saved credentials, contacts real printers/cloud services, or uses the user's configuration. The helper and its environment guard exist only in test builds.
 
 ## Covered behavior
 
@@ -29,6 +29,10 @@ The parent starts the current Go test executable in a new session with a control
 - For each exit path, terminal settings match the original state, and output includes alternate-screen exit, cursor restoration, and bracketed-paste disable sequences.
 
 The CLI's signal context owns SIGINT/SIGTERM; Bubble Tea's duplicate signal handler is disabled for the dashboard and login prompts. The shared terminal runner translates context cancellation into a graceful quit, letting Bubble Tea join its input reader before closing cancellation descriptors. It preserves a cancellation error for callers and leaves unexpected errors intact. This avoids both competing quit-message sends and the v1 hard-cancel input-reader close race, while preserving raw key dispatch and SIGWINCH handling.
+
+## First-launch login coverage
+
+`startup_login_pty_test.go` checks email/code prompts, masked code input, validated account handoff into the demo dashboard, verified-save feedback, session-only fallback, existing-session prompt bypass, unavailable-store guidance, rejected codes, request/account-validation failures, and Escape/raw Ctrl+C cancellation at both prompts. Prompts begin at 120 × 40; successful login resizes to 60 × 18 before entering email/code and opening the dashboard. Every path checks terminal restoration; only dashboard paths require alternate-screen entry/exit. Unit tests cover noninteractive missing/saved sessions, invalid stores, cancelled lookup, and minimum-width secret masking. These seams exercise actual cloud authentication with fake HTTP and credential persistence results, not native storage or live monitoring.
 
 ## Foreground serve coverage
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/term"
 	"github.com/cliffom/bambustand/internal/accountstore"
 	"github.com/cliffom/bambustand/internal/buildinfo"
 	"github.com/cliffom/bambustand/internal/cloud"
@@ -60,7 +61,7 @@ func run(args []string) error {
 	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
 	consumeUnfinished := flags.Bool("consume-unfinished", false, "compact-notifications: consume all retained unfinished completions")
 	flags.Usage = func() {
-		_, _ = fmt.Fprint(flags.Output(), "Usage: bambustand [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambustand --demo --theme gruvbox-dark\n  bambustand serve\n  bambustand serve --demo --config ./config.toml\n  bambustand --theme ./my-theme.json\n  bambustand login\n  bambustand login --email-code\n  bambustand login --token --session\n  bambustand doctor\n  bambustand\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambustand [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambustand --demo --theme gruvbox-dark\n  bambustand serve\n  bambustand serve --demo --config ./config.toml\n  bambustand --theme ./my-theme.json\n  bambustand login\n  bambustand login --email-code\n  bambustand login --token --session\n  bambustand doctor\n  bambustand\n\nInteractive launch: a missing saved session starts email-code login, then opens the dashboard.\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -172,19 +173,18 @@ func run(args []string) error {
 			return err
 		}
 		if !*sessionOnly {
-			if err := store.Save(session); err == nil {
+			if saveLoginSession(store, session, os.Stderr) {
 				fmt.Println("Bambu session saved in the OS credential store. Run bambustand to monitor your printers.")
 				return nil
-			} else {
-				fmt.Fprintf(os.Stderr, "Could not save session: %v. Run bambustand doctor for a credential-store check.\n", err)
 			}
-			fmt.Fprintln(os.Stderr, "OS credential store unavailable. Opening a session-only dashboard; the token will not be saved.")
 		}
 		return dashboard(ctx, *configPath, cfg, theme, api, session, false)
 	}
-	session, err := store.Load()
+	session, err := monitorSession(ctx, store, term.IsTerminal(os.Stdin.Fd()) && term.IsTerminal(os.Stdout.Fd()), func(ctx context.Context) (cloud.Session, error) {
+		return authenticate(ctx, api, false, true)
+	}, os.Stdout, os.Stderr)
 	if err != nil {
-		return fmt.Errorf("%w; run bambustand login (or bambustand --demo)", err)
+		return err
 	}
 	return dashboard(ctx, *configPath, cfg, theme, api, session, false)
 }
@@ -385,6 +385,10 @@ type promptModel struct {
 func (m promptModel) Init() tea.Cmd { return textinput.Blink }
 
 func (m promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if size, ok := msg.(tea.WindowSizeMsg); ok {
+		// Text input reserves one extra cell for its cursor.
+		m.input.Width = max(1, min(promptWidth, size.Width-len(m.label)-len(": ")-len(m.input.Prompt)-1))
+	}
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.String() {
 		case keyQuit, keyEscape:
@@ -424,6 +428,9 @@ func prompt(ctx context.Context, label string, secret bool) (string, error) {
 	}
 	result, err := runTerminalProgram(ctx, promptModel{label: label, input: input})
 	if err != nil {
+		if ctx.Err() != nil {
+			return "", errors.New("login cancelled")
+		}
 		return "", errors.New("cannot read interactive input; use a terminal")
 	}
 	m := result.(promptModel)

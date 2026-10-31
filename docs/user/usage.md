@@ -7,11 +7,14 @@
 Use a Bambu account that already has your printers bound to it:
 
 ```sh
-./bambustand login
 ./bambustand
 ```
 
-Login supports password authentication, email verification, and authenticator challenges. You can also request an email login code or paste an existing access token through a masked prompt:
+When no session is saved for the configured region, an interactive launch prompts for your email, requests an emailed verification code, validates the account, saves the session, and opens the dashboard immediately. Later launches load the saved session. Press `Esc` or `Ctrl+C` at either prompt to cancel. Invalid codes or failed requests end login with an error; launch again to retry. Codes and tokens are masked and are not printed in errors.
+
+Automatic login requires both standard input and standard output to be terminals. A noninteractive launch with missing credentials exits with guidance to run `login --email-code` in a terminal using the same `--config`. Unavailable/locked stores and invalid saved sessions do not trigger automatic login: unlock/check storage with `doctor`, or use an explicit login command. Demo and `serve` retain their separate authentication behavior.
+
+Explicit `login` supports password authentication, email verification, and authenticator challenges. You can also request an email login code or paste an existing access token through a masked prompt:
 
 ```sh
 ./bambustand login --email-code
@@ -22,7 +25,7 @@ For accounts normally accessed with Google, use `login --email-code` with the em
 
 The commands above use the executable from a release archive. From a source checkout, `make auth` builds the app and starts email-code login; `make run` builds and opens the dashboard. Use `make demo` to try the simulated farm without login. Override login options with `make auth AUTH_ARGS='--token'` (or `AUTH_ARGS=''` for password login). Pass dashboard options with `make run RUN_ARGS='--config /path/to/config.toml'`.
 
-Account tokens are saved in macOS Keychain or the Linux Secret Service through `secret-tool` (usually provided by `libsecret-tools`). Passwords are never saved. Secret values are passed to credential-store commands through standard input, not command arguments. When the credential store is unavailable, login opens a session-only dashboard. To choose that behavior explicitly:
+Account tokens are saved in macOS Keychain or the Linux Secret Service through `secret-tool` (usually provided by `libsecret-tools`). Passwords are never saved. Secret values are passed to credential-store commands through standard input, not command arguments. If saving or read-back verification fails, automatic and explicit login explain the failure and open a session-only dashboard without claiming the token was saved. A failed verification may leave an unconfirmed entry; if no usable session was saved, log in again next launch. To choose that behavior explicitly:
 
 ```sh
 ./bambustand login --session

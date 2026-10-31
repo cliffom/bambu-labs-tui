@@ -10,9 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -60,13 +58,6 @@ func (s Store) run(input, name string, args ...string) ([]byte, error) {
 	return run(input, name, args...)
 }
 
-func (s Store) runContext(ctx context.Context, input, name string, args ...string) ([]byte, error) {
-	if s.execute != nil {
-		return s.execute(input, name, args...)
-	}
-	return runContext(ctx, input, name, args...)
-}
-
 func (e commandError) Error() string {
 	return fmt.Sprintf("credential command exited with status %d", e.code)
 }
@@ -86,12 +77,6 @@ func runContext(ctx context.Context, input, name string, args ...string) ([]byte
 	if err := cmd.Run(); err != nil {
 		var exit *exec.ExitError
 		if errors.As(err, &exit) {
-			// secret-tool uses exit 1 for both a missing item and service/unlock
-			// failures. A diagnostic on stderr must never trigger legacy fallback or
-			// automatic first-launch login. Keep its private text out of errors.
-			if name == "secret-tool" && exit.ExitCode() == secretToolNotFoundExit && len(bytes.TrimSpace(stderr.Bytes())) != 0 {
-				return nil, ErrUnavailable
-			}
 			return nil, commandError{exit.ExitCode()}
 		}
 		return nil, ErrUnavailable
@@ -111,32 +96,6 @@ func (s Store) Load() (cloud.Session, error) { return s.LoadContext(context.Back
 
 // LoadContext bounds native-store access and lets foreground hosts cancel startup.
 func (s Store) LoadContext(ctx context.Context) (cloud.Session, error) {
-	lock, err := s.lock()
-	if err != nil {
-		return cloud.Session{}, err
-	}
-	if lock != nil {
-		defer func() { _ = lock.Close() }()
-	}
-	session, err := s.loadContext(ctx)
-	if !errors.Is(err, ErrNotFound) || s.serviceName != "" {
-		return session, err
-	}
-	legacy := s
-	legacy.serviceName = appidentity.LegacyService + s.Region
-	session, err = legacy.loadContext(ctx)
-	if err != nil {
-		return cloud.Session{}, err
-	}
-	// Save verifies readback from the canonical service before migration succeeds.
-	// Leave the source intact for recovery; logout explicitly deletes both entries.
-	if err := s.saveContext(ctx, session); err != nil {
-		return cloud.Session{}, err
-	}
-	return session, nil
-}
-
-func (s Store) loadContext(ctx context.Context) (cloud.Session, error) {
 	if err := ctx.Err(); err != nil {
 		return cloud.Session{}, err
 	}
@@ -181,17 +140,6 @@ func quote(s string) string {
 }
 
 func (s Store) Save(session cloud.Session) error {
-	lock, err := s.lock()
-	if err != nil {
-		return err
-	}
-	if lock != nil {
-		defer func() { _ = lock.Close() }()
-	}
-	return s.saveContext(context.Background(), session)
-}
-
-func (s Store) saveContext(ctx context.Context, session cloud.Session) error {
 	if session.Token == "" || session.Username == "" {
 		return ErrInvalid
 	}
@@ -207,16 +155,16 @@ func (s Store) saveContext(ctx context.Context, session cloud.Session) error {
 		if len(input) > keychainMaxInputBytes {
 			return fmt.Errorf("%w: session exceeds macOS security input limit; use --session", ErrUnavailable)
 		}
-		_, err = s.runContext(ctx, input, "/usr/bin/security", "-i")
+		_, err = s.run(input, "/usr/bin/security", "-i")
 	case "linux":
-		_, err = s.runContext(ctx, string(b), "secret-tool", "store", "--label=BambuStand", "service", s.service(), "account", "session")
+		_, err = s.run(string(b), "secret-tool", "store", "--label=BambuStand", "service", s.service(), "account", "session")
 	default:
 		return ErrUnavailable
 	}
 	if err != nil {
 		return failure("cannot save session", err)
 	}
-	loaded, err := s.loadContext(ctx)
+	loaded, err := s.Load()
 	if err != nil {
 		return failure("saved session could not be read back", err)
 	}
@@ -226,47 +174,13 @@ func (s Store) saveContext(ctx context.Context, session cloud.Session) error {
 	return nil
 }
 
-func (s Store) lock() (*os.File, error) {
-	if s.serviceName != "" {
-		return nil, nil
-	}
-	if s.Region != "global" && s.Region != "china" {
-		return nil, ErrInvalid
-	}
-	base, err := os.UserConfigDir()
-	if err != nil {
-		return nil, ErrUnavailable
-	}
-	f, err := appidentity.Lock(filepath.Join(base, appidentity.Namespace, "credentials-"+s.Region+".lock"))
-	if err != nil {
-		return nil, fmt.Errorf("%w: saved-session migration/access is busy or unavailable; stop other login/logout commands and retry", ErrUnavailable)
-	}
-	return f, nil
-}
-
 func (s Store) Delete() error {
-	lock, err := s.lock()
-	if err != nil {
-		return err
-	}
-	if lock != nil {
-		defer func() { _ = lock.Close() }()
-	}
-
-	// Delete legacy first: partial failure cannot resurrect a removed canonical
-	// session through fallback migration on the next launch.
-	if s.serviceName == "" {
-		legacy := s
-		legacy.serviceName = appidentity.LegacyService + s.Region
-		if err := legacy.Delete(); err != nil {
-			return err
-		}
-	}
-	if _, err := s.loadContext(context.Background()); errors.Is(err, ErrNotFound) {
+	if _, err := s.Load(); errors.Is(err, ErrNotFound) {
 		return nil
 	} else if err != nil && !errors.Is(err, ErrInvalid) {
 		return err
 	}
+	var err error
 	switch s.os() {
 	case "darwin":
 		_, err = s.run("", "/usr/bin/security", "delete-generic-password", "-s", s.service(), "-a", "session")

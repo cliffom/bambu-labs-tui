@@ -25,13 +25,12 @@ var (
 // Store holds exclusive ownership from before loading until all accepted writes
 // finish. Close rejects delayed jobs without waiting for a stuck filesystem.
 type Store struct {
-	mu          sync.Mutex
-	file        *os.File
-	legacyLocks []*os.File
-	closed      bool
-	writes      int
-	notices     noticestore.Store
-	snoozes     alertstore.Store
+	mu      sync.Mutex
+	file    *os.File
+	closed  bool
+	writes  int
+	notices noticestore.Store
+	snoozes alertstore.Store
 }
 
 func Open(region, username string) (*Store, error) {
@@ -39,7 +38,6 @@ func Open(region, username string) (*Store, error) {
 	if err != nil {
 		return nil, errors.New("cannot locate account persistence directory")
 	}
-	base := dir
 	id := sha256.Sum256([]byte(region + "\x00" + username))
 	dir = filepath.Join(dir, appidentity.Namespace, "sessions")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -63,12 +61,7 @@ func Open(region, username string) (*Store, error) {
 		_ = file.Close()
 		return nil, errors.New("cannot locate saved notices and snoozes")
 	}
-	s := &Store{file: file, notices: notices, snoozes: snoozes}
-	if err := s.migrate(base, fmt.Sprintf("%x", id), region, username); err != nil {
-		s.Close()
-		return nil, err
-	}
-	return s, nil
+	return &Store{file: file, notices: notices, snoozes: snoozes}, nil
 }
 
 // Close is idempotent and bounded. An active write retains the OS lock until
@@ -83,10 +76,6 @@ func (s *Store) Close() {
 func (s *Store) release() {
 	if s.closed && s.writes == 0 && s.file != nil {
 		_ = s.file.Close()
-		for _, lock := range s.legacyLocks {
-			_ = lock.Close()
-		}
-		s.legacyLocks = nil
 		s.file = nil
 	}
 }

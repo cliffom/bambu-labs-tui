@@ -14,7 +14,7 @@ Displayed telemetry has been validated on H2D and X2D, and live router-restart r
 
 Interactive first launch now offers email-code login when the configured region has no saved session ([#160](https://github.com/cliffom/bambustand/issues/160)), then continues directly into monitoring. See [login guidance](user/usage.md#login-and-saved-sessions).
 
-Canonical storage/platform identity and stopped-host upgrade migration are implemented in [#162](https://github.com/cliffom/bambustand/issues/162); macOS reauthorization and clean-machine checks remain separate evidence in the validation record.
+Canonical storage/platform identity is implemented in [#162](https://github.com/cliffom/bambustand/issues/162), using `com.suitepotato.bambustand` directly for the initial rollout. Live permission and clean-machine checks remain separate evidence in the validation record.
 
 ## Open-issue milestones
 

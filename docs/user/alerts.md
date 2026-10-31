@@ -59,7 +59,7 @@ Accepted/Failed counters count OS submission outcomes, while Suppressed counts n
 
 ## Notification ownership and recovery
 
-Cloud monitoring now permits one TUI or foreground `serve` per account/region and storage directory, protecting saved notice decisions and snoozes before monitoring begins. A second host exits with stop-and-retry guidance. All hosts sharing storage must use v0.3.6 or newer; stop older instances before upgrading. See [saved notice decisions](usage.md#saved-notice-decisions) for scope, crash recovery, and external-edit limits. `serve` still has no native notification worker.
+Cloud monitoring now permits one TUI or foreground `serve` per account/region and storage directory, protecting saved notice decisions and snoozes before monitoring begins. A second host exits with stop-and-retry guidance. All hosts sharing storage must use the same namespace and ownership protocol. See [saved notice decisions](usage.md#saved-notice-decisions) for scope, crash recovery, and external-edit limits. `serve` still has no native notification worker.
 
 The notification ledger's separate delivery lock, standby/recovery machinery, and transactional at-most-once reservations remain intact as additional protection. The activity ownership line can still describe owner, standby, or muted observer states. A standby worker only takes over from fresh UI snapshots after the prior delivery owner releases its lock, without replaying handled incidents or startup completions. Turning off desktop preferences releases delivery ownership; a canceled native request must finish before release. Releasing this delivery lock does not release account persistence ownership or permit another cloud host to start. Config does not broadcast preferences to other processes.
 
@@ -197,7 +197,7 @@ Snooze loading, edits, and cleanup share the account ownership described in [sav
 
 Write failures produce a persistent warning and the current session continues with its local deadline. A failed load preserves the unreadable/unsupported file and disables snooze writes for that session. Open Status / Feedback (`Ctrl+E`) and press `r` to retry eligible failed notice/snooze saves without changing deadlines or notice decisions. Each store shows saving/saved/failed/session-only; retries while queued or running are ignored, and newer edits coalesce into a following snapshot. Another explicit snooze/resume action also queues a save; the app does not continuously retry on ticks. Failed-load stores remain protected, and save retry never re-arms prompts or resends consumed desktop attempts. Demo mode uses only in-memory deadlines and never loads or saves account snoozes. Normal quit waits up to five seconds for pending notice and snooze saves; failures or timeouts require an explicit exit or cancellation. See [saved notice decisions](usage.md#saved-notice-decisions) for shutdown controls.
 
-Storage namespace upgrades preserve native/browser replay history but require macOS permission reauthorization for the new `com.suitepotato.bambustand.notify` helper identity. Stop older hosts before upgrading; see [migration and recovery](usage.md#upgrading-from-bambu-tui).
+Account-owned snoozes and notification replay history use the canonical [application storage namespace](usage.md#application-identity-and-storage). macOS notification permission belongs to the `com.suitepotato.bambustand.notify` helper identity.
 
 ## Live desktop notifications
 

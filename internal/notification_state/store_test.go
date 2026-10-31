@@ -513,6 +513,6 @@ func TestCanonicalStoreRetainsReservedNotifications(t *testing.T) {
 		t.Fatalf("unexpected notification path: %q, %v", current.Path, err)
 	}
 	if replay := observe(t, current, state, now); len(replay) != 0 {
-		t.Fatal("rename replayed a reserved notification", replay)
+		t.Fatal("restart replayed a reserved notification", replay)
 	}
 }

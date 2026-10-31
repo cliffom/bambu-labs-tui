@@ -70,7 +70,7 @@ On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executabl
 
 For optional macOS desktop notifications, keep the included `BambuStand Notify.app` beside the executable when moving it. See [desktop notification setup](#desktop-notifications).
 
-Upgrading from Bambu TUI? The executable is now `bambustand`; keep the new helper beside it. Existing settings and saved logins are reused. See [upgrade compatibility](docs/user/usage.md#upgrading-from-bambu-tui).
+Application storage uses `com.suitepotato.bambustand`. See [identity and storage locations](docs/user/usage.md#application-identity-and-storage).
 
 ### 2. Try the demo
 
@@ -152,7 +152,7 @@ make notify-helper  # creates bin/BambuStand Notify.app
 make run
 ```
 
-The locally built helper is ad-hoc signed and needs no signing certificate or Apple Developer membership. `make run` and `make demo` use the helper beside the executable; they do not build or download it. Rebuild with `make notify-helper` after updating its source or upgrading from Bambu TUI, then follow the [notification setup](#desktop-notifications) above. See the [rename upgrade instructions](docs/user/usage.md#upgrading-from-bambu-tui) if only the old helper is present.
+The locally built helper is ad-hoc signed and needs no signing certificate or Apple Developer membership. `make run` and `make demo` use the helper beside the executable; they do not build or download it. Rebuild with `make notify-helper` after updating its source, then follow the [notification setup](#desktop-notifications) above.
 
 See [contributing](docs/development/contributing.md) for development setup, tests, formatting, and linting.
 

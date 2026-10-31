@@ -15,7 +15,7 @@ const catalog = () => ({themes: [
 const flush = () => new Promise(resolve => setImmediate(resolve));
 async function browser({saved = null, blocked = false} = {}) {
   const elements = new Map(), events = {}, documentEvents = {}, styles = new Map(), storage = new Map();
-  if (saved) storage.set("bambu-tui.browser-theme.v1", saved);
+  if (saved) storage.set("com.suitepotato.bambustand.browser-theme.v1", saved);
   let response = catalog(), fail = false, replacements = 0;
   for (const id of ["theme-select", "theme-status", "settings"]) {
     elements.set("#" + id, {value: "host", disabled: true,
@@ -105,7 +105,7 @@ test("unavailable or malformed catalogs preserve applied colors and allow retry"
 
 test("theme preferences synchronize across tabs including storage reset", async () => {
   const view = await browser();
-  view.events.storage({key: "bambu-tui.browser-theme.v1", newValue: "hotdog"});
+  view.events.storage({key: "com.suitepotato.bambustand.browser-theme.v1", newValue: "hotdog"});
   assert.equal(view.select.value, "hotdog");
   assert.equal(view.document.documentElement.style.colorScheme, "light");
   view.events.storage({key: null, newValue: null});

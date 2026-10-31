@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 — Canonical application namespace
+
+- Adopt `com.suitepotato.bambustand` for storage, credential services, browser preferences and CLI signing; use `.notify` for the macOS helper (#162).
+- Use the canonical identifiers directly for the initial rollout, with explicit config paths and relative theme behavior preserved. Keep account/region isolation, private persistence and notification replay guarantees.
+- Align helper bundle/runtime identifiers, build/packaging/signature checks, displayed paths and current documentation. See [application identity and storage](user/usage.md#application-identity-and-storage).
+
 ## 0.5.4 — First-launch email login
 
 - Start email-code login automatically on an interactive dashboard launch when the configured region has no saved session (#160). Validate and save the account, then continue directly into monitoring.
@@ -26,7 +32,7 @@
 - Rename the project, terminal/browser branding, notification helper display name, and hero artwork to Bambu Stand (#153). The repository/module is `github.com/cliffom/bambustand`; CLI and archive names now use `bambustand`. Update scripts and service commands when upgrading.
 - Reuse existing configuration, credentials, account locks, notice decisions, snoozes, notification history, browser preferences, and macOS notification authorization through unchanged persisted identifiers. Monitoring remains read-only.
 
-See [upgrade compatibility](user/usage.md#upgrading-from-bambu-tui) and [validation evidence](development/validation.md#bambu-stand-rename-153).
+See [upgrade compatibility](user/usage.md#application-identity-and-storage) and [validation evidence](development/validation.md#bambu-stand-rename-153).
 
 ## 0.4.8 — Tabbed browser printer inspection
 

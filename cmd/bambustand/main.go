@@ -61,7 +61,7 @@ func run(args []string) error {
 	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
 	consumeUnfinished := flags.Bool("consume-unfinished", false, "compact-notifications: consume all retained unfinished completions")
 	flags.Usage = func() {
-		_, _ = fmt.Fprint(flags.Output(), "Usage: bambustand [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambustand --demo --theme gruvbox-dark\n  bambustand serve\n  bambustand serve --demo --config ./config.toml\n  bambustand --theme ./my-theme.json\n  bambustand login\n  bambustand login --email-code\n  bambustand login --token --session\n  bambustand doctor\n  bambustand\n\nInteractive launch: a missing saved session starts email-code login, then opens the dashboard.\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambustand [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambustand --demo --theme gruvbox-dark\n  bambustand serve\n  bambustand serve --demo --config ./config.toml\n  bambustand --theme ./my-theme.json\n  bambustand login\n  bambustand login --email-code\n  bambustand login --token --session\n  bambustand doctor\n  bambustand\n\nApplication storage uses com.suitepotato.bambustand. Print its configuration path with --config-path.\n\nInteractive launch: a missing saved session starts email-code login, then opens the dashboard.\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {

@@ -1,6 +1,10 @@
 package credentials
 
-import "time"
+import (
+	"time"
+
+	"github.com/cliffom/bambustand/internal/appidentity"
+)
 
 // Host credential command limits and exit codes; command argv remains explicit.
 const (
@@ -9,6 +13,5 @@ const (
 	secretToolNotFoundExit = 1
 	keychainMaxInputBytes  = 4095
 	probeRandomBytes       = 12
-	// Retain the original namespace for upgrade compatibility; see docs/user/usage.md.
-	servicePrefix = "com.github.cliffom.bambu-tui."
+	servicePrefix          = appidentity.Namespace + "."
 )

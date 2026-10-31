@@ -36,4 +36,4 @@ For Bambu's China region, set `region = "china"` before logging in. See the [use
 
 Licensed under MIT (see the included `LICENSE`); Go and dependency notices are in `THIRD_PARTY_NOTICES.txt`. This project is not affiliated with Bambu Lab.
 
-Upgrading from Bambu TUI: replace CLI invocations with `bambustand` and keep the new helper beside it. Existing configuration, saved logins, local decisions, and notification history remain in their original locations. See [upgrade compatibility](https://github.com/cliffom/bambustand/blob/main/docs/user/usage.md#upgrading-from-bambu-tui).
+The application uses the `com.suitepotato.bambustand` storage and platform namespace. Keep `BambuStand Notify.app` beside the CLI on macOS and run `bambustand doctor --notify` to allow notifications. See [identity and storage locations](https://github.com/cliffom/bambustand/blob/main/docs/user/usage.md#application-identity-and-storage).

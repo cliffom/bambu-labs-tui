@@ -11,7 +11,7 @@ import tarfile
 BUNDLE = 'BambuStand Notify.app'
 CONTENTS = BUNDLE + '/Contents/'
 EXECUTABLE = CONTENTS + 'MacOS/bambu-notify'
-BUNDLE_ID = 'com.github.cliffom.bambu-tui.notify-poc'
+BUNDLE_ID = 'com.suitepotato.bambustand.notify'
 UNIVERSAL_CPUS = {0x01000007, 0x0100000C}  # x86_64, arm64
 
 

@@ -492,27 +492,27 @@ func TestGroupedReservationIsAtomicAndSkipsPreviouslyClaimedMembers(t *testing.T
 	}
 }
 
-func TestUpgradeRetainsReservedNotifications(t *testing.T) {
+func TestCanonicalStoreRetainsReservedNotifications(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	root, err := os.UserConfigDir()
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Original length-delimited account hash and directory: independent of New.
-	legacy := Store{Path: filepath.Join(root, "bambu-tui", "notifications", "427880e3826beb038aa4a698c700cbfa6da34a767fcd8372d75ee127f11db044.json")}
+	// Length-delimited account hash is unchanged: independent of New.
+	persisted := Store{Path: filepath.Join(root, "com.suitepotato.bambustand", "notifications", "427880e3826beb038aa4a698c700cbfa6da34a767fcd8372d75ee127f11db044.json")}
 	_, state, now := fixture(t)
 	report(t, state, `{"gcode_state":"RUNNING","print_error":117473297,"hms":[]}`, now)
-	candidates := observe(t, legacy, state, now)
+	candidates := observe(t, persisted, state, now)
 	if len(candidates) != 1 {
 		t.Fatal(candidates)
 	}
-	reserve(t, legacy, candidates[0])
+	reserve(t, persisted, candidates[0])
 	current, err := New("global", "synthetic-account")
-	if err != nil || current.Path != legacy.Path {
-		t.Fatalf("notification history moved: %q, %v", current.Path, err)
+	if err != nil || current.Path != persisted.Path {
+		t.Fatalf("unexpected notification path: %q, %v", current.Path, err)
 	}
 	if replay := observe(t, current, state, now); len(replay) != 0 {
-		t.Fatal("rename replayed a reserved notification", replay)
+		t.Fatal("restart replayed a reserved notification", replay)
 	}
 }

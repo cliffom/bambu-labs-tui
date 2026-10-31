@@ -24,7 +24,7 @@ Unknown fields, arbitrary strings, URLs, authentication headers, tokens, email/a
 
 ## File location and errors
 
-Exports go to `bambu-tui/diagnostics/` under the OS user cache directory. The preview shows the exact path, including a generic timestamp filename. The artifact contains no local destination path and no original printer identifier. New directories use mode `0700`; files use `0600`. Existing files and output symlinks are never overwritten. A failed write removes its incomplete file; a failure before file creation leaves the destination untouched.
+Exports go to `com.suitepotato.bambustand/diagnostics/` under the OS user cache directory. The preview shows the exact path, including a generic timestamp filename. The artifact contains no local destination path and no original printer identifier. New directories use mode `0700`; files use `0600`. Existing files and output symlinks are never overwritten. A failed write removes its incomplete file; a failure before file creation leaves the destination untouched.
 
 After success, inspect the JSON with an editor or a local viewer, for example:
 

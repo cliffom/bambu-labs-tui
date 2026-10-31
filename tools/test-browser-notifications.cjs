@@ -23,7 +23,7 @@ function browser({permission = "default", supported = true, secure = true, store
     document: {querySelector: (s) => elements.get(s)},
     window: {isSecureContext: secure, addEventListener: (n, fn) => listeners[n] = fn, focus() {}},
     Notification: supported ? FakeNotification : undefined,
-    localStorage: {getItem: (key) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); return value; }, setItem: (key, v) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); value = v; }},
+    localStorage: {getItem: (key) => { assert.equal(key, "com.suitepotato.bambustand.browser-notifications.v1"); return value; }, setItem: (key, v) => { assert.equal(key, "com.suitepotato.bambustand.browser-notifications.v1"); value = v; }},
     Date: Clock, AbortSignal,
     fetch: async (url, options) => {
       requests.push({url, options});
@@ -182,7 +182,7 @@ test("constructor and asynchronous submission errors remain visible", async () =
 
 test("Disable propagates across tabs; permission revocation stops automatic claims", async () => {
   const b = browser({permission: "granted", stored: true});
-  b.listeners.storage({key: "bambu-tui.browser-notifications.v1", newValue: "off"});
+  b.listeners.storage({key: "com.suitepotato.bambustand.browser-notifications.v1", newValue: "off"});
   assert.equal(b.run("browserNotifications.enabled()"), false);
   await b.click("enable-notifications");
   await b.click("disable-notifications");

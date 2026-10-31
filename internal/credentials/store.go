@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/cliffom/bambustand/internal/appidentity"
 	"github.com/cliffom/bambustand/internal/cloud"
 )
 
@@ -200,7 +201,7 @@ func Probe(region string) error {
 	if _, err := rand.Read(id); err != nil {
 		return errors.New("cannot create credential probe")
 	}
-	s := Store{Region: region, serviceName: "com.github.cliffom.bambu-tui.probe." + hex.EncodeToString(id)}
+	s := Store{Region: region, serviceName: appidentity.Namespace + ".probe." + hex.EncodeToString(id)}
 	return probe(s)
 }
 

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cliffom/bambustand/internal/appidentity"
 	"github.com/cliffom/bambustand/internal/atomicfile"
 )
 
@@ -33,8 +34,7 @@ func New(region, username string) (Store, error) {
 	}
 	// Account identifiers never become path components. Tokens are not used.
 	id := sha256.Sum256([]byte(region + "\x00" + username))
-	// Retain the original namespace for upgrade compatibility; see docs/user/usage.md.
-	return Store{Path: filepath.Join(dir, "bambu-tui", "alerts", fmt.Sprintf("%x.json", id))}, nil
+	return Store{Path: filepath.Join(dir, appidentity.Namespace, "alerts", fmt.Sprintf("%x.json", id))}, nil
 }
 
 // Load reads deadlines without discarding expired entries before the UI can save cleanup.

@@ -28,7 +28,7 @@ guard delivery || statusOnly || arguments == ["--test"] || arguments == ["--test
     fputs(usage + "\n", stderr)
     exit(2)
 }
-guard Bundle.main.bundleIdentifier == "com.github.cliffom.bambu-tui.notify-poc" else {
+guard Bundle.main.bundleIdentifier == "com.suitepotato.bambustand.notify" else {
     fputs("Run the executable inside the built BambuStand Notify.app bundle.\n", stderr)
     exit(2)
 }

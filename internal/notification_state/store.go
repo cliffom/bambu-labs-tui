@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/cliffom/bambustand/internal/appidentity"
 	"github.com/cliffom/bambustand/internal/atomicfile"
 	"github.com/cliffom/bambustand/internal/farm"
 	"golang.org/x/sys/unix"
@@ -103,8 +104,7 @@ func New(region, username string) (Store, error) {
 		return Store{}, err
 	}
 	account := hashParts(region, username)
-	// Retain the original namespace for upgrade compatibility; see docs/user/usage.md.
-	return Store{Path: filepath.Join(dir, "bambu-tui", "notifications", account+".json")}, nil
+	return Store{Path: filepath.Join(dir, appidentity.Namespace, "notifications", account+".json")}, nil
 }
 
 // Observe durably records lifetimes before returning unreserved candidates.

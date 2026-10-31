@@ -204,11 +204,11 @@ func TestNativeCommandCancellation(t *testing.T) {
 	}
 }
 
-func TestUpgradeRetainsCredentialService(t *testing.T) {
+func TestCanonicalCredentialService(t *testing.T) {
 	for _, region := range []string{"global", "china"} {
 		store := Store{Region: region}
-		if got := store.service(); got != "com.github.cliffom.bambu-tui."+region {
-			t.Fatalf("saved login namespace changed: %q", got)
+		if got := store.service(); got != "com.suitepotato.bambustand."+region {
+			t.Fatalf("unexpected saved login namespace: %q", got)
 		}
 	}
 }

@@ -54,8 +54,8 @@ class MacOSSigningTests(unittest.TestCase):
         signing = [args for args in self.calls if args[:2] == ['codesign', '--force']]
         self.assertEqual(len(signing), 3)
         identities = [args[args.index('--identifier') + 1] for args in signing]
-        self.assertEqual(identities, ['com.github.cliffom.bambu-tui.notify-poc',
-                                     'com.github.cliffom.bambustand', 'com.github.cliffom.bambustand'])
+        self.assertEqual(identities, ['com.suitepotato.bambustand.notify',
+                                     'com.suitepotato.bambustand', 'com.suitepotato.bambustand'])
         for args in signing:
             self.assertIn('--timestamp', args)
             self.assertEqual(args[args.index('--options') + 1], 'runtime')

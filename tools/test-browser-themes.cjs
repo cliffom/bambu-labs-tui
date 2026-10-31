@@ -13,9 +13,10 @@ const catalog = () => ({themes: [
   }),
 ]});
 const flush = () => new Promise(resolve => setImmediate(resolve));
-async function browser({saved = null, blocked = false} = {}) {
+async function browser({saved = null, legacy = null, blocked = false} = {}) {
   const elements = new Map(), events = {}, documentEvents = {}, styles = new Map(), storage = new Map();
-  if (saved) storage.set("bambu-tui.browser-theme.v1", saved);
+  if (legacy !== null) storage.set("bambu-tui.browser-theme.v1", legacy);
+  if (saved) storage.set("com.suitepotato.bambustand.browser-theme.v1", saved);
   let response = catalog(), fail = false, replacements = 0;
   for (const id of ["theme-select", "theme-status", "settings"]) {
     elements.set("#" + id, {value: "host", disabled: true,
@@ -29,7 +30,7 @@ async function browser({saved = null, blocked = false} = {}) {
     addEventListener(k, fn) { documentEvents[k] = fn; },
   };
   const context = vm.createContext({document, window: {addEventListener(k, fn) { events[k] = fn; }},
-    localStorage: {getItem(k) { if (blocked) throw Error(); return storage.get(k); },
+    localStorage: {getItem(k) { if (blocked) throw Error(); return storage.get(k) ?? null; },
       setItem(k, v) { if (blocked) throw Error(); storage.set(k, v); },
       removeItem(k) { if (blocked) throw Error(); storage.delete(k); }},
     fetch: async () => { if (fail) throw Error(); return {ok: true, json: async () => response}; },
@@ -61,7 +62,7 @@ test("host custom palette is default; every bundled TUI theme is selectable with
     assert.equal(view.styles.get("--focus"), theme.colors.focus);
   }
   view.choose("host");
-  assert.equal(view.storage.size, 0);
+  assert.equal(view.storage.get("com.suitepotato.bambustand.browser-theme.v1"), "host");
   assert.equal(view.styles.get("--green"), "#ABCDEF");
 });
 
@@ -105,10 +106,21 @@ test("unavailable or malformed catalogs preserve applied colors and allow retry"
 
 test("theme preferences synchronize across tabs including storage reset", async () => {
   const view = await browser();
-  view.events.storage({key: "bambu-tui.browser-theme.v1", newValue: "hotdog"});
+  view.events.storage({key: "com.suitepotato.bambustand.browser-theme.v1", newValue: "hotdog"});
   assert.equal(view.select.value, "hotdog");
   assert.equal(view.document.documentElement.style.colorScheme, "light");
   view.events.storage({key: null, newValue: null});
   assert.equal(view.select.value, "host");
   assert.equal(view.document.documentElement.style.colorScheme, "dark");
+});
+
+test("legacy theme migrates once; canonical preference and host reset win", async () => {
+  const view = await browser({legacy: "c64"});
+  assert.equal(view.select.value, "c64");
+  assert.equal(view.storage.get("com.suitepotato.bambustand.browser-theme.v1"), "c64");
+  assert.equal(view.storage.has("bambu-tui.browser-theme.v1"), false);
+  assert.equal((await browser({legacy: "c64", saved: "hotdog"})).select.value, "hotdog");
+  assert.equal((await browser({legacy: "c64", saved: "host"})).select.value, "host");
+  const blocked = await browser({legacy: "c64", blocked: true});
+  assert.match(blocked.status.textContent, /cannot be saved/);
 });

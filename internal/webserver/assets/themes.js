@@ -4,8 +4,9 @@
 (() => {
   const select = document.querySelector("#theme-select");
   const status = document.querySelector("#theme-status");
-  // Keep the original key so upgrades preserve this origin’s preferences.
-  const key = "bambu-tui.browser-theme.v1";
+  // Legacy lookup is only for same-origin upgrade migration.
+  const key = "com.suitepotato.bambustand.browser-theme.v1";
+  const legacyKey = "bambu-tui.browser-theme.v1";
   const roles = {
     background: "bg", text: "text", secondary_text: "secondary", muted_text: "muted",
     info: "info", accent: "green", success: "success", warning: "amber", error: "red",
@@ -18,7 +19,14 @@
   };
   let themes = [], signature = "", loading = false, storageFailed = false;
   let choice = "host";
-  try { choice = localStorage.getItem(key) || "host"; } catch { storageFailed = true; }
+  try {
+    let saved = localStorage.getItem(key);
+    if (saved === null) {
+      saved = localStorage.getItem(legacyKey);
+      if (saved !== null) { localStorage.setItem(key, saved); localStorage.removeItem(legacyKey); }
+    }
+    choice = saved || "host";
+  } catch { storageFailed = true; }
   function apply() {
     const theme = themes.find(t => t.id === choice) || themes.find(t => t.id === "host");
     if (!theme) return;
@@ -78,8 +86,7 @@
     choice = select.value;
     apply();
     try {
-      if (choice === "host") localStorage.removeItem(key);
-      else localStorage.setItem(key, choice);
+      localStorage.setItem(key, choice);
       storageFailed = false;
     } catch { storageFailed = true; }
     apply();

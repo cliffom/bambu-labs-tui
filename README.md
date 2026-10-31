@@ -70,7 +70,7 @@ On Linux, you can use `sha256sum` instead of `shasum -a 256`. Keep the executabl
 
 For optional macOS desktop notifications, keep the included `BambuStand Notify.app` beside the executable when moving it. See [desktop notification setup](#desktop-notifications).
 
-Upgrading from Bambu TUI? The executable is now `bambustand`; keep the new helper beside it. Existing settings and saved logins are reused. See [upgrade compatibility](docs/user/usage.md#upgrading-from-bambu-tui).
+Upgrading from Bambu TUI? The executable is now `bambustand`; keep the new helper beside it. From v0.6.0, stop older hosts before upgrading: settings, saved logins, decisions, and notification history migrate to `com.suitepotato.bambustand`. Run `bambustand doctor --notify` to authorize the new macOS helper identity. See [upgrade compatibility](docs/user/usage.md#upgrading-from-bambu-tui).
 
 ### 2. Try the demo
 

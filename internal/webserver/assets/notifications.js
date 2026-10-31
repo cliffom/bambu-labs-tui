@@ -2,12 +2,20 @@
 // Page-bound delivery only: no push subscription, service worker, or background
 // service. The server durably claims each automatic attempt before returning it.
 const browserNotifications = (() => {
-  // Keep the original key so upgrades preserve this origin’s preferences.
-  const preference = "bambu-tui.browser-notifications.v1";
+  // Legacy lookup is only for same-origin upgrade migration.
+  const preference = "com.suitepotato.bambustand.browser-notifications.v1";
+  const legacyKey = "bambu-tui.browser-notifications.v1";
   const element = (id) => document.querySelector("#" + id);
   let optedIn = false, busy = false, permissionPending = false;
   let token = null, cursor = null, lastPoll = 0, generation = 0, message = "", capacityWarning = "";
-  try { optedIn = localStorage.getItem(preference) === "on"; } catch {
+  try {
+    let saved = localStorage.getItem(preference);
+    if (saved === null) {
+      saved = localStorage.getItem(legacyKey);
+      if (saved !== null) { localStorage.setItem(preference, saved); localStorage.removeItem(legacyKey); }
+    }
+    optedIn = saved === "on";
+  } catch {
     message = "Browser storage unavailable; enable is session-only.";
   }
   function capability() {

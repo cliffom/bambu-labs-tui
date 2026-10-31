@@ -53,6 +53,6 @@ done
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${notify_version%%-*}" "$notify_bundle/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :BambuStandReleaseVersion $notify_version" "$notify_bundle/Contents/Info.plist"
 /usr/bin/plutil -lint "$notify_bundle/Contents/Info.plist"
-/usr/bin/codesign --force --sign - --identifier com.github.cliffom.bambu-tui.notify-poc "$notify_bundle"
+/usr/bin/codesign --force --sign - --identifier com.suitepotato.bambustand.notify "$notify_bundle"
 /usr/bin/codesign --verify --strict --all-architectures "$notify_bundle"
 printf 'Built universal, ad-hoc signed helper: %s\n' "$notify_bundle"

@@ -11,9 +11,9 @@ import subprocess
 import tempfile
 
 BUNDLE = 'BambuStand Notify.app'
-CLI_ID = 'com.github.cliffom.bambustand'
+CLI_ID = 'com.suitepotato.bambustand'
 # Keep notification authorization attached to the original helper identity.
-HELPER_ID = 'com.github.cliffom.bambu-tui.notify-poc'
+HELPER_ID = 'com.suitepotato.bambustand.notify'
 # Apple's Developer ID Application certificate extension, anchored to Apple.
 DEVELOPER_ID_REQUIREMENT = 'anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists'
 

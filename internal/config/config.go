@@ -34,6 +34,13 @@ func Path() (string, error) {
 }
 
 func Load(path string) (Config, error) {
+	if err := migrate(path); err != nil {
+		return Config{}, err
+	}
+	return load(path)
+}
+
+func load(path string) (Config, error) {
 	c := Config{WebServer: WebServer{Port: DefaultWebPort}, Region: RegionGlobal, LowFilamentPercent: defaultLowFilamentPercent, Alerts: DefaultAlerts(), View: (ViewPreferences{}).Normalized()}
 	meta, err := toml.DecodeFile(path, &c)
 	if os.IsNotExist(err) {

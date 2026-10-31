@@ -2,6 +2,7 @@
 /bin/
 /dist/
 /bambustand
+# Ignore an executable left by a legacy installation during upgrade.
 /bambu-tui
 *.test
 
@@ -33,6 +34,7 @@ Thumbs.db
 
 # Local diagnostic artifacts copied from the export directory
 bambustand-diagnostics-*.json
+# Legacy diagnostic exports remain private during migration.
 bambu-tui-diagnostics-*.json
 
 # Python documentation-check tooling

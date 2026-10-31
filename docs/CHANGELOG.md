@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 — Canonical application namespace
+
+- Adopt `com.suitepotato.bambustand` for storage, credential services, browser preferences and CLI signing; use `.notify` for the macOS helper (#162).
+- Automatically migrate configuration, sessions, local decisions, snoozes, complete notification ledgers/archives and diagnostic exports. Preserve relative theme targets, account/region isolation and replay protection; fail closed on conflicting or incomplete account copies.
+- Stop older hosts before upgrading and do not resume old binaries against migrated backups. Authorize macOS notifications again with `bambustand doctor --notify`; OS permission cannot migrate between bundle identities. See [upgrade and recovery](user/usage.md#upgrading-from-bambu-tui).
+
 ## 0.5.4 — First-launch email login
 
 - Start email-code login automatically on an interactive dashboard launch when the configured region has no saved session (#160). Validate and save the account, then continue directly into monitoring.

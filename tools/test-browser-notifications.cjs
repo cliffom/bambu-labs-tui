@@ -5,14 +5,14 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 const path = require("node:path");
-function browser({permission = "default", supported = true, secure = true, stored = false} = {}) {
+function browser({permission = "default", supported = true, secure = true, stored = false, legacy = null, canonical = null, storageBlocked = false} = {}) {
   const elements = new Map(), listeners = {}, notices = [], requests = [];
   for (const id of ["notification-status", "enable-notifications", "test-notifications", "disable-notifications", "about-dialog", "settings-dialog"])
     elements.set("#" + id, {textContent: "", disabled: false, open: false, close() { this.open = false; }});
   let now = Date.now();
   let fetchWait = null;
   class Clock extends Date { static now() { return now; } }
-  let value = stored ? "on" : null, requested = 0, response = {cursor: 1, events: []}, fail = false, constructFail = false, inspected = null;
+  let value = canonical ?? (stored ? "on" : null), requested = 0, response = {cursor: 1, events: []}, fail = false, constructFail = false, inspected = null;
   class FakeNotification {
     static permission = permission;
     static async requestPermission() { requested++; FakeNotification.permission = "granted"; return "granted"; }
@@ -23,7 +23,7 @@ function browser({permission = "default", supported = true, secure = true, store
     document: {querySelector: (s) => elements.get(s)},
     window: {isSecureContext: secure, addEventListener: (n, fn) => listeners[n] = fn, focus() {}},
     Notification: supported ? FakeNotification : undefined,
-    localStorage: {getItem: (key) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); return value; }, setItem: (key, v) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); value = v; }},
+    localStorage: {getItem: (key) => { if (storageBlocked) throw Error(); if (key === "bambu-tui.browser-notifications.v1") return legacy; assert.equal(key, "com.suitepotato.bambustand.browser-notifications.v1"); return value; }, setItem: (key, v) => { assert.equal(key, "com.suitepotato.bambustand.browser-notifications.v1"); if (storageBlocked) throw Error(); value = v; }, removeItem: (key) => { assert.equal(key, "bambu-tui.browser-notifications.v1"); legacy = null; }},
     Date: Clock, AbortSignal,
     fetch: async (url, options) => {
       requests.push({url, options});
@@ -37,7 +37,7 @@ function browser({permission = "default", supported = true, secure = true, store
   return {
     run: (s) => vm.runInContext(s, context), elements, listeners, notices, requests,
     click: (id) => elements.get("#" + id).onclick(),
-    requested: () => requested,
+    requested: () => requested, saved: () => value, legacy: () => legacy,
     status: () => elements.get("#notification-status").textContent,
     setResponse: (r) => response = r,
     setFetchWait: (p) => fetchWait = p,
@@ -182,7 +182,7 @@ test("constructor and asynchronous submission errors remain visible", async () =
 
 test("Disable propagates across tabs; permission revocation stops automatic claims", async () => {
   const b = browser({permission: "granted", stored: true});
-  b.listeners.storage({key: "bambu-tui.browser-notifications.v1", newValue: "off"});
+  b.listeners.storage({key: "com.suitepotato.bambustand.browser-notifications.v1", newValue: "off"});
   assert.equal(b.run("browserNotifications.enabled()"), false);
   await b.click("enable-notifications");
   await b.click("disable-notifications");
@@ -220,7 +220,6 @@ test("disable and re-enable during an in-flight claim discards the old generatio
   assert.equal(JSON.parse(b.requests.at(-1).options.body).baseline, true);
 });
 
-
 test("capacity warning stays visible alongside successful submissions and clears on recovery", async () => {
  const b=browser({permission:"granted",stored:true});
  await b.run("browserNotifications.poll()");
@@ -233,4 +232,20 @@ test("capacity warning stays visible alongside successful submissions and clears
  b.setResponse({cursor:3,events:[]});
  await b.run("browserNotifications.poll()");
  assert.doesNotMatch(b.status(),/near limit/);
+});
+
+test("legacy notification preference migrates without requesting permission or replaying events", async () => {
+  const b = browser({permission: "granted", legacy: "on"});
+  assert.equal(b.saved(), "on");
+  assert.equal(b.legacy(), null);
+  assert.equal(b.requested(), 0);
+  b.setResponse({cursor: 9, events: []});
+  await b.run("browserNotifications.poll()");
+  assert.equal(JSON.parse(b.requests.at(-1).options.body).baseline, true);
+  assert.equal(b.notices.length, 0);
+  const newer = browser({permission: "granted", legacy: "on", canonical: "off"});
+  assert.equal(newer.run("browserNotifications.enabled()"), false);
+  const blocked = browser({permission: "granted", legacy: "on", storageBlocked: true});
+  assert.equal(blocked.run("browserNotifications.enabled()"), false);
+  assert.match(blocked.status(), /storage unavailable/);
 });

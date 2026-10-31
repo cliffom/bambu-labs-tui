@@ -16,6 +16,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/term"
 	"github.com/cliffom/bambustand/internal/accountstore"
+	"github.com/cliffom/bambustand/internal/appidentity"
 	"github.com/cliffom/bambustand/internal/buildinfo"
 	"github.com/cliffom/bambustand/internal/cloud"
 	"github.com/cliffom/bambustand/internal/config"
@@ -61,7 +62,7 @@ func run(args []string) error {
 	sound := flags.Bool("sound", false, "doctor --notify: request a notification sound")
 	consumeUnfinished := flags.Bool("consume-unfinished", false, "compact-notifications: consume all retained unfinished completions")
 	flags.Usage = func() {
-		_, _ = fmt.Fprint(flags.Output(), "Usage: bambustand [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambustand --demo --theme gruvbox-dark\n  bambustand serve\n  bambustand serve --demo --config ./config.toml\n  bambustand --theme ./my-theme.json\n  bambustand login\n  bambustand login --email-code\n  bambustand login --token --session\n  bambustand doctor\n  bambustand\n\nInteractive launch: a missing saved session starts email-code login, then opens the dashboard.\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
+		_, _ = fmt.Fprint(flags.Output(), "Usage: bambustand [login|logout|doctor|serve|compact-notifications] [options]\n\nExamples:\n  bambustand --demo --theme gruvbox-dark\n  bambustand serve\n  bambustand serve --demo --config ./config.toml\n  bambustand --theme ./my-theme.json\n  bambustand login\n  bambustand login --email-code\n  bambustand login --token --session\n  bambustand doctor\n  bambustand\n\nUpgrade: stop older hosts first; storage migrates to com.suitepotato.bambustand. Reauthorize macOS notifications with doctor --notify.\n\nInteractive launch: a missing saved session starts email-code login, then opens the dashboard.\n\ncompact-notifications: stop account hosts first; consumes unfinished completion tracking while preserving prior attempts.\n\n")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -121,6 +122,11 @@ func run(args []string) error {
 	defer cancel()
 	if command == commandDoctor && *notify {
 		return notificationDoctor(ctx, os.Stdout, *sound, notifications.Test)
+	}
+	if !*demo {
+		if err := appidentity.MigrateCache(); err != nil {
+			return err
+		}
 	}
 	cfg, err := config.Load(*configPath)
 	if err != nil {

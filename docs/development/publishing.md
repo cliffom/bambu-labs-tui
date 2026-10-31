@@ -32,6 +32,8 @@ From v0.5.0, asset names use `bambustand_v<VERSION>_macos_<arm64|amd64>.tar.gz` 
 
 The tag workflow uses the patched Go version in `go.mod`, verifies the version, scans known vulnerabilities with the pinned scanner, runs race tests and vet, builds macOS/Linux archives for arm64/amd64, and includes dependency licenses. Actions are pinned to commit SHAs and checkout does not persist credentials. The build job runs on macOS with read-only repository permissions and uploads the archives, checksums, and changelog as a one-day artifact. A separate publishing job downloads that artifact and uses repository write permission only to create a **draft** GitHub release with SHA-256 checksums. Build metadata includes the source commit and UTC build date; builds without Git metadata report `unknown` for the commit.
 
+The canonical CLI signing identifier is `com.suitepotato.bambustand`; the helper bundle, signing, and runtime identifier is `com.suitepotato.bambustand.notify`. Validate all metadata/signature checks together when changing identity. Namespace upgrades require new macOS notification authorization and stopped-host storage migration; see [upgrade instructions](../user/usage.md#upgrading-from-bambu-tui). Local ad-hoc packaging cannot establish clean-machine or OS permission behavior.
+
 ## macOS signing and notarization
 
 Local development helper builds and plain `make release` use an ad-hoc signature. This verifies bundle integrity but does not establish Developer ID trust, notarization, or downloaded-app Gatekeeper acceptance. The tag/manual release workflow requires signing credentials and fails if they are missing; ordinary pull-request/main CI continues producing ad-hoc candidates.

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cliffom/bambustand/internal/appidentity"
 	"github.com/cliffom/bambustand/internal/farm"
 )
 
@@ -46,8 +47,8 @@ func TestExclusiveScopeAndStaleSnapshots(t *testing.T) {
 	for _, scope := range [][2]string{{"china", "synthetic-account"}, {"global", "other-account"}} {
 		openTestStore(t, scope[0], scope[1])
 	}
-	if filepath.Base(filepath.Dir(first.file.Name())) != "sessions" || filepath.Base(filepath.Dir(filepath.Dir(first.file.Name()))) != "bambu-tui" {
-		t.Fatal("account ownership moved from the original namespace", first.file.Name())
+	if filepath.Base(filepath.Dir(first.file.Name())) != "sessions" || filepath.Base(filepath.Dir(filepath.Dir(first.file.Name()))) != "com.suitepotato.bambustand" {
+		t.Fatal("unexpected account namespace", first.file.Name())
 	}
 	info, err := first.file.Stat()
 	if err != nil || info.Mode().Perm() != 0o600 || info.Size() != 0 {
@@ -102,11 +103,23 @@ func TestExclusiveScopeAndStaleSnapshots(t *testing.T) {
 func TestCloseRetainsOwnershipUntilActiveWriteFinishes(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	base, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(base, appidentity.LegacyDirectory), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	first := openTestStore(t, "global", "synthetic-account")
 	entered, finish, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
 	go func() { done <- first.write(func() error { close(entered); <-finish; return nil }) }()
 	<-entered
+	legacyPath := first.legacyLocks[0].Name()
 	first.Close() // Must not wait for the blocked write.
+	if lock, err := appidentity.Lock(legacyPath); err == nil {
+		_ = lock.Close()
+		t.Fatal("legacy lease released during active write")
+	}
 	if next, err := Open("global", "synthetic-account"); !errors.Is(err, ErrBusy) {
 		if next != nil {
 			next.Close()
@@ -120,6 +133,11 @@ func TestCloseRetainsOwnershipUntilActiveWriteFinishes(t *testing.T) {
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
+	lock, err := appidentity.Lock(legacyPath)
+	if err != nil {
+		t.Fatal("legacy lease retained after write", err)
+	}
+	_ = lock.Close()
 	openTestStore(t, "global", "synthetic-account")
 }
 
@@ -235,10 +253,10 @@ func TestOwnershipAccessFailureIsSanitizedAndStopsStartup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(dir, "bambu-tui"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(dir, "com.suitepotato.bambustand"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "bambu-tui", "sessions"), nil, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "com.suitepotato.bambustand", "sessions"), nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	store, err := Open("global", "private-synthetic-account")

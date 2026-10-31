@@ -43,6 +43,8 @@ func TestPTYHelperProcess(t *testing.T) {
 	}
 	var err error
 	switch mode {
+	case "login-success", "login-save-failure", "login-existing", "login-unavailable", "login-cancel", "login-rejected", "login-request-failure", "login-account-failure":
+		err = runLoginPTYFixture(t, mode)
 	case "demo", "demo-color", "demo-ansi256":
 		args := []string{"--demo", "--config", os.Getenv("BAMBU_STAND_PTY_CONFIG")}
 		if theme := os.Getenv("BAMBU_STAND_PTY_THEME"); theme != "" {
@@ -97,6 +99,9 @@ func TestPTYHelperProcess(t *testing.T) {
 		err = finishDashboard(ctx, cancel, done, err)
 	default:
 		t.Fatalf("unknown PTY helper mode %q", mode)
+	}
+	if t.Failed() {
+		t.FailNow()
 	}
 	code := 0
 	if err != nil {
@@ -311,6 +316,9 @@ func startPTYChildWithTheme(t *testing.T, mode, configPath, theme string) *ptyCh
 			}
 		}
 	}()
+	if strings.HasPrefix(mode, "login-") {
+		return child
+	}
 	if strings.HasPrefix(mode, "serve-") {
 		if mode != "serve-occupied" {
 			child.expect(t, 0, "BambuStand / serve")
@@ -435,8 +443,11 @@ func (p *ptyChild) exited(t *testing.T, code int) {
 		t.Fatal("PTY output did not drain after exit")
 	}
 	output, _ := p.transcript()
-	serveMode, occupied := false, false
+	serveMode, occupied, loginMode := false, false, false
 	for _, env := range p.cmd.Env {
+		if strings.HasPrefix(env, "BAMBU_STAND_PTY_CHILD=login-") {
+			loginMode = true
+		}
 		if strings.HasPrefix(env, "BAMBU_STAND_PTY_CHILD=serve-") {
 			serveMode = true
 		}
@@ -450,7 +461,7 @@ func (p *ptyChild) exited(t *testing.T, code int) {
 		{"\x1b[?2004h", "\x1b[?2004l"}, // bracketed paste
 	} {
 		// Serve retains canonical input and never enables bracketed paste.
-		if occupied || (serveMode && pair[0] == "\x1b[?2004h") {
+		if occupied || (serveMode && pair[0] == "\x1b[?2004h") || (loginMode && !bytes.Contains(output, []byte(pair[0]))) {
 			continue
 		}
 		start, end := []byte(pair[0]), []byte(pair[1])

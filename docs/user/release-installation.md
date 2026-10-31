@@ -11,11 +11,10 @@ Compare `shasum -a 256 <archive.tar.gz>` (or `sha256sum` on Linux) with the matc
 ```sh
 ./bambustand --version
 ./bambustand --demo
-./bambustand login --email-code
 ./bambustand
 ```
 
-The demo needs no account or printer. For login, enter the email bound to your Bambu account and the emailed code. Press `?` for dashboard controls and `q` to quit.
+The demo needs no account or printer. On the first interactive launch without a saved session, enter the email bound to your Bambu account and the emailed code. The app saves the validated session and opens the dashboard; later launches reuse it. If saving fails, it explains the failure and continues for this session. Use `./bambustand login --email-code` to save a login separately. Press `?` for dashboard controls and `q` to quit.
 
 For a browser demo without a terminal UI, run `./bambustand serve --demo` (optionally `--config ./config.toml`) and open the printed localhost URL. Stop with `Ctrl+C`. It uses synthetic data and session-only notice decisions; native notifications are disabled. For real printers, save a login and run `./bambustand serve` or keep the TUI running. See [demo server guidance](https://github.com/cliffom/bambustand/blob/main/docs/user/usage.md#terminal-free-demo-server).
 

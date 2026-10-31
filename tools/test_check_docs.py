@@ -18,8 +18,21 @@ spec.loader.exec_module(docs)
 
 class DocumentationChecks(unittest.TestCase):
     def setUp(self):
-        names = docs.ROOT_MARKDOWN | docs.DOCS_ROOT | docs.DIRECTION | {docs.RELEASE_README}
+        names = docs.ROOT_MARKDOWN | docs.DOCS_ROOT | docs.DIRECTION | {docs.RELEASE_README, docs.VALIDATION}
         self.documents = {n: "# Guide\n" for n in names}
+        self.documents["docs/CHANGELOG.md"] += "\n## 1.0.0 — Initial release\n\n- Add monitoring.\n"
+        self.documents[docs.VALIDATION] += """
+## Monitor startup (#1)
+
+- **Scope:** 2026-10-31; v1.0.0 working tree based on abc123.
+- **Method:** Synthetic reports in a local PTY at 60 × 18.
+- **Result:** Startup and resize assertions passed; capture not archived.
+- **Limits:** No hardware or physical-terminal inspection.
+
+## Remaining live checks
+
+- [ ] Observe a real printer (#1).
+"""
         self.documents["docs/README.md"] += "".join(
             f"\n[Guide]({n.removeprefix('docs/')})" for n in sorted(names) if n.startswith("docs/") and n != "docs/README.md"
         )
@@ -86,6 +99,75 @@ class DocumentationChecks(unittest.TestCase):
     def test_local_link_cannot_escape_repository(self):
         self.documents["README.md"] += "\n[Outside](../outside.md)\n[Absolute](/etc/hosts)\n"
         self.assertEqual(sum("relative link within" in e for e in docs.validate(self.tree())), 2)
+
+    def test_evidence_requires_complete_ordered_nonempty_fields(self):
+        original = self.documents[docs.VALIDATION]
+        for replacement in (
+            "",  # Omitted result.
+            "- **Result:**\n",  # Empty result.
+            "- **Limits:** No hardware.\n- **Result:** Passed.\n",  # Out of order/duplicate limit.
+            "```md\n- **Result:** Passed.\n```\n",  # Example is not evidence.
+        ):
+            with self.subTest(replacement=replacement):
+                self.documents[docs.VALIDATION] = original.replace(
+                    "- **Result:** Startup and resize assertions passed; capture not archived.\n", replacement
+                )
+                self.assertTrue(any("fields in order" in e for e in docs.validate(self.tree())))
+
+    def test_new_unstructured_entry_cannot_reuse_previous_evidence_fields(self):
+        original = self.documents[docs.VALIDATION]
+        for heading in ("## Another check", "  ## Another check ##"):
+            with self.subTest(heading=heading):
+                self.documents[docs.VALIDATION] = original + f"\n{heading}\n\nEverything passed.\n"
+                errors = docs.validate(self.tree())
+                self.assertTrue(any("Another check: require nonempty" in e for e in errors))
+
+    def test_subheadings_keep_evidence_scope_and_examples_do_not_create_entries(self):
+        self.documents[docs.VALIDATION] += """
+```md
+## Example
+- [ ] Example only.
+```
+"""
+        self.documents[docs.VALIDATION] = self.documents[docs.VALIDATION].replace(
+            "## Remaining live checks", "### Retained capture\n\nNo raw telemetry retained.\n\n## Remaining live checks"
+        )
+        self.assertEqual(docs.validate(self.tree()), [])
+
+    def test_outstanding_checks_have_one_home(self):
+        original = self.documents[docs.VALIDATION]
+        for text in (
+            original.replace("## Remaining live checks", "## Other checks"),
+            original + "\n## Remaining live checks\n\n- [ ] Duplicate task.\n",
+            original.replace("## Monitor startup", "- [ ] Preamble task.\n\n## Monitor startup"),
+            original.replace("- **Limits:**", "- [x] Historical task.\n- **Limits:**"),
+        ):
+            with self.subTest(text=text):
+                self.documents[docs.VALIDATION] = text
+                self.assertTrue(any("Remaining live checks" in e for e in docs.validate(self.tree())))
+
+    def test_changelog_release_headings_are_unique_and_versioned(self):
+        for heading in ("## 1.0.0 — Repeated", "## Test diary", "## Unreleased\n\n## Unreleased"):
+            with self.subTest(heading=heading):
+                self.documents["docs/CHANGELOG.md"] = "# Changelog\n\n## 1.0.0 — First\n\n" + heading + "\n"
+                self.assertTrue(any("release heading" in e for e in docs.validate(self.tree())))
+        self.documents["docs/CHANGELOG.md"] = "# Changelog\n\n## Unreleased\n\n## 1.1.0-rc.1 — Candidate\n\n## 1.0.0\n"
+        self.assertEqual(docs.validate(self.tree()), [])
+
+    def test_roadmap_rejects_release_history_but_allows_current_version_in_prose(self):
+        self.documents["docs/ROADMAP.md"] += "\nCurrent baseline: v1.0.0. See the changelog.\n"
+        self.assertEqual(docs.validate(self.tree()), [])
+        self.documents["docs/ROADMAP.md"] += "\n## v1.0.0 — Delivered work\n"
+        self.assertTrue(any("release history belongs" in e for e in docs.validate(self.tree())))
+
+    def test_changelog_and_roadmap_cannot_duplicate_validation_tasks(self):
+        for name in ("docs/CHANGELOG.md", "docs/ROADMAP.md"):
+            for marker in ("- [ ]", "* [x]", "1. [ ]", "2) [X]"):
+                with self.subTest(name=name, marker=marker):
+                    original = self.documents[name]
+                    self.documents[name] += f"\n{marker} Test notifications.\n"
+                    self.assertTrue(any("keep validation checkboxes" in e for e in docs.validate(self.tree())))
+                    self.documents[name] = original
 
     def test_git_inventory_includes_new_hidden_markdown_but_ignores_builds(self):
         with tempfile.TemporaryDirectory() as tmp:

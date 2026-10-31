@@ -100,7 +100,7 @@ func TestPTYHelperProcess(t *testing.T) {
 	default:
 		t.Fatalf("unknown PTY helper mode %q", mode)
 	}
-	if t.Failed() {
+	if strings.HasPrefix(mode, "login-") && t.Failed() {
 		t.FailNow()
 	}
 	code := 0

@@ -1,5 +1,7 @@
 # Changelog
 
+Release changes and upgrade notes are recorded below. Names and scope describe each historical release; see [usage](user/usage.md) for current behavior and the [validation record](development/validation.md) for checked revisions, evidence and outstanding limitations.
+
 ## 0.6.0 — Canonical application namespace
 
 - Adopt `com.suitepotato.bambustand` for storage, credential services, browser preferences and CLI signing; use `.notify` for the macOS helper (#162).
@@ -20,7 +22,7 @@
 ## 0.5.2 — Notification helper upgrade guidance
 
 - Clarify that macOS source upgrades from Bambu TUI require `make notify-helper` to create the renamed `Bambu Stand Notify.app`; rebuilding the CLI alone leaves the old helper in place.
-- Record successful synthetic notification delivery after rebuilding the helper. Notification implementation and packaged helper lookup are unchanged.
+- Keep notification implementation and packaged helper lookup unchanged; this release corrects source-upgrade instructions. See [helper validation](development/validation.md#source-notification-helper-after-rename) for the observed delivery result.
 
 ## 0.5.1 — Dependency maintenance
 
@@ -90,12 +92,11 @@ See [job-name display behavior](user/farm-view.md) and [validation evidence and 
 
 ## 0.4.1 — Sustainable notification history and shared session policy
 
-- Keep retired notification job identities in exact, checksummed on-disk archives instead of filling the bounded live ledger with lifetime job history (#105). Preserve replay suppression, conservative identity reuse, and at-most-once attempts across restarts and legacy migration.
-- Show live identity use and near-limit warnings in Notification activity and browser notification status. Add offline `compact-notifications` maintenance for exhausted job tracking; it preserves deduplication and intervention identities while explicitly forfeiting unfinished completions.
-- Give the shared session transport-independent display and local-decision contracts, keep HTTP wire encoding in the web adapter, centralize farm occurrence comparison, and share account persistence initialization/failure policy across terminal and foreground hosts (#106).
-- Preserve local notice decisions, request protections, read-only monitoring, serialized/coalesced persistence, and bounded shutdown. Exact history grows gradually on disk; unreadable/corrupt state still fails closed. Older binaries reject upgraded notification ledgers.
+- Archive retired notification job identities in exact, checksummed files so lifetime history no longer fills the bounded live ledger (#105). Preserve at-most-once attempts, replay suppression and conservative identity reuse across restart/legacy migration; older binaries reject upgraded ledgers.
+- Show live identity use/near-limit warnings in Notification activity and browser status. Add offline `compact-notifications` maintenance, requiring explicit forfeiture of unfinished completions while preserving deduplication, intervention identities and local decisions. History still grows on disk; corrupt/unreadable state fails closed.
+- Move display/local-decision contracts into the shared session, retain HTTP encoding in the web adapter, and share occurrence comparison and account persistence initialization/failure policy across both hosts (#106).
 
-See [history and recovery policy](user/alerts.md#notification-history-and-capacity), [architecture](development/architecture.md#exact-job-history-and-maintenance), and [validation evidence and limits](development/validation.md#notification-history-and-session-boundaries-105-106).
+See [history and recovery](user/alerts.md#notification-history-and-capacity), [architecture](development/architecture.md#exact-job-history-and-maintenance), and [validation](development/validation.md#notification-history-and-session-boundaries-105-106).
 
 ## 0.4.0 — Terminal safety and persistence durability
 
@@ -108,16 +109,14 @@ See [persistence guarantees](user/usage.md#saved-notice-decisions), [architectur
 
 ## 0.3.11 — Retry failed notice and snooze saves
 
-- Add `r retry saves` in Status / Feedback (`Ctrl+E`) for eligible failed notice/snooze writes (#107), with separate saving/saved/failed/session-only status. Recover from transient storage failures without editing existing local decisions.
-- Share retry policy with browser notice-save recovery. Preserve one write per store, latest immutable snapshots, coalescing, failed-load protection, demo isolation, and bounded shutdown; reject delayed completions from earlier attempts of the same revision.
-- Keep notice identities, reviews, snooze deadlines, prompt suppression, and notification attempts unchanged.
+- Add `r retry saves` in Status / Feedback (`Ctrl+E`) for eligible failed notice/snooze writes (#107), with separate saving/saved/failed/session-only status. Share retry policy with browser notice-save recovery.
+- Retry the latest immutable snapshot without altering local decisions, notice identities, snooze deadlines or notification attempts. Protect unreadable stores, serialize/coalesce saves, reject obsolete completions and retain bounded shutdown.
 
-See [save recovery](user/usage.md#saved-notice-decisions) and [validation evidence and limits](development/validation.md#explicit-persistence-retry-107).
+See [save recovery](user/usage.md#saved-notice-decisions) and [validation](development/validation.md#explicit-persistence-retry-107).
 
 ## 0.3.10 — Active printers first
 
 - Preserve browser printer-card column widths when filtering down to one or two results, while retaining responsive single-column layouts.
-
 - Group online non-idle printers before reported idle/finished printers, with offline devices always last in both the TUI and browser dashboard (#116). Apply Name, Attention, State, or Finish sorting within each group, retaining deterministic name/ID ties.
 - Keep unknown/missing states outside confirmed idle and preserve last-known telemetry and explicit device connectivity. Reorder on telemetry/device changes while retaining selection, panel focus, and details scroll; filters and saved preferences continue to apply.
 
@@ -125,22 +124,18 @@ See [sorting behavior](user/farm-view.md#sorting) and [validation evidence and l
 
 ## 0.3.9 — Live TUI Server Status
 
-- Add read-only Server Status on dashboard `W` and in Config > Web Server (#113), with live HTTP/monitoring states, bound URL, separate session/listener uptime, bounded sanitized diagnostics, and persistent storage warnings.
-- Reuse the session-only grouped HTTP client ledger, with active counts, wrapped connect/disconnect history, and visible tracking/history omissions. Client metadata remains outside browser snapshots and persistence.
-- Preserve dashboard/Config state, scrolling, Ctrl+E feedback return paths, attention deferral, below-minimum guards, and ongoing telemetry, lifecycle commands, and saves. Closing inspection leaves the server running; server controls remain in Config.
-- Use the active semantic theme with explicit no-color labels and support minimum 60 × 18 and wide layouts.
-- Fix dashboard printer-image flicker reported in Safari by preserving cards and unchanged images across polling updates (#115), while continuing to update telemetry, ordering, filters, and model/fallback artwork.
+- Add read-only Server Status on dashboard `W` and in Config > Web Server (#113): HTTP/monitoring state, bound URL, separate uptimes, bounded private diagnostics, storage warnings and grouped client history/omissions. Client metadata stays outside browser snapshots and storage.
+- Preserve live updates, nested Config/feedback returns, scrolling and resize guards in the active theme/no-color mode at minimum 60 × 18 and wide sizes. Closing inspection leaves the server running; controls remain in Config.
+- Fix browser printer-image flicker reported in Safari by retaining unchanged cards/images through polling, ordering and filtering while updating telemetry and model/fallback artwork (#115).
 
-See [Server Status controls](user/usage.md#tui-server-status), [Server Status validation](development/validation.md#tui-server-status-113), and [browser image validation and gaps](development/validation.md#browser-printer-image-continuity).
+See [Server Status controls](user/usage.md#tui-server-status), [terminal validation](development/validation.md#tui-server-status-113), and [image-continuity validation](development/validation.md#browser-printer-image-continuity).
 
 ## 0.3.8 — Foreground server status and client activity
 
-- Add a live foreground status display for `serve` and `serve --demo`, with the localhost URL, mode, HTTP/monitoring state, reconnect status, uptime, and bounded sanitized diagnostics (#110).
-- Use the default semantic palette for healthy, warning, and failed states, preserving no-color text, narrow layouts, plain redirected logs, Ctrl+C guidance, and bounded shutdown.
-- Add a session-only HTTP client ledger with timestamps, IPs, and sanitized first-request user agents. Group parallel/replacement sockets by IP/user agent, ignore sockets without requests, and use a five-second disconnect grace to avoid connection noise.
-- Bound client tracking/history, report omissions, and keep client metadata out of browser telemetry and persistent storage. Preserve localhost binding, read-only printer monitoring, notification policy, and saved local decisions.
+- Add foreground status for `serve`/`serve --demo`: localhost URL, mode, HTTP/monitor state, reconnect, uptime and bounded private diagnostics (#110). Use semantic colors with no-color/plain output, narrow layouts, Ctrl+C guidance and bounded shutdown.
+- Add a bounded session-only HTTP client history/count grouped by socket IP and sanitized first-request User-Agent, ignoring unused sockets and applying five-second disconnect grace. Report omissions and exclude client metadata from browser snapshots/storage.
 
-See [foreground server status](user/usage.md#foreground-server-status) and [validation](development/validation.md#foreground-serve-status-110). Client groups are best-effort display identities; browser socket idle timeouts can delay disconnect reporting.
+See [foreground status](user/usage.md#foreground-server-status) and [validation](development/validation.md#foreground-serve-status-110). Groups are best-effort display identities, not tab counts; browser socket timeouts can delay disconnect reporting.
 
 ## 0.3.7 — Opt-in browser system notifications
 
@@ -260,11 +255,13 @@ See the [validation record](development/validation.md#local-web-dashboard-88--sy
 
 ## 0.2.3 — Notification activity
 
-- Add a keyboard-accessible Notification activity view (`N`) with the last 100 session decisions, stable selection, incident/channel/outcome/reason details, repeat coalescing, and grouped-request membership. Explain reviews, preferences, snoozes, prior attempts, completion baselines, native failures, and storage pauses. Keep macOS acceptance separate from confirmed presentation and preserve accepted outcomes when saving their result fails. Activity is memory-only and does not change delivery identities or retry policy.
+- Add Notification activity on `N`, retaining the last 100 session decisions with stable selection, coalesced repeats, incident/channel/outcome/reason detail and grouped-request membership.
+- Explain policy/review/snooze suppression, prior attempts, completion baselines, native failures and storage pauses. Preserve accepted outcomes if result saving fails; activity is memory-only and changes neither delivery identity nor retry policy. macOS acceptance remains distinct from visible presentation.
 
 ## 0.2.2 — Complete configuration controls
 
-- Expand Config into General, Alerts, and Printers sections with all TOML settings, a validated percentage editor, all nine global alert defaults, and per-printer On/Off/Inherit/effective-value controls plus confirmed reset. Apply alert/threshold edits immediately and save region edits for restart/login. Merge edited fields into valid TOML asynchronously while preserving untouched settings, private atomic writes, silent success, and red failures. Keep Test Notification and footer feedback.
+- Expand Config into General, Alerts and Printers: all TOML settings, percentage validation, nine global alert defaults, per-printer On/Off/Inherit/effective values and confirmed reset.
+- Apply alert/threshold edits immediately; region edits require restart/login. Merge fields asynchronously into valid TOML, preserving untouched settings and private atomic writes. Save success is silent; persistent red failures offer retry. Retain Test Notification/footer feedback.
 
 ## 0.2.1 — Leaner release downloads
 
@@ -272,15 +269,14 @@ See the [validation record](development/validation.md#local-web-dashboard-88--sy
 
 ## 0.2.0 — macOS desktop notifications
 
-- Add opt-in macOS desktop notifications for intervention-required incidents and telemetry-confirmed print completion while the TUI session is running. Show the triggering printer name and Bambu TUI logo, and group co-reported intervention notices into one notification per printer.
-- Add Config (`,`) with immediate desktop notification, sound, and completion toggles saved to the active configuration file. Preserve printer overrides and unrelated settings; save silently and show persistent red failures with retry controls.
-- Add Test Notification in Config and `doctor --notify [--sound]` for explicit, repeatable tests without an account or printer. Request macOS permission explicitly and show delivery acceptance separately from visible banners or sound. Config test feedback appears after helper text, dims, and expires.
-- Honor global/per-printer categories, saved notice reviews, and snoozes. Persist account-scoped incident/job identities and delivery reservations to avoid repeat attempts after reconnect or restart; unknown telemetry preserves identity and ambiguous job IDs suppress completion.
-- Keep monitoring responsive with delivery outside the UI reducer, current-policy checks, cancellation of stale requests, and bounded shutdown. Show delivery failures and session activity; no background service or future notification schedule is installed.
-- Include a universal notification helper in macOS release archives. Developer ID-sign and notarize both macOS CLIs and the helper, staple the helper ticket, and verify extracted archives. Source checkouts build the helper separately with `make notify-helper`; local development and ordinary PR/main CI use ad-hoc candidates.
-- Sign and notarize tag/manual release builds using repository secrets and a temporary runner Keychain, with credential cleanup and no unsigned fallback. Manual runs produce verified artifacts without creating a release; version-tag runs prepare a draft for review. Forward `RUN_ARGS` through `make demo` for synthetic testing with a custom config.
+- Add opt-in macOS intervention and telemetry-confirmed completion notifications while the TUI runs, with printer-name titles, Bambu TUI branding and one grouped request per printer for co-reported interventions.
+- Add Config (`,`) for immediate desktop/sound/completion settings, preserving overrides/unrelated values through asynchronous saves. Save success is silent; failures remain visible with retry. Config test feedback dims/expires.
+- Add repeatable Config Test Notification and `doctor --notify [--sound]` without an account/printer. Request permission explicitly and distinguish native acceptance from visible/audible delivery.
+- Honor categories, reviews and snoozes; persist account-scoped incident/job reservations across restart/reconnect. Ambiguous job IDs suppress completion. Deliver outside the reducer with current-policy checks, cancellation, session activity/failures and bounded shutdown.
+- Bundle a universal macOS helper; source users build it with `make notify-helper`. Tag/manual builds Developer ID-sign/notarize both CLIs/helper, staple the helper ticket and verify extracted archives. Ordinary PR/main CI and local development use ad-hoc candidates.
+- Require signing secrets in a temporary runner Keychain with cleanup and no unsigned fallback. Manual runs produce artifacts; version tags prepare a draft. Forward `RUN_ARGS` through `make demo` for custom synthetic config.
 
-Desktop notifications require a local macOS desktop and an active TUI session. Linux cloud monitoring remains supported; Linux, SSH, and headless desktop notification delivery are unsupported. See the [validation record](development/validation.md) for observed results and remaining clean-Mac, Intel-runtime, and real-printer checks.
+Delivery requires an active TUI on a local macOS desktop; no background service or future schedule is installed. Linux monitoring remains supported, while Linux/SSH/headless native delivery is unsupported. See [validation](development/validation.md#remaining-live-checks) for outstanding clean-Mac, Intel and real-printer checks.
 
 ## 0.1.15 — Clearer footer navigation
 
@@ -312,7 +308,6 @@ Desktop notifications require a local macOS desktop and an active TUI session. L
 ## 0.1.10 — Restore navigation after clearing notices
 
 - Return focus to Printers after `X` clears the Notices panel or finds it already empty, so arrow keys and `j/k` immediately navigate printers. Keep focus in Notices when newer entries remain.
-
 - Replace numeric dashboard panel indexes with typed constants throughout focus handling, Tab cycling, rendering, and tests.
 
 ## 0.1.9 — Clear all notices
@@ -365,7 +360,7 @@ Desktop notifications require a local macOS desktop and an active TUI session. L
 
 - Show `BAMBU TUI vX.Y.Z / CLOUD STATUS / FARM` in the dashboard header and the running version in dialog headings; shorten the clock on compact terminals to preserve version and connection visibility.
 - Add explicit local diagnostic export (`D`, then confirmation) for one aliased printer. Include classified telemetry/types, bounded sanitized partial reports, version/platform/model/firmware metadata, link state, and fault codes; omit unknown fields and private/free-form data. Write private exclusive files without uploading.
-- Add adversarial/fuzz, synthetic-fixture replay, file/error, confirmation, selection, and modal tests. Document export scope and a v0.1.0 readiness assessment: the planned feature scope is complete; unperformed live operational checks remain explicitly unverified in the validation record.
+- Add adversarial/fuzz, synthetic replay, file/error, confirmation, selection and modal coverage for diagnostic exports. Planned feature scope is complete; live operational verification remains separately tracked in the [validation record](development/validation.md#remaining-live-checks).
 
 ## 0.0.10 — Farm overview and navigation
 
@@ -397,7 +392,7 @@ Desktop notifications require a local macOS desktop and an active TUI session. L
 
 - Display the installed printer OTA firmware and reported update status in aligned printer details. Distinguish current, offered update, unknown, and last-known assessments without confusing AMS/controller versions with printer firmware.
 - Query firmware through read-only `info.get_version` requests on connection, device discovery, and manual refresh. Preserve print telemetry freshness separately and add synthetic firmware examples to demo mode.
-- Record user-confirmed displayed telemetry validation on H2D and X2D. Live firmware reporting and operational restart/reconnect/notice checks remain open.
+- Document user-reported H2D/X2D displayed telemetry observations; [validation](development/validation.md#v005--user-reported-live-validation) separately records their scope and remaining firmware/operational checks.
 
 ## 0.0.5 — Clearer printer details
 
@@ -443,6 +438,6 @@ Resolution and recurrence while the application is closed cannot be distinguishe
 
 ### Validation and limitations
 
-Live email-code login and printer telemetry have been observed in a user-provided screenshot. Local race tests and build checks use synthetic telemetry and fake services. A complete live smoke test is recorded separately in [validation record](development/validation.md).
+Live email-code login and printer telemetry have been observed in a user-provided screenshot. Local race tests and build checks use synthetic telemetry and fake services. Observed results and the incomplete live smoke-test checklist are recorded separately in the [validation record](development/validation.md).
 
 Direct Google OAuth, LAN connections, printer control, and persistent event history are outside this release. HMS descriptions cover a curated subset; unknown codes remain visible with their code and troubleshooting link. Dismissal only hides conditions in the current TUI session.

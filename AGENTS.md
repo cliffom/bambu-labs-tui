@@ -8,6 +8,8 @@ Before making changes, read [UI direction](docs/development/ui-direction.md) for
 
 Run `make docs-check` for every PR. For UI changes, extend relevant interaction tests, perform the applicable demo/layout inspection, and report the sizes/states actually checked and any gaps. See the direction guides for the review criteria.
 
+Follow [historical record and planning rules](docs/development/documentation-direction.md#historical-records-and-planning): changelog owns release changes, validation owns scoped evidence and its single outstanding-check list, and roadmap owns current priorities. Validation entries require Scope, Method, Result and Limits; preserve revision/environment boundaries, material failures, attribution and evidence links when consolidating. Keep conversational development narratives and repeated release history out of these ledgers. Report documentation-only checks in the PR without creating a product-validation entry or version bump.
+
 ## Development
 
 Use Go 1.27.3 or newer, Git, and Make. Run commands from the repository root. Start with [contributing](docs/development/contributing.md) for tool versions and setup.

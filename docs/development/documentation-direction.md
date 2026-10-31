@@ -14,7 +14,7 @@ Keep documentation useful for people discovering, using, and maintaining the cur
 | `docs/user/` | Current controls, configuration, behavior, and troubleshooting |
 | `docs/development/` | Contributor setup, architecture, UI/documentation direction, testing, validation, and publishing |
 | `docs/reference/` | Protocol evidence and branding asset guidance |
-| `docs/ROADMAP.md` | Delivered baseline, open priorities, milestone intent, and issue links |
+| `docs/ROADMAP.md` | Short current baseline, open priorities, milestone intent, and issue links |
 | `docs/CHANGELOG.md` | Release history |
 
 Only root `README.md` and `AGENTS.md` may be Markdown files outside `docs/`, including in hidden directories. Keep the root of `docs/` limited to its index, roadmap, and changelog; put detailed material in a topic directory. Add each document to the index and link new policy from `AGENTS.md` when agents need it. Prefer updating an existing authoritative document to adding a parallel explanation. Other guides should summarize and link rather than duplicate full procedures or behavior tables.
@@ -44,11 +44,44 @@ Documentation and current screenshots are part of a UI or operator-visible behav
 
 In the PR description, identify the README/guides/help reviewed, link updated screenshots or show representative captures, and report the capture command and actual sizes/states/themes inspected. When a document or screenshot is unchanged, explain specifically why the changed behavior is not depicted or why the existing depiction remains accurate. Do not regenerate unrelated images for timestamp-only churn or claim that successful tests establish documentation or visual accuracy. A docs-only policy edit may leave product screenshots unchanged when it changes no depicted behavior.
 
-Preserve historical release facts in the changelog. Keep completed work out of the roadmap's next-work queue and verify issue status when refreshing priorities. Do not create version-specific readiness/checklist documents; put ongoing operational checks and actual evidence in the validation record. Keep unperformed checks unchecked. Synthetic tests, demo runs, issue closure, and release publication do not count as hardware validation. Never add private telemetry or credentials to documentation.
+Use the ledger rules below for historical results, release facts and outstanding work. Synthetic tests, demo runs, issue closure, and release publication do not count as hardware validation. Never add private telemetry or credentials to documentation.
+
+## Historical records and planning
+
+Keep each statement with its owner: the changelog records release changes, validation records checks and their limits, and the roadmap records current priorities. Link between them instead of repeating release narratives, test procedures or outstanding checklists. Put reusable procedures in contributor/testing guides, current interaction contracts in UI direction/user guides, and detailed implementation discussion in issues/PRs.
+
+Consolidate repeated checks for one change when their revision, environment and evidence type match. Keep materially different environments or revisions separately scoped, even within one entry. Remove conversational sequencing and superseded wording choices that add no evidence. Preserve failures, regressions and superseded results when they explain a limitation or changed conclusion. Do not turn an earlier pass into a claim about the current release. Retain source attribution, historical names, evidence links and important compatibility facts; fix inbound links when moving evidence. Link the prior source revision when substantially condensing a historical record so the original observations remain traceable.
+
+### Validation record
+
+Every level-two evidence entry in `validation.md` uses these four nonempty fields, in order. Related subheadings may add detail but must stay within the stated scope; separately identify their revision/environment if different.
+
+| Field | Required content |
+| --- | --- |
+| **Scope** | Check date, feature/behavior, version and commit/base revision; identify uncommitted changes. State unavailable historical metadata instead of inventing it. |
+| **Method** | Evidence type (automated, synthetic render/browser/PTY, native OS, or user-reported hardware), exact known environment/tool versions, commands or procedure, fixtures, sizes/states/themes actually checked. |
+| **Result** | Concrete observations, failures and outcomes; link CI runs, retained captures or other sanitized artifacts where available. Distinguish assertions from visual observations and user reports. |
+| **Limits** | What this check cannot establish, unavailable combinations, and any follow-up link. A successful local command is not hardware, distribution or presentation evidence. |
+
+A local pass report is not a retained log. Identify temporary/unarchived evidence and missing metadata honestly. Visual inspection is an observer's assessment; name the capture, conditions and criteria rather than treating it as objective proof. State notification acceptance, visible presentation and audible delivery separately. Record exact checks actually run; do not paste the entire standard check list when only a subset ran.
+
+Maintain all outstanding validation in `## Remaining live checks`, grouped by tracking issue. Checkboxes belong only there; historical entries keep their original limitations and link to that section rather than carrying competing task lists. Completing a check requires a scoped result entry, not just a checked box. An unavailable scenario stays unchecked with a reason or explicit disposition. Do not add version-specific readiness/checklist documents. A documentation-only edit needs no new product-validation entry unless it supplies new evidence or changes an existing conclusion; report its checks in the PR.
+
+### Changelog
+
+Use one level-two heading per release version (or one `Unreleased` heading for pending changes). Lead with the changed behavior and any upgrade action, compatibility boundary or known limitation. Preserve historical release facts and names, including scope that later releases expanded. Consolidate repeated invariants and implementation detail where meaning survives; link user/architecture guides for current contracts. Keep commands/results from validation and future task lists out of release notes. Do not add a release or version bump solely to record documentation cleanup.
+
+### Roadmap
+
+Keep a short current delivered baseline followed by outstanding outcomes, linked issues/milestones and completion criteria. Verify issue states/assignments when refreshing priorities and record the check date. Distinguish design proposals from adopted implementation and foreground processes from installed services. Omit release-by-release headings and completed feature narratives; link the changelog for history. Link the maintained validation checklist instead of duplicating it. Do not silently remove deferred work or imply that issue closure proves validation.
+
+### Review requirements
+
+For ledger changes, report in the PR which source revision/issue states were reviewed, which facts or evidence were consolidated, whether any conclusion changed, and how retained links/limitations were checked. Reviewers must assess traceability, accuracy and ownership in addition to automated checks.
 
 ## Verifiable rules
 
-Run `make docs-check` for every PR. It uses Python 3.10+ and the standard library, with no network access, and runs in the Formatting and lint workflow. It checks the Git inventory (including untracked, non-ignored Markdown), placement, required entry points/direction guides, version-specific readiness filenames, local link/image targets and heading anchors, index coverage, and agent links to both direction guides. Use ATX headings (`# Heading`) and standard inline Markdown links/images for local navigation. Reference-link definitions and raw HTML navigation are rejected so links cannot silently bypass verification. External URLs are not fetched; their accuracy and the meaning of the prose require review.
+Run `make docs-check` for every PR. It uses Python 3.10+ and the standard library, with no network access, and runs in the Formatting and lint workflow. It checks the Git inventory (including untracked, non-ignored Markdown), placement, required entry points/direction guides, version-specific readiness filenames, local link/image targets and heading anchors, index coverage, and agent links to both direction guides. Ledger checks require ordered, nonempty validation fields, one outstanding-check section with checkboxes only there, unique release headings in the changelog, and no release-history headings or checkboxes in the roadmap. Use ATX headings (`# Heading`) and standard inline Markdown links/images for local navigation. Reference-link definitions and raw HTML navigation are rejected so links cannot silently bypass verification. External URLs are not fetched; their accuracy and the meaning of the prose require review. Structural checks cannot prove evidence quality, current issue state, factual accuracy or editorial concision.
 
 The checker tests also exercise broken links/anchors, misplaced/orphaned documents, and incomplete or stale archive contents. `make release` runs the same checks before packaging and validates the documentation bytes and local navigation in every generated archive. Binary archives contain `docs/user/release-installation.md` renamed to `README.md`, the configuration example, and consolidated `THIRD_PARTY_NOTICES.txt`, rather than the repository documentation tree or artwork. Archive checks verify that this guide matches its source and its local links resolve; release inventory checks reject unexpected bundled files. Full documentation is linked online. The draft-release workflow reads `docs/CHANGELOG.md`; publishing instructions and tooling must agree on that path.
 
